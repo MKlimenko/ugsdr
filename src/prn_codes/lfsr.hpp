@@ -122,8 +122,9 @@ namespace ugsdr {
 			return Length;
 		}
 
-		std::uint32_t CountSequenceLen() {
-			return sequence_len;
+		[[nodiscard]]
+		std::uint32_t CountSequenceLen() const {
+			return sequence_length;
 		}
 
 		template <typename T>
