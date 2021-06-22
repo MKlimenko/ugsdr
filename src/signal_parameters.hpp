@@ -71,17 +71,28 @@ namespace ugsdr {
 			OpenFile();
 		}
 
-		void GetOneMs(std::size_t ms_offset, OutputVectorType& dst) {
+		void GetSeveralMs(std::size_t ms_offset, std::size_t ms_cnt, OutputVectorType& dst) {
 			const auto samples_per_ms = static_cast<std::size_t>(sampling_rate / 1000);
-			GetPartialSignal(samples_per_ms, samples_per_ms * ms_offset, dst);
+			GetPartialSignal(samples_per_ms * ms_cnt, samples_per_ms * ms_offset, dst);
 		}
 
-		auto GetOneMs(std::size_t ms_offset) {
-			auto dst = OutputVectorType(static_cast<std::size_t>(sampling_rate / 1e3));
-			GetOneMs(ms_offset, dst);
+		auto GetSeveralMs(std::size_t ms_offset, std::size_t ms_cnt) {
+			auto dst = OutputVectorType(ms_cnt * static_cast<std::size_t>(sampling_rate / 1e3));
+			GetSeveralMs(ms_offset, ms_cnt, dst);
 			return dst;
 		}
 
+		void GetOneMs(std::size_t ms_offset, OutputVectorType& dst) {
+			GetSeveralMs(ms_offset, 1, dst);
+		}
+
+		auto GetOneMs(std::size_t ms_offset) {
+			return GetSeveralMs(ms_offset, 1);
+		}
+
+		auto GetCentralFrequency() const {
+			return central_frequency;
+		}
 	};
 
 	using SignalParameters = SignalParametersBase<std::int8_t>;

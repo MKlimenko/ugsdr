@@ -6,6 +6,7 @@ add_executable (${PROJECT_NAME}
 							main.cpp
 							common.hpp
 							signal_parameters.hpp
-)
+							acquisition/acquisition_parameters.hpp 
+							acquisition/acquisition_result.hpp)
 
-set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 17)
+set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 20)
