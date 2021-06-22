@@ -13,7 +13,7 @@ int main() {
 	auto data_fp32 = signal_parameters_fp32.GetOneMs(0);
 
 	auto acquisition_parameters = ugsdr::AccquisitionParametersBase<float>(signal_parameters_fp32, 5e3, 200);
-	acquisition_parameters.Process(0);
+	auto acquisition_results = acquisition_parameters.Process(0);
 	
 	return 0;
 }
