@@ -7,6 +7,7 @@ add_executable (${PROJECT_NAME}
 							common.hpp
 							signal_parameters.hpp
 							acquisition/acquisition_parameters.hpp 
-							acquisition/acquisition_result.hpp)
+							acquisition/acquisition_result.hpp 
+							mixer/mixer.hpp)
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 20)

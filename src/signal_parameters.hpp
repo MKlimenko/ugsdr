@@ -93,6 +93,10 @@ namespace ugsdr {
 		auto GetCentralFrequency() const {
 			return central_frequency;
 		}
+
+		auto GetSamplingRate() const {
+			return sampling_rate;
+		}
 	};
 
 	using SignalParameters = SignalParametersBase<std::int8_t>;

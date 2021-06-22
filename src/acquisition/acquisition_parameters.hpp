@@ -2,6 +2,7 @@
 
 #include "../common.hpp"
 #include "../signal_parameters.hpp"
+#include "mixer/mixer.hpp"
 #include "acquisition_result.hpp"
 
 #include <numeric>
@@ -12,6 +13,8 @@ namespace ugsdr {
 	template <typename UnderlyingType>
 	class AccquisitionParametersBase {
 	private:
+		constexpr static std::size_t ms_to_process = 5;
+		
 		SignalParametersBase<UnderlyingType>& signal_parameters;
 		double doppler_range = 5e3;
 		double doppler_step = 0;
@@ -31,11 +34,14 @@ namespace ugsdr {
 		
 		void ProcessGps(const std::vector<std::complex<UnderlyingType>>& signal, std::vector<AcquisitionResult>& dst) const {
 			auto intermediate_frequency = 1575.42e6 - signal_parameters.GetCentralFrequency();
+			auto translated_signal = Mixer::Translate(signal, signal_parameters.GetSamplingRate(), intermediate_frequency);
+			
 		}
 
 		void ProcessGlonass(const std::vector<std::complex<UnderlyingType>>& signal, std::vector<AcquisitionResult>& dst) const {
 			for (auto& litera_number : gln_sv) {
 				auto intermediate_frequency = 1602e6 + litera_number * 0.5625e6 - signal_parameters.GetCentralFrequency();
+				auto translated_signal = Mixer::Translate(signal, signal_parameters.GetSamplingRate(), intermediate_frequency);
 
 			}
 		}
@@ -50,7 +56,7 @@ namespace ugsdr {
 
 		auto Process(std::size_t ms_offset) const {
 			std::vector<AcquisitionResult> dst;
-			auto signal = signal_parameters.GetSeveralMs(ms_offset, 5);
+			auto signal = signal_parameters.GetSeveralMs(ms_offset, ms_to_process);
 
 			ProcessGps(signal, dst);
 			ProcessGlonass(signal, dst);
