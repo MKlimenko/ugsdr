@@ -12,7 +12,9 @@ add_executable (${PROJECT_NAME}
 							mixer/batch_mixer.hpp
 							mixer/ipp_mixer.hpp
 							prn_codes/lfsr.hpp 
+							prn_codes/codegen.hpp 
 							prn_codes/GpsL1Ca.hpp  
-							prn_codes/GlonassOf.hpp "prn_codes/codegen.hpp")
+							prn_codes/GlonassOf.hpp 
+							math/fft.hpp)
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 20)
