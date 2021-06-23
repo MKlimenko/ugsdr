@@ -2,7 +2,7 @@
 
 #include "../common.hpp"
 #include "../signal_parameters.hpp"
-#include "mixer/mixer.hpp"
+#include "mixer/ipp_mixer.hpp"
 #include "acquisition_result.hpp"
 
 #include <numeric>
@@ -20,6 +20,8 @@ namespace ugsdr {
 		double doppler_step = 0;
 		std::vector<std::int32_t> gps_sv;
 		std::vector<std::int32_t> gln_sv;
+		
+		using MixerType = Mixer<IppMixer>;
 
 		void InitSatellites() {
 			gps_sv.resize(ugsdr::gps_sv_count);
@@ -28,20 +30,20 @@ namespace ugsdr {
 			std::iota(gln_sv.begin(), gln_sv.end(), ugsdr::gln_min_frequency);
 		}
 
-		void ProcessBpsk(const std::vector<std::complex<UnderlyingType>>& translated_signal, std::vector<AcquisitionResult>& dst) const {
+		void ProcessBpsk(const std::vector<std::complex<UnderlyingType>>& translated_signal, std::vector<AcquisitionResult>& dst) {
 			
 		}
 		
-		void ProcessGps(const std::vector<std::complex<UnderlyingType>>& signal, std::vector<AcquisitionResult>& dst) const {
+		void ProcessGps(const std::vector<std::complex<UnderlyingType>>& signal, std::vector<AcquisitionResult>& dst) {
 			auto intermediate_frequency = 1575.42e6 - signal_parameters.GetCentralFrequency();
-			auto translated_signal = Mixer::Translate(signal, signal_parameters.GetSamplingRate(), intermediate_frequency);
+			auto translated_signal = MixerType::Translate(signal, signal_parameters.GetSamplingRate(), intermediate_frequency);
 			
 		}
 
-		void ProcessGlonass(const std::vector<std::complex<UnderlyingType>>& signal, std::vector<AcquisitionResult>& dst) const {
+		void ProcessGlonass(const std::vector<std::complex<UnderlyingType>>& signal, std::vector<AcquisitionResult>& dst) {
 			for (auto& litera_number : gln_sv) {
 				auto intermediate_frequency = 1602e6 + litera_number * 0.5625e6 - signal_parameters.GetCentralFrequency();
-				auto translated_signal = Mixer::Translate(signal, signal_parameters.GetSamplingRate(), intermediate_frequency);
+				auto translated_signal = MixerType::Translate(signal, signal_parameters.GetSamplingRate(), intermediate_frequency);
 
 			}
 		}
@@ -54,7 +56,7 @@ namespace ugsdr {
 			InitSatellites();
 		}
 
-		auto Process(std::size_t ms_offset) const {
+		auto Process(std::size_t ms_offset) {
 			std::vector<AcquisitionResult> dst;
 			auto signal = signal_parameters.GetSeveralMs(ms_offset, ms_to_process);
 

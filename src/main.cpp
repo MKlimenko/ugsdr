@@ -4,7 +4,6 @@
 
 #include "mixer/mixer.hpp"
 
-
 int main() {
 	auto signal_parameters = ugsdr::SignalParameters(R"(D:\Git\ugsdr\data\iq.bin)", ugsdr::FileType::Iq_8_plus_8, 1590e6, 79.5e6 / 2);
 	auto data = signal_parameters.GetOneMs(0);

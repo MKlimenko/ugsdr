@@ -9,6 +9,7 @@ add_executable (${PROJECT_NAME}
 							acquisition/acquisition_parameters.hpp 
 							acquisition/acquisition_result.hpp 
 							mixer/mixer.hpp 
-							prn_codes/lfsr.hpp "prn_codes/GpsL1Ca.hpp")
+							prn_codes/lfsr.hpp 
+							prn_codes/GpsL1Ca.hpp "mixer/batch_mixer.hpp")
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 20)
