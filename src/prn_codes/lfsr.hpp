@@ -25,11 +25,11 @@ namespace ugsdr {
 	public:
 		[[nodiscard]]
 		std::uint32_t Val() const {
-			return val;
+			return value;
 		}
 
 		void Val(std::uint32_t v) {
-			value = v & MASK;
+			value = v & mask;
 		}
 
 		[[nodiscard]]
@@ -69,7 +69,7 @@ namespace ugsdr {
 
 		void ResetPeriod(std::uint32_t reset_period_val) {
 			reset_period = reset_period_val;
-			sequence_length = reset_period ? reset_period : val_mask;
+			sequence_length = reset_period ? reset_period : value_mask;
 		}
 
 		[[nodiscard]] 

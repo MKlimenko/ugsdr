@@ -7,7 +7,6 @@ namespace ugsdr {
 	protected:
 		friend class Mixer<BatchMixer>;
 
-		static inline std::vector<std::complex<double>> c_exp;
 
 		template <typename UnderlyingType>
 		static void Process(std::vector<std::complex<UnderlyingType>>& src_dst, double sampling_freq, double frequency, double phase = 0) {
@@ -16,6 +15,7 @@ namespace ugsdr {
 				scale = std::numeric_limits<UnderlyingType>::max();
 
 			double pi_2 = 8 * std::atan(1.0);
+			thread_local static std::vector<std::complex<double>> c_exp;
 			c_exp.resize(src_dst.size());
 			std::iota(c_exp.begin(), c_exp.end(), 0.0);
 			std::transform(std::execution::par_unseq, c_exp.begin(), c_exp.end(), c_exp.begin(), [=](auto& val) {
