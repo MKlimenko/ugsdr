@@ -18,3 +18,9 @@ add_executable (${PROJECT_NAME}
 							math/fft.hpp)
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 20)
+
+IF (WIN32)
+	target_link_libraries(${PROJECT_NAME} PUBLIC $ENV{SIGNALPLOT64}/lib/signalplot64.lib)
+	target_include_directories(${PROJECT_NAME} PUBLIC $ENV{SIGNALPLOT64}/include)
+	add_definitions(-DHAS_SIGNAL_PLOT)
+ENDIF()

@@ -20,6 +20,14 @@ namespace ugsdr {
 			ippsMul_32fc_I(reinterpret_cast<const Ipp32fc*>(c_exp_fp32.data()), reinterpret_cast<Ipp32fc*>(src_dst_fp32.data()), static_cast<int>(c_exp.size()));
 			ippsConvert_32f8s_Sfs(reinterpret_cast<Ipp32f*>(src_dst_fp32.data()), reinterpret_cast<Ipp8s*>(src_dst.data()), static_cast<int>(src_dst.size() * 2), IppRoundMode::ippRndNear, 8);
 		}
+		static void Multiply(std::vector<std::complex<std::int32_t>>& src_dst, const std::vector<Ipp64fc>& c_exp) {
+			thread_local std::vector<Ipp64fc> src_dst_fp64;
+			src_dst_fp64.resize(src_dst.size());
+			ippsConvert_32s64f(reinterpret_cast<const Ipp32s*>(src_dst.data()), reinterpret_cast<Ipp64f*>(src_dst_fp64.data()), static_cast<int>(src_dst.size() * 2));
+
+			ippsMul_64fc_I(c_exp.data(), src_dst_fp64.data(), static_cast<int>(c_exp.size()));
+			ippsConvert_64f32s_Sfs(reinterpret_cast<Ipp64f*>(src_dst_fp64.data()), reinterpret_cast<Ipp32s*>(src_dst.data()), static_cast<int>(src_dst.size() * 2), IppRoundMode::ippRndNear, 8);
+		}
 		static void Multiply(std::vector<std::complex<float>>& src_dst, const std::vector<Ipp64fc>& c_exp) {
 			thread_local std::vector<Ipp32fc> c_exp_fp32;
 			c_exp_fp32.resize(c_exp.size());
@@ -34,7 +42,7 @@ namespace ugsdr {
 		static void Process(std::vector<std::complex<UnderlyingType>>& src_dst, double sampling_freq, double frequency, double phase = 0) {
 			double scale = 1.0;
 			if constexpr (std::is_integral_v<UnderlyingType>)
-				scale = std::numeric_limits<UnderlyingType>::max();
+				scale = 127;
 
 			double pi_2 = 8 * std::atan(1.0);
 			thread_local std::vector<Ipp64fc> c_exp(src_dst.size());
@@ -42,6 +50,18 @@ namespace ugsdr {
 			ippsTone_64fc(c_exp.data(), static_cast<int>(c_exp.size()), scale, frequency / sampling_freq, &phase, IppHintAlgorithm::ippAlgHintFast);
 
 			Multiply(src_dst, c_exp);
+		}
+
+		static void Process(std::vector<std::complex<std::int16_t>>& src_dst, double sampling_freq, double frequency, double phase = 0) {
+			Ipp16s scale = 127;
+
+			double pi_2 = 8 * std::atan(1.0);
+			thread_local std::vector<Ipp16sc> c_exp(src_dst.size());
+			c_exp.resize(src_dst.size());
+			float phase_fp32 = 0;
+			ippsTone_16sc(c_exp.data(), static_cast<int>(c_exp.size()), scale, static_cast<Ipp32f>(frequency / sampling_freq), &phase_fp32, IppHintAlgorithm::ippAlgHintFast);
+
+			ippsMul_16sc_ISfs(c_exp.data(), reinterpret_cast<Ipp16sc*>(src_dst.data()), static_cast<int>(src_dst.size()), 8);
 		}
 
 	public:
