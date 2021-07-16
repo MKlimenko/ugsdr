@@ -6,8 +6,8 @@ add_executable (${PROJECT_NAME}
 							main.cpp
 							common.hpp
 							signal_parameters.hpp
-							acquisition/acquisition_parameters.hpp 
 							acquisition/acquisition_result.hpp 
+							acquisition/fse.hpp 
 							mixer/mixer.hpp 
 							mixer/batch_mixer.hpp
 							mixer/ipp_mixer.hpp
@@ -15,7 +15,10 @@ add_executable (${PROJECT_NAME}
 							prn_codes/codegen.hpp 
 							prn_codes/GpsL1Ca.hpp  
 							prn_codes/GlonassOf.hpp 
-							math/fft.hpp)
+							math/fft.hpp
+							helpers/visualizer.hpp 
+							matched_filter/matched_filter.hpp 
+							math/upsample.hpp)
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 20)
 

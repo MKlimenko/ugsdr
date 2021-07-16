@@ -3,9 +3,8 @@
 #include <cmath>
 #include <complex>
 #include <execution>
+#include <limits>
 #include <vector>
-
-#include <ipp.h>
 
 namespace ugsdr {
 	template <typename MixerImpl>
@@ -29,6 +28,8 @@ namespace ugsdr {
 		template <typename UnderlyingType>
 		static auto Translate(const std::vector<std::complex<UnderlyingType>>& src_dst, double sampling_freq, double frequency, double phase = 0) {
 			auto dst = src_dst;
+			if (frequency < 0)
+				frequency = sampling_freq + frequency;
 			MixerImpl::Process(dst, sampling_freq, frequency, phase);
 			return dst;
 		}
