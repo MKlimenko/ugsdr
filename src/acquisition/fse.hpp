@@ -1,12 +1,14 @@
 #pragma once
 
+#include "acquisition_result.hpp"
 #include "../common.hpp"
 #include "../signal_parameters.hpp"
+#include "../matched_filter/matched_filter.hpp"
+#include "../math/upsample.hpp"
 #include "../mixer/ipp_mixer.hpp"
 #include "../prn_codes/codegen.hpp"
 #include "../prn_codes/GpsL1Ca.hpp"
-#include "../math/upsample.hpp"
-#include "acquisition_result.hpp"
+#include "../prn_codes/GlonassOf.hpp"
 
 #include <numeric>
 #include <ranges>
@@ -20,7 +22,7 @@ namespace ugsdr {
 		
 		SignalParametersBase<UnderlyingType>& signal_parameters;
 		double doppler_range = 5e3;
-		double doppler_step = 0;
+		double doppler_step = 20;
 		std::vector<std::int32_t> gps_sv;
 		std::vector<std::int32_t> gln_sv;
 		
@@ -36,15 +38,32 @@ namespace ugsdr {
 		void ProcessBpsk(const std::vector<std::complex<UnderlyingType>>& translated_signal, std::vector<AcquisitionResult>& dst) {
 			
 		}
+
+		template <typename T>
+		auto RepeatCodeNTimes(std::vector<T> code) {
+			auto ms_size = code.size();
+			for (std::size_t i = 1; i < ms_to_process; ++i)
+				code.insert(code.end(), code.begin(), code.begin() + ms_size);
+			
+			return code;
+		}
 		
 		void ProcessGps(const std::vector<std::complex<UnderlyingType>>& signal, std::vector<AcquisitionResult>& dst) {
 			auto intermediate_frequency = signal_parameters.GetCentralFrequency() - 1575.42e6;
-			auto translated_signal = MixerType::Translate(signal, signal_parameters.GetSamplingRate(), intermediate_frequency);
-			ugsdr::Add(L"Translated GPS signal", translated_signal);
 			gps_sv.resize(2);
+
 			for(auto sv : gps_sv) {
-				auto code = Upsampler<SequentialUpsampler>::Resample(Codegen<GpsL1Ca>::Get<UnderlyingType>(sv), static_cast<std::size_t>(signal_parameters.GetSamplingRate() / 1e3));
-				
+				const auto code = Upsampler<SequentialUpsampler>::Resample(RepeatCodeNTimes(Codegen<GpsL1Ca>::Get<UnderlyingType>(sv)),
+					static_cast<std::size_t>(ms_to_process * signal_parameters.GetSamplingRate() / 1e3));
+
+
+				for (double doppler_frequency = intermediate_frequency - doppler_range; 
+							doppler_frequency <= intermediate_frequency + doppler_range; 
+							doppler_frequency += doppler_step) {
+					const auto translated_signal = MixerType::Translate(signal, signal_parameters.GetSamplingRate(), doppler_frequency);
+					auto matched_output = MatchedFilter<SequentialMatchedFilter>::Filter(translated_signal, code);
+
+				}
 			}
 			
 		}

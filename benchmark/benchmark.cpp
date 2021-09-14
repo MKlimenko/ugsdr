@@ -5,6 +5,10 @@
 #include "../src/mixer/batch_mixer.hpp"
 #include "../src/mixer/ipp_mixer.hpp"
 
+#include <execution>
+//#include <omp.h>
+#include <random>
+
 namespace mixer {
 #define MIXER_BENCHMARK_OPTIONS RangeMultiplier(2)->Range(2048, 2048 << 6)->Complexity()
 

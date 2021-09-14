@@ -33,7 +33,7 @@ namespace ugsdr {
 			for (std::size_t i = 0; i < src_dst.size(); ++i) {
 				dst[i] = 0;
 				for (std::size_t j = 0; j < impulse_response.size(); j++)
-					dst[i] += impulse_response[j] * src_dst[(i + j) % src_dst.size()];
+					dst[i] += impulse_response[j % impulse_response.size()] * src_dst[(i + j) % src_dst.size()];
 			}
 
 			src_dst = dst;

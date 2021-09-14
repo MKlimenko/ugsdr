@@ -49,7 +49,7 @@ macro(find_ipp_library IPP_COMPONENT)
   string(TOLOWER ${IPP_COMPONENT} IPP_COMPONENT_LOWER)
 
   find_library(IPP_LIB_${IPP_COMPONENT} ipp${IPP_COMPONENT_LOWER}${IPP_LIBNAME_SUFFIX}
-               PATHS ${IPP_ROOT}/lib/intel64/)
+               PATHS ${IPP_ROOT}/lib/intel64/threaded)
 endmacro()
 
 # IPP components
