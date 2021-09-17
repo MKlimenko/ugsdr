@@ -18,11 +18,14 @@ add_executable (${PROJECT_NAME}
 							math/fft.hpp
 							helpers/visualizer.hpp 
 							matched_filter/matched_filter.hpp 
-							math/upsample.hpp)
+							math/upsample.hpp 
+							matched_filter/ipp_matched_filter.hpp)
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 20)
 
 find_package(OpenMP REQUIRED)
+
+target_include_directories(${PROJECT_NAME} PRIVATE ${KFR_INCLUDE_DIR})
 
 target_link_libraries(${PROJECT_NAME} PRIVATE OpenMP::OpenMP_CXX)
 

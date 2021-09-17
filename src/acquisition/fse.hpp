@@ -4,6 +4,7 @@
 #include "../common.hpp"
 #include "../signal_parameters.hpp"
 #include "../matched_filter/matched_filter.hpp"
+#include "../matched_filter/ipp_matched_filter.hpp"
 #include "../math/upsample.hpp"
 #include "../mixer/ipp_mixer.hpp"
 #include "../prn_codes/codegen.hpp"
@@ -27,6 +28,7 @@ namespace ugsdr {
 		std::vector<std::int32_t> gln_sv;
 		
 		using MixerType = Mixer<IppMixer>;
+		using MatchedFilterType = MatchedFilter<IppMatchedFilter>;
 
 		void InitSatellites() {
 			gps_sv.resize(ugsdr::gps_sv_count);
@@ -56,12 +58,11 @@ namespace ugsdr {
 				const auto code = Upsampler<SequentialUpsampler>::Resample(RepeatCodeNTimes(Codegen<GpsL1Ca>::Get<UnderlyingType>(sv)),
 					static_cast<std::size_t>(ms_to_process * signal_parameters.GetSamplingRate() / 1e3));
 
-
 				for (double doppler_frequency = intermediate_frequency - doppler_range; 
 							doppler_frequency <= intermediate_frequency + doppler_range; 
 							doppler_frequency += doppler_step) {
 					const auto translated_signal = MixerType::Translate(signal, signal_parameters.GetSamplingRate(), doppler_frequency);
-					auto matched_output = MatchedFilter<SequentialMatchedFilter>::Filter(translated_signal, code);
+					auto matched_output = MatchedFilterType::Filter(translated_signal, code);
 
 				}
 			}

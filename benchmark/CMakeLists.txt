@@ -19,6 +19,6 @@ if (OPENMP_FOUND)
 endif()
 
 
-target_link_libraries(${PROJECT_NAME} benchmark::benchmark)
+target_link_libraries(${PROJECT_NAME} benchmark::benchmark OpenMP::OpenMP_CXX)
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 20)

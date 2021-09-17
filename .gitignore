@@ -32,3 +32,4 @@ _ReSharper*/
 packages/
 /out/*
 /data/iq.bin
+CMakeSettings.json
