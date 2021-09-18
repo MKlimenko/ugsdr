@@ -1,9 +1,15 @@
 #pragma once
 
 #include "matched_filter.hpp"
+#include "ipp.h"
+#include "../math/ipp_dft.hpp"
 
 namespace ugsdr {
 	class IppMatchedFilter : public MatchedFilter<IppMatchedFilter> {
+	private:
+
+		using DftImpl = ugsdr::IppDft;
+				
 	protected:
 		friend class MatchedFilter<IppMatchedFilter>;
 		

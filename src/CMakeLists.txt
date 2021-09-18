@@ -8,18 +8,20 @@ add_executable (${PROJECT_NAME}
 							signal_parameters.hpp
 							acquisition/acquisition_result.hpp 
 							acquisition/fse.hpp 
-							mixer/mixer.hpp 
+							helpers/visualizer.hpp 
+							matched_filter/ipp_matched_filter.hpp
+							matched_filter/matched_filter.hpp 
+							math/dft.hpp
+							math/ipp_dft.hpp
+							math/upsample.hpp 
 							mixer/batch_mixer.hpp
 							mixer/ipp_mixer.hpp
-							prn_codes/lfsr.hpp 
-							prn_codes/codegen.hpp 
-							prn_codes/GpsL1Ca.hpp  
+							mixer/mixer.hpp 
 							prn_codes/GlonassOf.hpp 
-							math/fft.hpp
-							helpers/visualizer.hpp 
-							matched_filter/matched_filter.hpp 
-							math/upsample.hpp 
-							matched_filter/ipp_matched_filter.hpp)
+							prn_codes/GpsL1Ca.hpp  
+							prn_codes/codegen.hpp 
+							prn_codes/lfsr.hpp 
+ "math/ipp_dft.hpp")
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 20)
 

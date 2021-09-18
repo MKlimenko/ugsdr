@@ -1,8 +1,6 @@
 #pragma once
 
-#include <cmath>
 #include <complex>
-#include <execution>
 #include <vector>
 
 namespace ugsdr {
