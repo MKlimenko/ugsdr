@@ -5,14 +5,15 @@
 #include "../signal_parameters.hpp"
 #include "../matched_filter/matched_filter.hpp"
 #include "../matched_filter/ipp_matched_filter.hpp"
+#include "../math/ipp_dft.hpp"
 #include "../math/upsample.hpp"
 #include "../mixer/ipp_mixer.hpp"
 #include "../prn_codes/codegen.hpp"
 #include "../prn_codes/GpsL1Ca.hpp"
 #include "../prn_codes/GlonassOf.hpp"
 
+
 #include <numeric>
-#include <ranges>
 #include <vector>
 
 namespace ugsdr {
@@ -62,7 +63,9 @@ namespace ugsdr {
 							doppler_frequency <= intermediate_frequency + doppler_range; 
 							doppler_frequency += doppler_step) {
 					const auto translated_signal = MixerType::Translate(signal, signal_parameters.GetSamplingRate(), doppler_frequency);
-					auto matched_output = MatchedFilterType::Filter(translated_signal, code);
+					ugsdr::Add(IppDft::Transform(translated_signal));
+					return;
+					//auto matched_output = MatchedFilterType::Filter(translated_signal, code);
 
 				}
 			}
