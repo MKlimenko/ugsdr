@@ -11,6 +11,7 @@ add_executable (${PROJECT_NAME}
 							helpers/visualizer.hpp 
 							matched_filter/ipp_matched_filter.hpp
 							matched_filter/matched_filter.hpp 
+							math/ipp_complex_type_converter.hpp
 							math/conj.hpp
 							math/ipp_conj.hpp
 							math/dft.hpp

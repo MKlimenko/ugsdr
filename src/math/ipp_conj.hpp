@@ -3,6 +3,7 @@
 #include "conj.hpp"
 #include "ipp.h"
 #include "../../external/plusifier/Plusifier.hpp"
+#include "ipp_complex_type_converter.hpp"
 
 #include <type_traits>
 
@@ -15,16 +16,6 @@ namespace ugsdr {
 
 			return conj_wrapper;
 		}
-
-		template <typename T>
-		struct IppComplexTypeConverter {
-			// pseudo type map
-			using IppType = std::conditional_t <std::is_same_v<std::int16_t, T>, Ipp16sc,
-				std::conditional_t<std::is_same_v<float, T>, Ipp32fc,
-				std::conditional_t<std::is_same_v<double, T>, Ipp64fc, void>>>;
-
-			static_assert(!std::is_same_v<IppType, void>, "This type is not supported (yet)");
-		};
 		
 	protected:
 		friend class ComplexConjugate<IppConj>;
