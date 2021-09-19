@@ -39,13 +39,20 @@ namespace ugsdr {
 			// dft may not be working with in-place parameters
 			Ipp8u* spec_ptr = spec;
 			ippsDFTInit_C_32fc(static_cast<int>(src_dst.size()), IPP_FFT_DIV_INV_BY_N, ippAlgHintNone, reinterpret_cast<IppsDFTSpec_C_32fc*>(spec_ptr), init_buf);
-			auto st = dft_routine(reinterpret_cast<Ipp32fc*>(src_dst.data()), reinterpret_cast<Ipp32fc*>(src_dst.data()), reinterpret_cast<IppsDFTSpec_C_32fc*>(spec_ptr), work_buf);
+			dft_routine(reinterpret_cast<Ipp32fc*>(src_dst.data()), reinterpret_cast<Ipp32fc*>(src_dst.data()), reinterpret_cast<IppsDFTSpec_C_32fc*>(spec_ptr), work_buf);
 		}
 
 		template <typename UnderlyingType>
-		static auto Process(const std::vector<std::complex<UnderlyingType>>& src_dst, bool is_inverse = false) {
-			auto dst = src_dst;
-			Process(dst);
+		static auto Process(const std::vector<UnderlyingType>& src, bool is_inverse = false) {
+			std::vector<std::complex<UnderlyingType>> dst(src.begin(), src.end());
+			Process(dst, is_inverse);
+			return dst;
+		}
+		
+		template <typename UnderlyingType>
+		static auto Process(const std::vector<std::complex<UnderlyingType>>& src, bool is_inverse = false) {
+			auto dst = src;
+			Process(dst, is_inverse);
 			return dst;
 		}
 	};

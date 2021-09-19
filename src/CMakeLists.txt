@@ -11,6 +11,8 @@ add_executable (${PROJECT_NAME}
 							helpers/visualizer.hpp 
 							matched_filter/ipp_matched_filter.hpp
 							matched_filter/matched_filter.hpp 
+							math/conj.hpp
+							math/ipp_conj.hpp
 							math/dft.hpp
 							math/ipp_dft.hpp
 							math/upsample.hpp 
@@ -21,7 +23,7 @@ add_executable (${PROJECT_NAME}
 							prn_codes/GpsL1Ca.hpp  
 							prn_codes/codegen.hpp 
 							prn_codes/lfsr.hpp 
- "math/ipp_dft.hpp")
+)
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 20)
 

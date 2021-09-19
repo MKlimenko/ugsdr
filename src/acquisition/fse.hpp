@@ -63,10 +63,10 @@ namespace ugsdr {
 							doppler_frequency <= intermediate_frequency + doppler_range; 
 							doppler_frequency += doppler_step) {
 					const auto translated_signal = MixerType::Translate(signal, signal_parameters.GetSamplingRate(), doppler_frequency);
-					ugsdr::Add(IppDft::Transform(translated_signal));
-					return;
-					//auto matched_output = MatchedFilterType::Filter(translated_signal, code);
+					auto matched_output = MatchedFilterType::Filter(translated_signal, code);
 
+					ugsdr::Add(matched_output);
+					return;
 				}
 			}
 			

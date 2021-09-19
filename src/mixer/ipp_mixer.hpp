@@ -44,7 +44,7 @@ namespace ugsdr {
 			if constexpr (std::is_integral_v<UnderlyingType>)
 				scale = 127;
 
-			double pi_2 = 8 * std::atan(1.0);
+			//double pi_2 = 8 * std::atan(1.0);
 			thread_local std::vector<Ipp64fc> c_exp(src_dst.size());
 			c_exp.resize(src_dst.size());
 			ippsTone_64fc(c_exp.data(), static_cast<int>(c_exp.size()), scale, frequency / sampling_freq, &phase, IppHintAlgorithm::ippAlgHintFast);
@@ -55,7 +55,7 @@ namespace ugsdr {
 		static void Process(std::vector<std::complex<std::int16_t>>& src_dst, double sampling_freq, double frequency, double phase = 0) {
 			Ipp16s scale = 127;
 
-			double pi_2 = 8 * std::atan(1.0);
+			//double pi_2 = 8 * std::atan(1.0);
 			thread_local std::vector<Ipp16sc> c_exp(src_dst.size());
 			c_exp.resize(src_dst.size());
 			float phase_fp32 = 0;
