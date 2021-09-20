@@ -20,13 +20,10 @@ namespace ugsdr {
 	protected:
 		friend class ComplexConjugate<IppConj>;
 
-		template <typename T>
-		struct Print;
-		
 		template <typename UnderlyingType>
 		static void Process(std::vector<std::complex<UnderlyingType>>& src_dst) {
 			auto conj_wrapper = GetConjWrapper();
-			using IppType = IppComplexTypeConverter<UnderlyingType>::IppType;
+			using IppType = IppComplexTypeConverter<UnderlyingType>::Type;
 						
 			conj_wrapper(reinterpret_cast<const IppType*>(src_dst.data()), reinterpret_cast<IppType*>(src_dst.data()), static_cast<int>(src_dst.size()));
 		}

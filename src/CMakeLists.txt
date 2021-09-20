@@ -12,10 +12,19 @@ add_executable (${PROJECT_NAME}
 							matched_filter/ipp_matched_filter.hpp
 							matched_filter/matched_filter.hpp 
 							math/ipp_complex_type_converter.hpp
+							math/abs.hpp
+							math/ipp_abs.hpp
 							math/conj.hpp
 							math/ipp_conj.hpp
 							math/dft.hpp
+							math/af_dft.hpp
 							math/ipp_dft.hpp
+							math/max_index.hpp
+							math/ipp_max_index.hpp
+							math/reshape_and_sum.hpp
+							math/ipp_reshape_and_sum.hpp
+							math/mean_stddev.hpp
+							math/ipp_mean_stddev.hpp
 							math/upsample.hpp 
 							mixer/batch_mixer.hpp
 							mixer/ipp_mixer.hpp
@@ -24,15 +33,16 @@ add_executable (${PROJECT_NAME}
 							prn_codes/GpsL1Ca.hpp  
 							prn_codes/codegen.hpp 
 							prn_codes/lfsr.hpp 
-)
+ )
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 20)
 
 find_package(OpenMP REQUIRED)
+find_package(ArrayFire CONFIG REQUIRED)
 
 target_include_directories(${PROJECT_NAME} PRIVATE ${KFR_INCLUDE_DIR})
 
-target_link_libraries(${PROJECT_NAME} PRIVATE OpenMP::OpenMP_CXX)
+target_link_libraries(${PROJECT_NAME} PRIVATE OpenMP::OpenMP_CXX ArrayFire::afcuda)
 
 IF (WIN32)
 	target_link_libraries(${PROJECT_NAME} PUBLIC $ENV{SIGNALPLOT64}/lib/signalplot64.lib)

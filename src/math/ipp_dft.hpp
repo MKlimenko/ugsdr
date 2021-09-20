@@ -36,7 +36,6 @@ namespace ugsdr {
 
 			auto dft_routine = is_inverse ? ippsDFTInv_CToC_32fc : ippsDFTFwd_CToC_32fc;
 
-			// dft may not be working with in-place parameters
 			Ipp8u* spec_ptr = spec;
 			ippsDFTInit_C_32fc(static_cast<int>(src_dst.size()), IPP_FFT_DIV_INV_BY_N, ippAlgHintNone, reinterpret_cast<IppsDFTSpec_C_32fc*>(spec_ptr), init_buf);
 			dft_routine(reinterpret_cast<Ipp32fc*>(src_dst.data()), reinterpret_cast<Ipp32fc*>(src_dst.data()), reinterpret_cast<IppsDFTSpec_C_32fc*>(spec_ptr), work_buf);
