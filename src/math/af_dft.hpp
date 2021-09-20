@@ -14,8 +14,14 @@ namespace ugsdr {
 		template <typename UnderlyingType>
 		static void Process(std::vector<std::complex<UnderlyingType>>& src_dst, bool is_inverse = false) {
 			auto af_src = ArrayProxy(const_cast<const std::vector<std::complex<UnderlyingType>>&>(src_dst));
-			auto spectrum = ArrayProxy(af::dft(af_src));
 
+			// ternary operator doesn't work here for some reason
+			ArrayProxy spectrum;
+			if (is_inverse)
+				spectrum = ArrayProxy(af::idft(af_src));
+			else
+				spectrum = ArrayProxy(af::dft(af_src));
+		
 			auto spectrum_cpu_optional = spectrum.CopyFromGpu(src_dst);
 
 			if (spectrum_cpu_optional.has_value())

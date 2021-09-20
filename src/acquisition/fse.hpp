@@ -6,7 +6,6 @@
 #include "../matched_filter/matched_filter.hpp"
 #include "../matched_filter/ipp_matched_filter.hpp"
 #include "../math/ipp_abs.hpp"
-#include "../math/ipp_dft.hpp"
 #include "../math/ipp_max_index.hpp"
 #include "../math/ipp_reshape_and_sum.hpp"
 #include "../math/ipp_mean_stddev.hpp"

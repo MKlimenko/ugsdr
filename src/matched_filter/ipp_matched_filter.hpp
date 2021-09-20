@@ -2,13 +2,14 @@
 
 #include "matched_filter.hpp"
 #include "ipp.h"
+#include "../math/af_dft.hpp"
 #include "../math/ipp_dft.hpp"
 #include "../math/ipp_complex_type_converter.hpp"
 
 namespace ugsdr {
 	class IppMatchedFilter : public MatchedFilter<IppMatchedFilter> {
 	private:
-		using DftImpl = ugsdr::IppDft;
+		using DftImpl = ugsdr::AfDft;
 
 		static auto GetMulByConjWrapper() {
 			static auto mul_by_conj_wrapper = plusifier::FunctionWrapper(
