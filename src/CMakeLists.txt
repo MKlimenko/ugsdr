@@ -8,6 +8,7 @@ add_executable (${PROJECT_NAME}
 							signal_parameters.hpp
 							acquisition/acquisition_result.hpp 
 							acquisition/fse.hpp 
+							helpers/af_array_proxy.hpp
 							helpers/visualizer.hpp 
 							matched_filter/ipp_matched_filter.hpp
 							matched_filter/matched_filter.hpp 
@@ -33,16 +34,17 @@ add_executable (${PROJECT_NAME}
 							prn_codes/GpsL1Ca.hpp  
 							prn_codes/codegen.hpp 
 							prn_codes/lfsr.hpp 
- )
+  )
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 20)
 
 find_package(OpenMP REQUIRED)
-find_package(ArrayFire CONFIG REQUIRED)
+find_package(ArrayFire REQUIRED)
 
-target_include_directories(${PROJECT_NAME} PRIVATE ${KFR_INCLUDE_DIR})
+target_include_directories(${PROJECT_NAME} PRIVATE ${ArrayFire_INCLUDE_DIRS})
 
 target_link_libraries(${PROJECT_NAME} PRIVATE OpenMP::OpenMP_CXX ArrayFire::afcuda)
+#target_link_libraries(${PROJECT_NAME} PRIVATE OpenMP::OpenMP_CXX)
 
 IF (WIN32)
 	target_link_libraries(${PROJECT_NAME} PUBLIC $ENV{SIGNALPLOT64}/lib/signalplot64.lib)
