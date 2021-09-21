@@ -7,12 +7,13 @@
 #include "../../external/plusifier/Plusifier.hpp"
 #include "../math/ipp_complex_type_converter.hpp"
 
-#include <array>
-#include <cmath>
+#include <complex>
 #include <memory>
+#include <numeric>
 
 namespace ugsdr {
-	class IppResampler : public Resampler<IppResampler> {
+	template <bool use_filter = false>
+	class IppResamplerBase : public Resampler<IppResamplerBase<use_filter>> {
 	private:
 		constexpr static inline int taps_len = 50;
 
@@ -53,13 +54,6 @@ namespace ugsdr {
 			);
 
 			return fir_wrapper;
-		}
-		static auto GetSampleDownWrapper() {
-			static auto sample_down_wrapper = plusifier::FunctionWrapper(
-				ippsSampleDown_32f, ippsSampleDown_32fc, ippsSampleDown_64f, ippsSampleDown_64fc
-			);
-
-			return sample_down_wrapper;
 		}
 
 		template <typename T>
@@ -126,10 +120,10 @@ namespace ugsdr {
 		}
 
 		using UpsamplerType = Upsampler<IppUpsampler>;
-		using DecimatorType = Decimator<IppDecimator>;
+		using DecimatorType = Decimator<Accumulator>;
 
 	protected:
-		friend class Resampler<IppResampler>;
+		friend class Resampler<IppResamplerBase<use_filter>>;
 
 		template <typename UnderlyingType>
 		static void Process(std::vector<UnderlyingType>& src_dst, std::size_t new_sampling_rate, std::size_t old_sampling_rate) {
@@ -137,11 +131,13 @@ namespace ugsdr {
 			auto new_samples = lcm * src_dst.size() / old_sampling_rate;
 
 			UpsamplerType::Transform(src_dst, new_samples);
-			Filter(src_dst, new_sampling_rate, old_sampling_rate, lcm);
+			if constexpr (use_filter)
+				Filter(src_dst, new_sampling_rate, old_sampling_rate, lcm);
 			DecimatorType::Transform(src_dst, lcm / new_sampling_rate);
-			//Add(src_dst);
 		}
 
 	public:
 	};
+
+	using IppResampler = IppResamplerBase<true>;
 }
