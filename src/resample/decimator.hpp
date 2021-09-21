@@ -41,6 +41,11 @@ namespace ugsdr {
 
 		template <typename UnderlyingType>
 		static void Process(std::vector<UnderlyingType>& src_dst, std::size_t decimation_ratio) {
+			auto [rem, quot] = std::div(src_dst.size(), static_cast<std::int64_t>(decimation_ratio));
+
+			if (quot)
+				src_dst.resize((rem + 1) * decimation_ratio);
+			
 			for (std::size_t i = 0, k = 0; i < src_dst.size(); i += decimation_ratio) {
 				auto tmp = UnderlyingType{};
 				for (std::size_t j = 0; j < decimation_ratio; ++j)
