@@ -32,7 +32,8 @@ namespace ugsdr {
 		std::vector<std::int32_t> gps_sv;
 		std::vector<std::int32_t> gln_sv;
 		constexpr static inline double peak_threshold = 3.5;
-		constexpr static inline double acquisition_sampling_rate = 2.65e6;
+		//constexpr static inline double acquisition_sampling_rate = 2.65e6;
+		constexpr static inline double acquisition_sampling_rate = 3.975e6;
 
 		using MixerType = Mixer<IppMixer>;
 		using UpsamplerType = Upsampler<SequentialUpsampler>;
