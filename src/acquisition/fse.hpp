@@ -31,7 +31,8 @@ namespace ugsdr {
 		double doppler_step = 20;
 		std::vector<std::int32_t> gps_sv;
 		std::vector<std::int32_t> gln_sv;
-		static inline double peak_threshold = 3.5;
+		constexpr static inline double peak_threshold = 3.5;
+		constexpr static inline double acquisition_sampling_rate = 2.048e6;
 
 		using MixerType = Mixer<IppMixer>;
 		using UpsamplerType = Upsampler<SequentialUpsampler>;
@@ -59,7 +60,7 @@ namespace ugsdr {
 
 		template <typename T, bool coherent = true>
 		auto GetOneMsPeak(const std::vector<std::complex<T>>& signal) {
-			const auto samples_per_ms = static_cast<std::size_t>(signal_parameters.GetSamplingRate() / 1e3);
+			const auto samples_per_ms = static_cast<std::size_t>(acquisition_sampling_rate / 1e3);
 			
 			if constexpr (coherent) {
 				const auto abs_value = AbsType::Transform(signal);
@@ -76,10 +77,10 @@ namespace ugsdr {
 		void ProcessBpsk(const std::vector<std::complex<UnderlyingType>>& signal, const std::vector<UnderlyingType>& code, std::int32_t sv, double intermediate_frequency, std::vector<AcquisitionResult>& dst) {
 			decltype(GetOneMsPeak(MatchedFilterType::Filter(MixerType::Translate(signal, signal_parameters.GetSamplingRate(), 0.0), code))) output_peak;
 			AcquisitionResult tmp, max_result;
-			for (double doppler_frequency = intermediate_frequency - doppler_range;
-						doppler_frequency <= intermediate_frequency + doppler_range;
+			for (double doppler_frequency = -doppler_range;
+						doppler_frequency <= doppler_range;
 						doppler_frequency += doppler_step) {
-				const auto translated_signal = MixerType::Translate(signal, signal_parameters.GetSamplingRate(), -doppler_frequency);
+				const auto translated_signal = MixerType::Translate(signal, acquisition_sampling_rate, -doppler_frequency);
 				auto matched_output = MatchedFilterType::Filter(translated_signal, code);
 				auto peak_one_ms = GetOneMsPeak(matched_output);
 
@@ -88,7 +89,7 @@ namespace ugsdr {
 				tmp.level = max_index.value;
 				tmp.sigma = mean_sigma.sigma + mean_sigma.mean;
 				tmp.code_offset = static_cast<double>(max_index.index);
-				tmp.doppler = doppler_frequency;
+				tmp.doppler = doppler_frequency + intermediate_frequency;
 
 				if (max_result < tmp) {
 					max_result = tmp;
@@ -105,17 +106,20 @@ namespace ugsdr {
 		
 		void ProcessGps(const std::vector<std::complex<UnderlyingType>>& signal, std::vector<AcquisitionResult>& dst) {
 			auto intermediate_frequency = -(signal_parameters.GetCentralFrequency() - 1575.42e6);
-			
+
+			const auto translated_signal = MixerType::Translate(signal, signal_parameters.GetSamplingRate(), -intermediate_frequency);
+			auto downsampled_signal = Resampler<IppResampler>::Transform(translated_signal, static_cast<std::size_t>(acquisition_sampling_rate), static_cast<std::size_t>(signal_parameters.GetSamplingRate()));
+
 			for (auto sv : gps_sv) {
 				const auto code = UpsamplerType::Transform(RepeatCodeNTimes(Codegen<GpsL1Ca>::Get<UnderlyingType>(sv)),
-					static_cast<std::size_t>(ms_to_process * signal_parameters.GetSamplingRate() / 1e3));
+					static_cast<std::size_t>(downsampled_signal.size()));
 
-				auto resampled = Resampler<IppResampler>::Transform(code, 4096, 39750);
-				Add(L"Resampled acquisition signal", resampled, 2.048e6);
-				return;
-
-				ProcessBpsk(signal, code, sv, intermediate_frequency, dst);
+				ProcessBpsk(downsampled_signal, code, sv, intermediate_frequency, dst);
 			}
+
+			auto ratio = signal_parameters.GetSamplingRate() / acquisition_sampling_rate;
+			for (auto& el : dst)
+				el.code_offset *= ratio;
 		}
 
 		void ProcessGlonass(const std::vector<std::complex<UnderlyingType>>& signal, std::vector<AcquisitionResult>& dst) {

@@ -50,7 +50,7 @@ namespace ugsdr {
 				auto tmp = UnderlyingType{};
 				for (std::size_t j = 0; j < decimation_ratio; ++j)
 					tmp += src_dst[i + j];
-				src_dst[k++] = static_cast<UnderlyingType>(tmp / static_cast<double>(decimation_ratio));
+				src_dst[k++] = tmp / static_cast<UnderlyingType>(decimation_ratio);
 			}
 			src_dst.resize(src_dst.size() / decimation_ratio);
 			src_dst.shrink_to_fit();
