@@ -27,6 +27,9 @@ namespace ugsdr {
 
 		template <typename TypeToCast, typename T>
 		static void ProcessImpl(std::vector<T>& src_dst, std::size_t samples) {
+			if (src_dst.size() == samples)
+				return;
+
 			std::vector<T> dst(samples);
 
 			auto fill_wrapper = GetFillWrapper();
