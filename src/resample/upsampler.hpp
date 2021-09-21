@@ -1,24 +1,22 @@
 #pragma once
 
 #include <cmath>
-#include <complex>
-#include <execution>
 #include <vector>
 
 namespace ugsdr {
-	template <typename UpsampleImpl>
+	template <typename UpsamplerImpl>
 	class Upsampler {
 	protected:
 	public:
 		template <typename UnderlyingType>
-		static void Resample(std::vector<UnderlyingType>& src_dst, std::size_t samples) {
-			UpsampleImpl::Process(src_dst, samples);
+		static void Transform(std::vector<UnderlyingType>& src_dst, std::size_t samples) {
+			UpsamplerImpl::Process(src_dst, samples);
 		}
 
 		template <typename UnderlyingType>
-		static auto Resample(const std::vector<UnderlyingType>& src_dst, std::size_t samples) {
+		static auto Transform(const std::vector<UnderlyingType>& src_dst, std::size_t samples) {
 			auto dst = src_dst;
-			UpsampleImpl::Process(dst, samples);
+			UpsamplerImpl::Process(dst, samples);
 			return dst;
 		}
 	};

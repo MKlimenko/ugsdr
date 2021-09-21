@@ -10,8 +10,9 @@ add_executable (${PROJECT_NAME}
 							acquisition/fse.hpp 
 							helpers/af_array_proxy.hpp
 							helpers/visualizer.hpp 
-							matched_filter/ipp_matched_filter.hpp
 							matched_filter/matched_filter.hpp 
+							matched_filter/af_matched_filter.hpp
+							matched_filter/ipp_matched_filter.hpp
 							math/ipp_complex_type_converter.hpp
 							math/abs.hpp
 							math/ipp_abs.hpp
@@ -26,7 +27,6 @@ add_executable (${PROJECT_NAME}
 							math/ipp_reshape_and_sum.hpp
 							math/mean_stddev.hpp
 							math/ipp_mean_stddev.hpp
-							math/upsample.hpp 
 							mixer/batch_mixer.hpp
 							mixer/ipp_mixer.hpp
 							mixer/mixer.hpp 
@@ -34,6 +34,12 @@ add_executable (${PROJECT_NAME}
 							prn_codes/GpsL1Ca.hpp  
 							prn_codes/codegen.hpp 
 							prn_codes/lfsr.hpp 
+							resample/decimator.hpp 
+							resample/ipp_decimator.hpp 
+							resample/resampler.hpp 
+							resample/ipp_resampler.hpp 
+							resample/upsampler.hpp 
+							resample/ipp_upsampler.hpp 
   )
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 20)

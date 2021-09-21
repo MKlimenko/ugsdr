@@ -13,6 +13,11 @@ namespace ugsdr {
 		static void Transform(std::vector<std::complex<UnderlyingType>>& src_dst, bool is_inverse = false) {
 			DftImpl::Process(src_dst, is_inverse);
 		}
+
+		template <typename T>
+		static void Transform(T& src_dst, bool is_inverse = false) {
+			DftImpl::Process(src_dst, is_inverse);
+		}
 		
 		template <typename UnderlyingType>
 		static auto Transform(const std::vector<UnderlyingType>& src, bool is_inverse = false) {

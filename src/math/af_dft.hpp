@@ -13,32 +13,31 @@ namespace ugsdr {
 
 		template <typename UnderlyingType>
 		static void Process(std::vector<std::complex<UnderlyingType>>& src_dst, bool is_inverse = false) {
-			auto af_src = ArrayProxy(const_cast<const std::vector<std::complex<UnderlyingType>>&>(src_dst));
-
-			// ternary operator doesn't work here for some reason
-			ArrayProxy spectrum;
-			if (is_inverse)
-				spectrum = ArrayProxy(af::idft(af_src));
-			else
-				spectrum = ArrayProxy(af::dft(af_src));
-		
+			auto spectrum = Process(const_cast<const std::vector<std::complex<UnderlyingType>>&>(src_dst), is_inverse);
+					
 			auto spectrum_cpu_optional = spectrum.CopyFromGpu(src_dst);
 
 			if (spectrum_cpu_optional.has_value())
 				src_dst = std::move(spectrum_cpu_optional.value());
 		}
 
-		template <typename UnderlyingType>
-		static auto Process(const std::vector<std::complex<UnderlyingType>>& src, bool is_inverse = false) {
-			auto dst = src;
-			Process(dst, is_inverse);
-			return src;
+		static void Process(ArrayProxy& src, bool is_inverse = false) {
+			if (is_inverse)
+				af::ifftInPlace(src);
+			else
+				af::fftInPlace(src);
 		}
-		template <typename UnderlyingType>
-		static auto Process(const std::vector<UnderlyingType>& src, bool is_inverse = false) {
-			auto dst = std::vector<std::complex<UnderlyingType>>(src.begin(), src.end());
-			Process(dst, is_inverse);
-			return dst;
+
+		template <typename T>
+		static auto Process(const std::vector<T>& src, bool is_inverse = false) {
+			auto af_src = ArrayProxy(src);
+			ArrayProxy dft_transform;
+			if (is_inverse)
+				dft_transform = ArrayProxy(af::idft(af_src));
+			else
+				dft_transform = ArrayProxy(af::dft(af_src));
+
+			return dft_transform;
 		}
 	};
 }

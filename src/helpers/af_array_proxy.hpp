@@ -96,10 +96,7 @@ namespace ugsdr {
 		ArrayProxy(Args&& ... args) : array(args...) {}
 
 		template <typename T>
-		ArrayProxy(const std::vector<T>& vec) {
-			auto converted_vector = std::vector<std::complex<double>>(vec.begin(), vec.end());
-			array = af::array(converted_vector.size(), reinterpret_cast<const af::cdouble*>(converted_vector.data()));
-		}
+		ArrayProxy(const std::vector<T>& vec) : array(vec.size(), vec.data()) {}
 
 		template <typename T>
 		ArrayProxy(const std::vector<std::complex<T>>& vec) {
@@ -108,8 +105,8 @@ namespace ugsdr {
 			else if constexpr (std::is_same_v<T, float>)
 				array = af::array(vec.size(), reinterpret_cast<const af::cfloat*>(vec.data()));
 			else {
-				auto converted_vector = std::vector<std::complex<double>>(vec.begin(), vec.end());
-				array = af::array(converted_vector.size(), reinterpret_cast<const af::cdouble*>(converted_vector.data()));
+				auto converted_vector = std::vector<std::complex<float>>(vec.begin(), vec.end());
+				array = af::array(converted_vector.size(), reinterpret_cast<const af::cfloat*>(converted_vector.data()));
 			}
 		}
 

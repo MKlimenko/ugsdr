@@ -4,16 +4,18 @@
 #include "../common.hpp"
 #include "../signal_parameters.hpp"
 #include "../matched_filter/matched_filter.hpp"
+#include "../matched_filter/af_matched_filter.hpp"
 #include "../matched_filter/ipp_matched_filter.hpp"
 #include "../math/ipp_abs.hpp"
 #include "../math/ipp_max_index.hpp"
 #include "../math/ipp_reshape_and_sum.hpp"
 #include "../math/ipp_mean_stddev.hpp"
-#include "../math/upsample.hpp"
 #include "../mixer/ipp_mixer.hpp"
 #include "../prn_codes/codegen.hpp"
 #include "../prn_codes/GpsL1Ca.hpp"
 #include "../prn_codes/GlonassOf.hpp"
+#include "../resample/upsampler.hpp"
+#include "../resample/ipp_resampler.hpp"
 
 #include <numeric>
 #include <vector>
@@ -32,7 +34,8 @@ namespace ugsdr {
 		static inline double peak_threshold = 3.5;
 
 		using MixerType = Mixer<IppMixer>;
-		using MatchedFilterType = MatchedFilter<IppMatchedFilter>;
+		using UpsamplerType = Upsampler<SequentialUpsampler>;
+		using MatchedFilterType = MatchedFilter<AfMatchedFilter>;
 		using AbsType = Abs<IppAbs>;
 		using ReshapeAndSumType = ReshapeAndSum<IppReshapeAndSum>;
 		using MaxIndexType = MaxIndex<IppMaxIndex>;
@@ -102,19 +105,23 @@ namespace ugsdr {
 		
 		void ProcessGps(const std::vector<std::complex<UnderlyingType>>& signal, std::vector<AcquisitionResult>& dst) {
 			auto intermediate_frequency = -(signal_parameters.GetCentralFrequency() - 1575.42e6);
-			//gps_sv.resize(2);
-
-			for(auto sv : gps_sv) {
-				const auto code = Upsampler<SequentialUpsampler>::Resample(RepeatCodeNTimes(Codegen<GpsL1Ca>::Get<UnderlyingType>(sv)),
+			
+			for (auto sv : gps_sv) {
+				const auto code = UpsamplerType::Transform(RepeatCodeNTimes(Codegen<GpsL1Ca>::Get<UnderlyingType>(sv)),
 					static_cast<std::size_t>(ms_to_process * signal_parameters.GetSamplingRate() / 1e3));
-				
+
+				auto resampled = Resampler<IppResampler>::Transform(code, 4096, 39750);
+				Add(L"Resampled acquisition signal", resampled, 2.048e6);
+				return;
+
 				ProcessBpsk(signal, code, sv, intermediate_frequency, dst);
 			}
 		}
 
 		void ProcessGlonass(const std::vector<std::complex<UnderlyingType>>& signal, std::vector<AcquisitionResult>& dst) {
-			const auto code = Upsampler<SequentialUpsampler>::Resample(RepeatCodeNTimes(Codegen<GlonassOf>::Get<UnderlyingType>(0)),
+			const auto code = UpsamplerType::Transform(RepeatCodeNTimes(Codegen<GlonassOf>::Get<UnderlyingType>(0)),
 				static_cast<std::size_t>(ms_to_process * signal_parameters.GetSamplingRate() / 1e3));
+		
 			for (auto& litera_number : gln_sv) {
 				auto intermediate_frequency = -(signal_parameters.GetCentralFrequency() - (1602e6 + litera_number * 0.5625e6));
 
@@ -137,7 +144,7 @@ namespace ugsdr {
 			ugsdr::Add(L"Acquisition input signal", signal, signal_parameters.GetSamplingRate());
 
 			ProcessGps(signal, dst);
-			ProcessGlonass(signal, dst);
+			//ProcessGlonass(signal, dst);
 
 			return dst;
 		}
