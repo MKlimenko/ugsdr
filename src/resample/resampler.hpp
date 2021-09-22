@@ -8,13 +8,13 @@ namespace ugsdr {
 	class Resampler {
 	protected:
 	public:
-		template <typename UnderlyingType>
-		static void Transform(std::vector<UnderlyingType>& src_dst, std::size_t new_sampling_rate, std::size_t old_sampling_rate) {
+		template <typename T>
+		static void Transform(std::vector<T>& src_dst, std::size_t new_sampling_rate, std::size_t old_sampling_rate) {
 			ResamplerImpl::Process(src_dst, new_sampling_rate, old_sampling_rate);
 		}
 
-		template <typename UnderlyingType>
-		static auto Transform(const std::vector<UnderlyingType>& src_dst, std::size_t new_sampling_rate, std::size_t old_sampling_rate) {
+		template <typename T>
+		static auto Transform(const std::vector<T>& src_dst, std::size_t new_sampling_rate, std::size_t old_sampling_rate) {
 			auto dst = src_dst;
 			ResamplerImpl::Process(dst, new_sampling_rate, old_sampling_rate);
 			return dst;
@@ -25,8 +25,8 @@ namespace ugsdr {
 	protected:
 		friend class Resampler<SequentialResampler>;
 
-		template <typename UnderlyingType>
-		static auto Process(const std::vector<UnderlyingType>& src_dst, std::size_t new_sampling_rate, std::size_t old_sampling_rate) {
+		template <typename T>
+		static auto Process(const std::vector<T>& src_dst, std::size_t new_sampling_rate, std::size_t old_sampling_rate) {
 			//std::vector<UnderlyingType> dst(samples);
 			//auto code_len = src_dst.size();
 			//for (std::size_t i = 0; i < samples; ++i)
@@ -34,8 +34,8 @@ namespace ugsdr {
 			//src_dst = std::move(dst);
 		}
 
-		template <typename UnderlyingType>
-		static void Process(std::vector<UnderlyingType>& src_dst, std::size_t new_sampling_rate, std::size_t old_sampling_rate) {
+		template <typename T>
+		static void Process(std::vector<T>& src_dst, std::size_t new_sampling_rate, std::size_t old_sampling_rate) {
 			//std::vector<UnderlyingType> dst(samples);
 			//auto code_len = src_dst.size();
 			//for (std::size_t i = 0; i < samples; ++i)

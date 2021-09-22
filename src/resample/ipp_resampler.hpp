@@ -108,9 +108,9 @@ namespace ugsdr {
 			src_dst.erase(src_dst.begin(), src_dst.begin() + taps_len);
 		}
 
-		template <typename UnderlyingType>
-		static void Filter(std::vector<UnderlyingType>& src_dst, std::size_t new_sampling_rate, std::size_t old_sampling_rate, std::size_t lcm) {
-			FilterImpl<UnderlyingType>(src_dst, new_sampling_rate, old_sampling_rate, lcm);
+		template <typename T>
+		static void Filter(std::vector<T>& src_dst, std::size_t new_sampling_rate, std::size_t old_sampling_rate, std::size_t lcm) {
+			FilterImpl<T>(src_dst, new_sampling_rate, old_sampling_rate, lcm);
 		}
 
 		template <typename UnderlyingType>
@@ -120,13 +120,13 @@ namespace ugsdr {
 		}
 
 		using UpsamplerType = Upsampler<IppUpsampler>;
-		using DecimatorType = Decimator<Accumulator>;
+		using DecimatorType = Decimator<IppAccumulator>;
 
 	protected:
 		friend class Resampler<IppResamplerBase<use_filter>>;
 
-		template <typename UnderlyingType>
-		static void Process(std::vector<UnderlyingType>& src_dst, std::size_t new_sampling_rate, std::size_t old_sampling_rate) {
+		template <typename T>
+		static void Process(std::vector<T>& src_dst, std::size_t new_sampling_rate, std::size_t old_sampling_rate) {
 			auto lcm = std::lcm(new_sampling_rate, old_sampling_rate);
 			auto new_samples = lcm * src_dst.size() / old_sampling_rate;
 

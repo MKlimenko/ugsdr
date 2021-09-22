@@ -9,6 +9,7 @@ add_executable (${PROJECT_NAME}
 							acquisition/acquisition_result.hpp 
 							acquisition/fse.hpp 
 							helpers/af_array_proxy.hpp
+							helpers/is_complex.hpp
 							helpers/visualizer.hpp 
 							matched_filter/matched_filter.hpp 
 							matched_filter/af_matched_filter.hpp
@@ -40,7 +41,7 @@ add_executable (${PROJECT_NAME}
 							resample/ipp_resampler.hpp 
 							resample/upsampler.hpp 
 							resample/ipp_upsampler.hpp 
-  )
+ )
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 20)
 
@@ -50,10 +51,13 @@ find_package(ArrayFire REQUIRED)
 target_include_directories(${PROJECT_NAME} PRIVATE ${ArrayFire_INCLUDE_DIRS})
 
 target_link_libraries(${PROJECT_NAME} PRIVATE OpenMP::OpenMP_CXX ArrayFire::afcuda)
-#target_link_libraries(${PROJECT_NAME} PRIVATE OpenMP::OpenMP_CXX)
 
-IF (WIN32)
+if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+	target_compile_options(${PROJECT_NAME} PUBLIC -ftime-trace)
+endif()
+
+if (WIN32)
 	target_link_libraries(${PROJECT_NAME} PUBLIC $ENV{SIGNALPLOT64}/lib/signalplot64.lib)
 	target_include_directories(${PROJECT_NAME} PUBLIC $ENV{SIGNALPLOT64}/include)
 	add_definitions(-DHAS_SIGNAL_PLOT)
-ENDIF()
+endif()

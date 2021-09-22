@@ -43,9 +43,9 @@ namespace ugsdr {
 	protected:
 		friend class Upsampler<IppUpsampler>;
 
-		template <typename UnderlyingType>
-		static void Process(std::vector<UnderlyingType>& src_dst, std::size_t samples) {
-			ProcessImpl<UnderlyingType>(src_dst, samples);
+		template <typename T>
+		static void Process(std::vector<T>& src_dst, std::size_t samples) {
+			ProcessImpl<T>(src_dst, samples);
 		}
 
 		template <typename UnderlyingType>

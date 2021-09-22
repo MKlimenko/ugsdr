@@ -32,9 +32,9 @@ namespace ugsdr {
 	protected:
 		friend class Decimator<IppDecimator>;
 
-		template <typename UnderlyingType>
-		static void Process(std::vector<UnderlyingType>& src_dst, std::size_t decimation_ratio) {
-			ProcessImpl<UnderlyingType>(src_dst, decimation_ratio);
+		template <typename T>
+		static void Process(std::vector<T>& src_dst, std::size_t decimation_ratio) {
+			ProcessImpl<T>(src_dst, decimation_ratio);
 		}
 
 		template <typename UnderlyingType>
@@ -42,5 +42,62 @@ namespace ugsdr {
 			using IppType = typename IppComplexTypeConverter<UnderlyingType>::Type;
 			ProcessImpl<IppType>(src_dst, decimation_ratio);
 		}
+	};
+
+	class IppAccumulator : public Decimator<IppAccumulator> {
+	private:
+		static auto GetSumWrapper() {
+			static auto sum_wrapper = plusifier::FunctionWrapper(
+				ippsSum_32f, ippsSum_32fc, ippsSum_64f, ippsSum_64fc
+			);
+
+			return sum_wrapper;
+		}
+
+		static auto GetDivWrapper() {
+			static auto div_wrapper = plusifier::FunctionWrapper(
+				ippsDivC_32f_I, ippsDivC_32fc_I, ippsDivC_64f_I, ippsDivC_64fc_I
+			);
+
+			return div_wrapper;
+		}
+
+		template <typename TypeToCast, typename T>
+		static void ProcessImpl(std::vector<T>& src_dst, std::size_t decimation_ratio) {
+			if (decimation_ratio == 1)
+				return;
+			auto [rem, quot] = std::div(src_dst.size(), static_cast<std::int64_t>(decimation_ratio));
+
+			if (quot)
+				src_dst.resize((rem + 1) * decimation_ratio);
+
+			auto sum_wrapper = GetSumWrapper();
+			for (std::size_t i = 0, k = 0; i < src_dst.size(); i += decimation_ratio) 
+				sum_wrapper(reinterpret_cast<TypeToCast*>(src_dst.data()) + i, static_cast<int>(decimation_ratio),
+					reinterpret_cast<TypeToCast*>(src_dst.data()) + k++, IppHintAlgorithm::ippAlgHintNone);
+			
+			src_dst.resize(src_dst.size() / decimation_ratio);
+			src_dst.shrink_to_fit();
+			
+			auto div_wrapper = GetDivWrapper();
+			div_wrapper(static_cast<underlying_t<TypeToCast>>(decimation_ratio), reinterpret_cast<TypeToCast*>(src_dst.data()), static_cast<int>(src_dst.size()));
+		}
+
+	protected:
+		friend class Decimator<IppAccumulator>;
+
+
+		template <typename UnderlyingType>
+		static void Process(std::vector<std::complex<UnderlyingType>>&src_dst, std::size_t decimation_ratio) {
+			using IppType = IppComplexTypeConverter<UnderlyingType>::Type;
+			ProcessImpl<IppType>(src_dst, decimation_ratio);
+		}
+
+		template <typename T>
+		static void Process(std::vector<T>& src_dst, std::size_t decimation_ratio) {
+			ProcessImpl<T>(src_dst, decimation_ratio);
+		}
+
+	public:
 	};
 }

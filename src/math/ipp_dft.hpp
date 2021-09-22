@@ -41,9 +41,9 @@ namespace ugsdr {
 			dft_routine(reinterpret_cast<Ipp32fc*>(src_dst.data()), reinterpret_cast<Ipp32fc*>(src_dst.data()), reinterpret_cast<IppsDFTSpec_C_32fc*>(spec_ptr), work_buf);
 		}
 
-		template <typename UnderlyingType>
-		static auto Process(const std::vector<UnderlyingType>& src, bool is_inverse = false) {
-			std::vector<std::complex<UnderlyingType>> dst(src.begin(), src.end());
+		template <typename T>
+		static auto Process(const std::vector<T>& src, bool is_inverse = false) {
+			std::vector<std::complex<T>> dst(src.begin(), src.end());
 			Process(dst, is_inverse);
 			return dst;
 		}

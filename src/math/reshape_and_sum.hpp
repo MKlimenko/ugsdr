@@ -15,14 +15,14 @@ namespace ugsdr {
 				throw std::runtime_error("Signal size is not divided by block size");
 		}
 	public:
-		template <typename UnderlyingType>
-		static void Transform(std::vector<UnderlyingType>& src_dst, std::size_t block_size) {
+		template <typename T>
+		static void Transform(std::vector<T>& src_dst, std::size_t block_size) {
 			CheckBlockSize(src_dst, block_size);
 			SumImpl::Process(src_dst, block_size);
 		}
 
-		template <typename UnderlyingType>
-		static auto Transform(const std::vector<UnderlyingType>& src, std::size_t block_size) {
+		template <typename T>
+		static auto Transform(const std::vector<T>& src, std::size_t block_size) {
 			CheckBlockSize(src, block_size);
 			return SumImpl::Process(src, block_size);
 		}

@@ -159,5 +159,5 @@ namespace ugsdr {
 		}
 	};
 
-	using FastSearchEngine = FastSearchEngineBase<std::int8_t>;
+	using FastSearchEngine = FastSearchEngineBase<float>;
 }
