@@ -3,7 +3,7 @@
 #include "decimator.hpp"
 #include "ipp.h"
 #include "../../external/plusifier/Plusifier.hpp"
-#include "../math/ipp_complex_type_converter.hpp"
+#include "../helpers/ipp_complex_type_converter.hpp"
 
 namespace ugsdr {
 	class IppDecimator : public Decimator<IppDecimator> {
@@ -39,7 +39,7 @@ namespace ugsdr {
 
 		template <typename UnderlyingType>
 		static void Process(std::vector<std::complex<UnderlyingType>>& src_dst, std::size_t decimation_ratio) {
-			using IppType = typename IppComplexTypeConverter<UnderlyingType>::Type;
+			using IppType = IppTypeToComplex<UnderlyingType>::Type;
 			ProcessImpl<IppType>(src_dst, decimation_ratio);
 		}
 	};
@@ -80,7 +80,8 @@ namespace ugsdr {
 			src_dst.shrink_to_fit();
 			
 			auto div_wrapper = GetDivWrapper();
-			div_wrapper(static_cast<underlying_t<TypeToCast>>(decimation_ratio), reinterpret_cast<TypeToCast*>(src_dst.data()), static_cast<int>(src_dst.size()));
+			using UnderlyingIppType = typename IppComplexToType<TypeToCast>::Type;
+			div_wrapper(static_cast<TypeToCast>(static_cast<UnderlyingIppType>(decimation_ratio)), reinterpret_cast<TypeToCast*>(src_dst.data()), static_cast<int>(src_dst.size()));
 		}
 
 	protected:
@@ -89,7 +90,7 @@ namespace ugsdr {
 
 		template <typename UnderlyingType>
 		static void Process(std::vector<std::complex<UnderlyingType>>&src_dst, std::size_t decimation_ratio) {
-			using IppType = IppComplexTypeConverter<UnderlyingType>::Type;
+			using IppType = IppTypeToComplex<UnderlyingType>::Type;
 			ProcessImpl<IppType>(src_dst, decimation_ratio);
 		}
 

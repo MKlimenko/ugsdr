@@ -3,7 +3,7 @@
 #include "mean_stddev.hpp"
 #include "ipp.h"
 #include "../../external/plusifier/Plusifier.hpp"
-#include "ipp_complex_type_converter.hpp"
+#include "../helpers/ipp_complex_type_converter.hpp"
 
 #include <type_traits>
 

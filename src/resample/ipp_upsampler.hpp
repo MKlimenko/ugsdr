@@ -3,7 +3,7 @@
 #include "upsampler.hpp"
 #include "ipp.h"
 #include "../../external/plusifier/Plusifier.hpp"
-#include "../math/ipp_complex_type_converter.hpp"
+#include "../helpers/ipp_complex_type_converter.hpp"
 
 namespace ugsdr {
 	class IppUpsampler : public Upsampler<IppUpsampler> {
@@ -50,7 +50,7 @@ namespace ugsdr {
 
 		template <typename UnderlyingType>
 		static void Process(std::vector<std::complex<UnderlyingType>>& src_dst, std::size_t samples) {
-			using IppType = typename IppComplexTypeConverter<UnderlyingType>::Type;
+			using IppType = typename IppTypeToComplex<UnderlyingType>::Type;
 			ProcessImpl<IppType>(src_dst, samples);
 		}
 	};

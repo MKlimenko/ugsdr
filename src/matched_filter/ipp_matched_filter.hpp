@@ -2,8 +2,8 @@
 
 #include "matched_filter.hpp"
 #include "ipp.h"
+#include "../helpers/ipp_complex_type_converter.hpp"
 #include "../math/ipp_dft.hpp"
-#include "../math/ipp_complex_type_converter.hpp"
 
 namespace ugsdr {
 	class IppMatchedFilter : public MatchedFilter<IppMatchedFilter> {
@@ -19,7 +19,7 @@ namespace ugsdr {
 		
 		template <typename T>
 		static void MultiplyByConj(std::vector<std::complex<T>>& signal_spectrum, const std::vector<std::complex<T>>& ir_spectrum) {
-			using IppType = typename IppComplexTypeConverter<T>::Type;
+			using IppType = typename IppTypeToComplex<T>::Type;
 			auto mul_by_conj_wrapper = GetMulByConjWrapper();
 			mul_by_conj_wrapper(reinterpret_cast<const IppType*>(signal_spectrum.data()), reinterpret_cast<const IppType*>(ir_spectrum.data()),
 				reinterpret_cast<IppType*>(signal_spectrum.data()), static_cast<int>(signal_spectrum.size()));

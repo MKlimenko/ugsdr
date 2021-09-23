@@ -3,7 +3,7 @@
 #include "conj.hpp"
 #include "ipp.h"
 #include "../../external/plusifier/Plusifier.hpp"
-#include "ipp_complex_type_converter.hpp"
+#include "helpers/ipp_complex_type_converter.hpp"
 
 #include <type_traits>
 
@@ -23,7 +23,7 @@ namespace ugsdr {
 		template <typename UnderlyingType>
 		static void Process(std::vector<std::complex<UnderlyingType>>& src_dst) {
 			auto conj_wrapper = GetConjWrapper();
-			using IppType = IppComplexTypeConverter<UnderlyingType>::Type;
+			using IppType = IppTypeToComplex<UnderlyingType>::Type;
 						
 			conj_wrapper(reinterpret_cast<const IppType*>(src_dst.data()), reinterpret_cast<IppType*>(src_dst.data()), static_cast<int>(src_dst.size()));
 		}

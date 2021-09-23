@@ -3,7 +3,7 @@
 #include "reshape_and_sum.hpp"
 #include "ipp.h"
 #include "../../external/plusifier/Plusifier.hpp"
-#include "ipp_complex_type_converter.hpp"
+#include "../helpers/ipp_complex_type_converter.hpp"
 
 
 namespace ugsdr {
@@ -34,7 +34,7 @@ namespace ugsdr {
 
 		template <typename UnderlyingType>
 		static void Process(std::vector<std::complex<UnderlyingType>>& src_dst, std::size_t block_size) {
-			using IppType = IppComplexTypeConverter<UnderlyingType>::Type;
+			using IppType = IppTypeToComplex<UnderlyingType>::Type;
 			ProcessImpl<IppType>(src_dst, block_size);
 		}
 

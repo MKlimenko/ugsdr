@@ -2,8 +2,8 @@
 
 #include "matched_filter.hpp"
 #include "arrayfire.h"
+#include "../helpers/ipp_complex_type_converter.hpp"
 #include "../math/af_dft.hpp"
-#include "../math/ipp_complex_type_converter.hpp"
 
 namespace ugsdr {
 	class AfMatchedFilter : public MatchedFilter<AfMatchedFilter> {

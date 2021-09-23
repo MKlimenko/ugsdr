@@ -9,12 +9,12 @@ add_executable (${PROJECT_NAME}
 							acquisition/acquisition_result.hpp 
 							acquisition/fse.hpp 
 							helpers/af_array_proxy.hpp
+							helpers/ipp_complex_type_converter.hpp
 							helpers/is_complex.hpp
 							helpers/visualizer.hpp 
 							matched_filter/matched_filter.hpp 
 							matched_filter/af_matched_filter.hpp
 							matched_filter/ipp_matched_filter.hpp
-							math/ipp_complex_type_converter.hpp
 							math/abs.hpp
 							math/ipp_abs.hpp
 							math/conj.hpp
@@ -41,7 +41,7 @@ add_executable (${PROJECT_NAME}
 							resample/ipp_resampler.hpp 
 							resample/upsampler.hpp 
 							resample/ipp_upsampler.hpp 
- )
+)
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 20)
 

@@ -1,3 +1,6 @@
 [submodule "external/plusifier"]
 	path = external/plusifier
 	url = https://github.com/MKlimenko/plusifier.git
+[submodule "external/type_map"]
+	path = external/type_map
+	url = https://github.com/MKlimenko/type_map.git

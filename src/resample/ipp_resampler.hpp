@@ -5,7 +5,8 @@
 #include "ipp_upsampler.hpp"
 #include "ipp_decimator.hpp"
 #include "../../external/plusifier/Plusifier.hpp"
-#include "../math/ipp_complex_type_converter.hpp"
+#include "../../external/type_map/include/type_map.hpp"
+#include "../helpers/ipp_complex_type_converter.hpp"
 
 #include <complex>
 #include <memory>
@@ -36,8 +37,10 @@ namespace ugsdr {
 
 			std::vector<TypeToCast> dst;
 			dst.reserve(taps_len);
+			using UnderlyingIppType = typename IppComplexToType<TypeToCast>::Type;
+
 			for (auto& el : taps)
-				dst.push_back(static_cast<TypeToCast>(el));
+				dst.push_back(static_cast<TypeToCast>(static_cast<UnderlyingIppType>(el)));
 			return dst;
 		}
 
@@ -58,34 +61,28 @@ namespace ugsdr {
 
 		template <typename T>
 		constexpr static IppDataType GetIppDataType() {
-			if constexpr (std::is_same_v<T, Ipp32f>)
-				return IppDataType::ipp32f;
-			else if constexpr (std::is_same_v<T, Ipp32fc>)
-				return IppDataType::ipp32fc;
-			else if constexpr (std::is_same_v<T, Ipp64f>)
-				return IppDataType::ipp64f;
-			else if constexpr (std::is_same_v<T, Ipp64fc>)
-				return IppDataType::ipp64fc;
-			else {
-				static_assert(0, "Unsupported type");
-			}
+			using IppDataTypeMap = mk::TypeMap<
+				mk::TypeValuePair<Ipp32f,  IppDataType::ipp32f>,
+				mk::TypeValuePair<Ipp32fc, IppDataType::ipp32fc>,
+				mk::TypeValuePair<Ipp64f,  IppDataType::ipp64f>,
+				mk::TypeValuePair<Ipp64fc, IppDataType::ipp64fc>
+			>;
+
+			return IppDataTypeMap::GetValueByType<T>();
 		}
 
 		template <typename T>
 		constexpr static auto GetFirSpec(Ipp8u* spec_buf) {
-			if constexpr (std::is_same_v<T, Ipp32f>)
-				return reinterpret_cast<IppsFIRSpec_32f*>(spec_buf);
-			else if constexpr (std::is_same_v<T, Ipp32fc>)
-				return reinterpret_cast<IppsFIRSpec_32fc*>(spec_buf);
-			else if constexpr (std::is_same_v<T, Ipp64f>)
-				return reinterpret_cast<IppsFIRSpec_64f*>(spec_buf);
-			else if constexpr (std::is_same_v<T, Ipp64fc>)
-				return reinterpret_cast<IppsFIRSpec_64fc*>(spec_buf);
-			else {
-				static_assert(0, "Unsupported type");
-			}
+			using FirSpecMap = mk::TypeMap<
+				mk::TypePair<Ipp32f,  IppsFIRSpec_32f>,
+				mk::TypePair<Ipp32fc, IppsFIRSpec_32fc>,
+				mk::TypePair<Ipp64f,  IppsFIRSpec_64f>,
+				mk::TypePair<Ipp64fc, IppsFIRSpec_64fc>
+			>;
+		
+			return reinterpret_cast<FirSpecMap::GetTypeByType<T>*>(spec_buf);
 		}
-
+		
 		template <typename TypeToCast, typename T>
 		static void FilterImpl(std::vector<T>& src_dst, std::size_t new_sampling_rate, std::size_t old_sampling_rate, std::size_t lcm) {
 			const auto fir = GenerateFirCoefficients<TypeToCast>(new_sampling_rate, lcm);
@@ -115,7 +112,7 @@ namespace ugsdr {
 
 		template <typename UnderlyingType>
 		static void Filter(std::vector<std::complex<UnderlyingType>>& src_dst, std::size_t new_sampling_rate, std::size_t old_sampling_rate, std::size_t lcm) {
-			using IppType = IppComplexTypeConverter<UnderlyingType>::Type;
+			using IppType = typename IppTypeToComplex<UnderlyingType>::Type;
 			FilterImpl<IppType>(src_dst, new_sampling_rate, old_sampling_rate, lcm);
 		}
 
@@ -139,5 +136,5 @@ namespace ugsdr {
 	public:
 	};
 
-	using IppResampler = IppResamplerBase <false> ;
+	using IppResampler = IppResamplerBase<true> ;
 }
