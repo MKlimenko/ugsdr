@@ -136,5 +136,5 @@ namespace ugsdr {
 	public:
 	};
 
-	using IppResampler = IppResamplerBase<true> ;
+	using IppResampler = IppResamplerBase<false> ;
 }

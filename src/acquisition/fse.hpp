@@ -78,6 +78,7 @@ namespace ugsdr {
 		void ProcessBpsk(const std::vector<std::complex<UnderlyingType>>& signal, const std::vector<UnderlyingType>& code, std::int32_t sv, double intermediate_frequency, std::vector<AcquisitionResult>& dst) {
 			decltype(GetOneMsPeak(MatchedFilterType::Filter(MixerType::Translate(signal, signal_parameters.GetSamplingRate(), 0.0), code))) output_peak;
 			AcquisitionResult tmp, max_result;
+			auto ratio = signal_parameters.GetSamplingRate() / acquisition_sampling_rate;
 			for (double doppler_frequency = -doppler_range;
 						doppler_frequency <= doppler_range;
 						doppler_frequency += doppler_step) {
@@ -89,7 +90,7 @@ namespace ugsdr {
 				auto mean_sigma = MeanStdDevType::Calculate(peak_one_ms);
 				tmp.level = max_index.value;
 				tmp.sigma = mean_sigma.sigma + mean_sigma.mean;
-				tmp.code_offset = static_cast<double>(max_index.index);
+				tmp.code_offset = ratio * max_index.index;
 				tmp.doppler = doppler_frequency + intermediate_frequency;
 
 				if (max_result < tmp) {
@@ -118,10 +119,6 @@ namespace ugsdr {
 
 				ProcessBpsk(downsampled_signal, code, sv, intermediate_frequency, dst);
 			}
-
-			auto ratio = signal_parameters.GetSamplingRate() / acquisition_sampling_rate;
-			for (auto& el : dst)
-				el.code_offset *= ratio;
 		}
 
 		void ProcessGlonass(const std::vector<std::complex<UnderlyingType>>& signal, std::vector<AcquisitionResult>& dst) {
@@ -146,7 +143,7 @@ namespace ugsdr {
 			InitSatellites();
 		}
 
-		auto Process(std::size_t ms_offset) {
+		auto Process(std::size_t ms_offset = 0) {
 			std::vector<AcquisitionResult> dst;
 			auto signal = signal_parameters.GetSeveralMs(ms_offset, ms_to_process);
 
