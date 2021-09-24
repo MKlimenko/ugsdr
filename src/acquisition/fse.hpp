@@ -79,11 +79,14 @@ namespace ugsdr {
 			decltype(GetOneMsPeak(MatchedFilterType::Filter(MixerType::Translate(signal, signal_parameters.GetSamplingRate(), 0.0), code))) output_peak;
 			AcquisitionResult tmp, max_result;
 			auto ratio = signal_parameters.GetSamplingRate() / acquisition_sampling_rate;
+
+			auto code_spectum = MatchedFilterType::PrepareCodeSpectrum(code);
+			
 			for (double doppler_frequency = -doppler_range;
 						doppler_frequency <= doppler_range;
 						doppler_frequency += doppler_step) {
 				const auto translated_signal = MixerType::Translate(signal, acquisition_sampling_rate, -doppler_frequency);
-				auto matched_output = MatchedFilterType::Filter(translated_signal, code);
+				auto matched_output = MatchedFilterType::FilterOptimized(translated_signal, code_spectum);
 				auto peak_one_ms = GetOneMsPeak(matched_output);
 
 				auto max_index = MaxIndexType::Transform(peak_one_ms);
