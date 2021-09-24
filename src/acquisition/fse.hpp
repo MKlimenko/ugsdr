@@ -75,7 +75,8 @@ namespace ugsdr {
 			}
 		}
 
-		void ProcessBpsk(const std::vector<std::complex<UnderlyingType>>& signal, const std::vector<UnderlyingType>& code, std::int32_t sv, double intermediate_frequency, std::vector<AcquisitionResult>& dst) {
+		auto ProcessBpsk(const std::vector<std::complex<UnderlyingType>>& signal, const std::vector<UnderlyingType>& code, std::int32_t sv, double intermediate_frequency)
+			-> std::optional<std::pair<AcquisitionResult, decltype(GetOneMsPeak(MatchedFilterType::Filter(MixerType::Translate(signal, signal_parameters.GetSamplingRate(), 0.0), code)))>> {
 			decltype(GetOneMsPeak(MatchedFilterType::Filter(MixerType::Translate(signal, signal_parameters.GetSamplingRate(), 0.0), code))) output_peak;
 			AcquisitionResult tmp, max_result;
 			auto ratio = signal_parameters.GetSamplingRate() / acquisition_sampling_rate;
@@ -104,11 +105,12 @@ namespace ugsdr {
 			max_result.intermediate_frequency = intermediate_frequency;
 			max_result.sv_number = sv;
 			if (max_result.GetSnr() > peak_threshold) {
-				dst.push_back(max_result);
-				ugsdr::Add(L"Satellite " + std::to_wstring(sv), output_peak);
+				return std::make_pair(max_result, std::move(output_peak));
 			}
+
+			return std::nullopt;
 		}
-		
+
 		void ProcessGps(const std::vector<std::complex<UnderlyingType>>& signal, std::vector<AcquisitionResult>& dst) {
 			auto intermediate_frequency = -(signal_parameters.GetCentralFrequency() - 1575.42e6);
 
@@ -116,25 +118,51 @@ namespace ugsdr {
 			auto downsampled_signal = Resampler<IppResampler>::Transform(translated_signal, static_cast<std::size_t>(acquisition_sampling_rate),
 				static_cast<std::size_t>(signal_parameters.GetSamplingRate()));
 
-			for (auto sv : gps_sv) {
+			std::vector<decltype(ProcessBpsk(downsampled_signal, std::vector<UnderlyingType>{}, 0, intermediate_frequency))> temporary_dst(gps_sv.size());
+
+#pragma omp parallel for
+			for(int i = 0 ; i < gps_sv.size(); ++i) {
+				auto sv = gps_sv[i];
 				const auto code = UpsamplerType::Transform(RepeatCodeNTimes(Codegen<GpsL1Ca>::Get<UnderlyingType>(sv)),
 					static_cast<std::size_t>(ms_to_process * acquisition_sampling_rate / 1e3));
 
-				ProcessBpsk(downsampled_signal, code, sv, intermediate_frequency, dst);
+				temporary_dst[i] = ProcessBpsk(downsampled_signal, code, sv, intermediate_frequency);
 			}
+
+			for(std::size_t i = 0; i < temporary_dst.size(); ++i) {
+				auto& el = temporary_dst[i];
+				if(!el.has_value())
+					continue;
+				dst.push_back(el->first);
+				ugsdr::Add(L"Satellite " + std::to_wstring(gps_sv[i]), el->second);
+			}
+			
 		}
 
 		void ProcessGlonass(const std::vector<std::complex<UnderlyingType>>& signal, std::vector<AcquisitionResult>& dst) {
 			const auto code = UpsamplerType::Transform(RepeatCodeNTimes(Codegen<GlonassOf>::Get<UnderlyingType>(0)),
 				static_cast<std::size_t>(ms_to_process * acquisition_sampling_rate / 1e3));
-		
-			for (auto& litera_number : gln_sv) {
+
+			std::vector<decltype(ProcessBpsk(signal, std::vector<UnderlyingType>{}, 0, double{})) > temporary_dst(gln_sv.size());
+
+#pragma omp parallel for
+			for (int i = 0; i < gln_sv.size(); ++i) {
+				auto litera_number = gln_sv[i];
+				
 				auto intermediate_frequency = -(signal_parameters.GetCentralFrequency() - (1602e6 + litera_number * 0.5625e6));
 				const auto translated_signal = MixerType::Translate(signal, signal_parameters.GetSamplingRate(), -intermediate_frequency);
 				auto downsampled_signal = Resampler<IppResampler>::Transform(translated_signal, static_cast<std::size_t>(acquisition_sampling_rate), 
 					static_cast<std::size_t>(signal_parameters.GetSamplingRate()));
 				
-				ProcessBpsk(downsampled_signal, code, litera_number, intermediate_frequency, dst);
+				temporary_dst[i] = ProcessBpsk(downsampled_signal, code, litera_number, intermediate_frequency);
+			}
+			
+			for (std::size_t i = 0; i < temporary_dst.size(); ++i) {
+				auto& el = temporary_dst[i];
+				if (!el.has_value())
+					continue;
+				dst.push_back(el->first);
+				ugsdr::Add(L"Satellite " + std::to_wstring(gln_sv[i]), el->second);
 			}
 		}
 		
