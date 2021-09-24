@@ -7,7 +7,11 @@
 
 #include "../src/math/af_dft.hpp"
 #include "../src/math/ipp_dft.hpp"
+
 #include "../src/helpers/ipp_complex_type_converter.hpp"
+
+#include "../src/matched_filter/af_matched_filter.hpp"
+#include "../src/matched_filter/ipp_matched_filter.hpp"
 
 #include <execution>
 #include <random>
@@ -113,6 +117,7 @@ namespace ipp_math {
 }
 #endif
 
+#if 0
 namespace dft {
     constexpr auto max_range = 2048 << 8;
 	
@@ -154,6 +159,56 @@ namespace dft {
     BENCHMARK_TEMPLATE(Af, double)->DFT_BENCHMARK_OPTIONS;
 
 }
+#endif
+
+namespace matched_filter {
+    constexpr auto max_range = 2048 << 8;
+
+#define DFT_BENCHMARK_OPTIONS RangeMultiplier(2)->Range(2048, max_range)->Complexity()
+
+    template <typename T>
+    static void IppMf(benchmark::State& state) {
+        using MatchedFilterType = ugsdr::MatchedFilter<ugsdr::IppMatchedFilter>;
+
+        std::vector<std::complex<T>> signal(max_range);
+        std::vector<T> ir(max_range);
+        MatchedFilterType::Filter(signal, ir);
+        signal.resize(state.range());
+        ir.resize(state.range());
+
+        for (auto _ : state) {
+            MatchedFilterType::Filter(signal, ir);
+            benchmark::DoNotOptimize(signal);
+            benchmark::DoNotOptimize(ir);
+        }
+        state.SetComplexityN(state.range());
+    }
+    BENCHMARK_TEMPLATE(IppMf, float)->DFT_BENCHMARK_OPTIONS;
+    //BENCHMARK_TEMPLATE(IppMf, double)->DFT_BENCHMARK_OPTIONS;
+
+
+    template <typename T>
+    static void AfMf(benchmark::State& state) {
+        using MatchedFilterType = ugsdr::MatchedFilter<ugsdr::AfMatchedFilter>;
+
+        std::vector<std::complex<T>> signal(max_range);
+        std::vector<T> ir(max_range);
+        MatchedFilterType::Filter(signal, ir);
+        signal.resize(state.range());
+        ir.resize(state.range());
+
+        for (auto _ : state) {
+            MatchedFilterType::Filter(signal, ir);
+            benchmark::DoNotOptimize(signal);
+            benchmark::DoNotOptimize(ir);
+        }
+        state.SetComplexityN(state.range());
+    }
+    BENCHMARK_TEMPLATE(AfMf, float)->DFT_BENCHMARK_OPTIONS;
+    BENCHMARK_TEMPLATE(AfMf, double)->DFT_BENCHMARK_OPTIONS;
+
+}
+
 
 int main(int argc, char** argv) {
     ::benchmark::Initialize(&argc, argv);
