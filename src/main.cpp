@@ -2,6 +2,7 @@
 #include "signal_parameters.hpp"
 #include "acquisition/fse.hpp"
 #include "prn_codes/GpsL1Ca.hpp"
+#include "tracking/tracker.hpp"
 
 #ifdef HAS_SIGNAL_PLOT
 void GenerateSignals(CSignalsViewer* sv) {
@@ -15,7 +16,9 @@ void GenerateSignals(CSignalsViewer* sv) {
 	ugsdr::Add(L"Input signal", data);
 	
 	auto fse = ugsdr::FastSearchEngineBase(signal_parameters, 5e3, 200);
-	auto acquisition_results = fse.Process(0);
+	auto acquisition_results = fse.Process();
+
+	auto tracker = ugsdr::Tracker(signal_parameters, acquisition_results);
 
 #ifndef HAS_SIGNAL_PLOT
 	return 0;

@@ -35,12 +35,14 @@ add_executable (${PROJECT_NAME}
 							prn_codes/GpsL1Ca.hpp  
 							prn_codes/codegen.hpp 
 							prn_codes/lfsr.hpp 
+							prn_codes/codegen_wrapper.hpp
 							resample/decimator.hpp 
 							resample/ipp_decimator.hpp 
 							resample/resampler.hpp 
 							resample/ipp_resampler.hpp 
 							resample/upsampler.hpp 
 							resample/ipp_upsampler.hpp 
+							tracking/tracker.hpp
 )
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 20)

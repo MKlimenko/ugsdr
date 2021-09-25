@@ -164,7 +164,7 @@ namespace dft {
 namespace matched_filter {
     constexpr auto max_range = 2048 << 8;
 
-#define DFT_BENCHMARK_OPTIONS RangeMultiplier(2)->Range(2048, max_range)->Complexity()
+#define DFT_BENCHMARK_OPTIONS RangeMultiplier(2)->Range(2048, max_range)->Complexity()->Unit(benchmark::TimeUnit::kMicrosecond)
 
     template <typename T>
     static void IppMf(benchmark::State& state) {

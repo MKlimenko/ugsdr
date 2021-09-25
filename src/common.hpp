@@ -13,8 +13,26 @@ namespace ugsdr {
 	constexpr std::int32_t gln_min_frequency = -7;
 	constexpr std::int32_t gln_max_frequency = 6;
 
+	enum class System : std::uint32_t {
+		Gps = 0,
+		Glonass,
+	};
+
+	struct Sv {
+		System system = System::Gps;
+		std::int32_t id = 0;
+		
+		operator System() const {
+			return system;
+		}
+
+		operator std::int32_t() const {
+			return id;
+		}
+	};
+
 #ifdef HAS_SIGNAL_PLOT
-	CSignalsViewer* glob_sv = nullptr;
+	inline CSignalsViewer* glob_sv = nullptr;
 
 	template <typename T, typename ...Args>
 	void Add(const std::vector<T>& vec, Args&&... args) {
