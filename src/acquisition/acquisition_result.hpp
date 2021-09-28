@@ -1,8 +1,10 @@
 #pragma once
 
+#include "../common.hpp"
+
 namespace ugsdr {
 	struct AcquisitionResult {
-		std::size_t sv_number = 0;
+		Sv sv_number;
 		double doppler = 0;
 		double code_offset = 0;
 		double level = 0;

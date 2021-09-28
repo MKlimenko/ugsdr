@@ -106,5 +106,5 @@ namespace ugsdr {
 		}
 	};
 
-	using SignalParameters = SignalParametersBase<std::int8_t>;
+	using SignalParameters = SignalParametersBase<float>;
 }

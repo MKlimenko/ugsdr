@@ -43,7 +43,7 @@ add_executable (${PROJECT_NAME}
 							resample/upsampler.hpp 
 							resample/ipp_upsampler.hpp 
 							tracking/tracker.hpp
-)
+							tracking/tracking_parameters.hpp)
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 20)
 

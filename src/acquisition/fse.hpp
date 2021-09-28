@@ -79,7 +79,7 @@ namespace ugsdr {
 			}
 		}
 
-		void ProcessBpsk(const std::vector<std::complex<UnderlyingType>>& signal, const std::vector<UnderlyingType>& code, std::int32_t sv, double intermediate_frequency, std::vector<AcquisitionResult>& dst) {
+		void ProcessBpsk(const std::vector<std::complex<UnderlyingType>>& signal, const std::vector<UnderlyingType>& code, Sv sv, double intermediate_frequency, std::vector<AcquisitionResult>& dst) {
 			decltype(GetOneMsPeak(MatchedFilterType::Filter(MixerType::Translate(signal, signal_parameters.GetSamplingRate(), 0.0), code))) output_peak;
 			AcquisitionResult tmp, max_result;
 			auto ratio = signal_parameters.GetSamplingRate() / acquisition_sampling_rate;
@@ -124,7 +124,7 @@ namespace ugsdr {
 				const auto code = UpsamplerType::Transform(RepeatCodeNTimes(PrnGenerator<System::Gps>::Get<UnderlyingType>(sv), ms_to_process),
 					static_cast<std::size_t>(ms_to_process * acquisition_sampling_rate / 1e3));
 
-				ProcessBpsk(downsampled_signal, code, sv, intermediate_frequency, dst);
+				ProcessBpsk(downsampled_signal, code, { System::Gps, sv }, intermediate_frequency, dst);
 			}
 		}
 
@@ -138,7 +138,7 @@ namespace ugsdr {
 				auto downsampled_signal = Resampler<IppResampler>::Transform(translated_signal, static_cast<std::size_t>(acquisition_sampling_rate), 
 					static_cast<std::size_t>(signal_parameters.GetSamplingRate()));
 				
-				ProcessBpsk(downsampled_signal, code, litera_number, intermediate_frequency, dst);
+				ProcessBpsk(downsampled_signal, code, { System::Glonass , litera_number }, intermediate_frequency, dst);
 			}
 		}
 		
