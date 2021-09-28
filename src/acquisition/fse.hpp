@@ -49,15 +49,15 @@ namespace ugsdr {
 			}
 			gln_sv.resize(ugsdr::gln_max_frequency - ugsdr::gln_min_frequency);
 			for (std::size_t i = 0; i < gln_sv.size(); ++i) {
-				gps_sv[i].system = System::Glonass;
-				gps_sv[i].id = ugsdr::gln_min_frequency + static_cast<std::int32_t>(i);
+				gln_sv[i].system = System::Glonass;
+				gln_sv[i].id = ugsdr::gln_min_frequency + static_cast<std::int32_t>(i);
 			}
 		}
 
 		template <typename T>
-		auto RepeatCodeNTimes(std::vector<T> code) {
+		auto RepeatCodeNTimes(std::vector<T> code, std::size_t repeats) {
 			auto ms_size = code.size();
-			for (std::size_t i = 1; i < ms_to_process; ++i)
+			for (std::size_t i = 1; i < repeats; ++i)
 				code.insert(code.end(), code.begin(), code.begin() + ms_size);
 			
 			return code;
@@ -121,7 +121,7 @@ namespace ugsdr {
 				static_cast<std::size_t>(signal_parameters.GetSamplingRate()));
 
 			for (auto sv : gps_sv) {
-				const auto code = UpsamplerType::Transform(RepeatCodeNTimes(PrnGenerator<System::Gps>::Get<UnderlyingType>(sv)),
+				const auto code = UpsamplerType::Transform(RepeatCodeNTimes(PrnGenerator<System::Gps>::Get<UnderlyingType>(sv), ms_to_process),
 					static_cast<std::size_t>(ms_to_process * acquisition_sampling_rate / 1e3));
 
 				ProcessBpsk(downsampled_signal, code, sv, intermediate_frequency, dst);
@@ -129,7 +129,7 @@ namespace ugsdr {
 		}
 
 		void ProcessGlonass(const std::vector<std::complex<UnderlyingType>>& signal, std::vector<AcquisitionResult>& dst) {
-			const auto code = UpsamplerType::Transform(RepeatCodeNTimes(PrnGenerator<System::Glonass>::Get<UnderlyingType>(0)),
+			const auto code = UpsamplerType::Transform(RepeatCodeNTimes(PrnGenerator<System::Glonass>::Get<UnderlyingType>(0), ms_to_process),
 				static_cast<std::size_t>(ms_to_process * acquisition_sampling_rate / 1e3));
 		
 			for (auto& litera_number : gln_sv) {

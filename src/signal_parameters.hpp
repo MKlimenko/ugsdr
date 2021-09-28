@@ -17,6 +17,7 @@ namespace ugsdr {
 		FileType file_type = FileType::Iq_8_plus_8;
 		double central_frequency = 1590e6;				// L1 central frequency
 		double sampling_rate = 0.0;
+		std::size_t number_of_epochs = 0;
 
 		std::ifstream signal_file;
 
@@ -25,7 +26,9 @@ namespace ugsdr {
 		void OpenFile() {
 			switch (file_type) {
 			case FileType::Iq_8_plus_8:
-				signal_file = std::ifstream(signal_file_path, std::ios::binary);
+				signal_file = std::ifstream(signal_file_path, std::ios::binary | std::ios::ate);
+				number_of_epochs = static_cast<std::size_t>(signal_file.tellg() / (sampling_rate / 1e3));
+				signal_file.seekg(0);
 				break;
 			default:
 				throw std::runtime_error("Unexpected file type");
@@ -96,6 +99,10 @@ namespace ugsdr {
 
 		auto GetSamplingRate() const {
 			return sampling_rate;
+		}
+
+		auto GetNumberOfEpochs() const {
+			return number_of_epochs;
 		}
 	};
 

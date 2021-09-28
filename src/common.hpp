@@ -29,6 +29,12 @@ namespace ugsdr {
 		operator std::int32_t() const {
 			return id;
 		}
+
+		bool operator<(const Sv& rhs) const {
+			if (system != rhs.system)
+				return static_cast<std::uint32_t>(system) < static_cast<std::uint32_t>(rhs.system);
+			return id < rhs.id;
+		}
 	};
 
 #ifdef HAS_SIGNAL_PLOT

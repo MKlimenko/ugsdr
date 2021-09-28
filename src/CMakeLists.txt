@@ -47,10 +47,11 @@ add_executable (${PROJECT_NAME}
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 20)
 
-find_package(OpenMP REQUIRED)
 find_package(ArrayFire REQUIRED)
+find_package(OpenMP REQUIRED)
+find_package(Boost REQUIRED)
 
-target_include_directories(${PROJECT_NAME} PRIVATE ${ArrayFire_INCLUDE_DIRS})
+target_include_directories(${PROJECT_NAME} PRIVATE ${ArrayFire_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS})
 
 target_link_libraries(${PROJECT_NAME} PRIVATE OpenMP::OpenMP_CXX ArrayFire::afcuda)
 
