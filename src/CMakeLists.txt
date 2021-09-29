@@ -8,6 +8,9 @@ add_executable (${PROJECT_NAME}
 							signal_parameters.hpp
 							acquisition/acquisition_result.hpp 
 							acquisition/fse.hpp 
+							correlator/af_correlator.hpp
+							correlator/correlator.hpp
+							correlator/ipp_correlator.hpp
 							helpers/af_array_proxy.hpp
 							helpers/ipp_complex_type_converter.hpp
 							helpers/is_complex.hpp
@@ -43,7 +46,8 @@ add_executable (${PROJECT_NAME}
 							resample/upsampler.hpp 
 							resample/ipp_upsampler.hpp 
 							tracking/tracker.hpp
-							tracking/tracking_parameters.hpp)
+							tracking/tracking_parameters.hpp
+)
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 20)
 

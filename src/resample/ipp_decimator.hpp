@@ -81,7 +81,7 @@ namespace ugsdr {
 			
 			auto div_wrapper = GetDivWrapper();
 			using UnderlyingIppType = typename IppComplexToType<TypeToCast>::Type;
-			div_wrapper(static_cast<TypeToCast>(static_cast<UnderlyingIppType>(decimation_ratio)), reinterpret_cast<TypeToCast*>(src_dst.data()), static_cast<int>(src_dst.size()));
+			div_wrapper(TypeToCast{ static_cast<UnderlyingIppType>(decimation_ratio) }, reinterpret_cast<TypeToCast*>(src_dst.data()), static_cast<int>(src_dst.size()));
 		}
 
 	protected:

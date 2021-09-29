@@ -13,6 +13,11 @@
 #include "../src/matched_filter/af_matched_filter.hpp"
 #include "../src/matched_filter/ipp_matched_filter.hpp"
 
+#include "../src/correlator/af_correlator.hpp"
+#include "../src/correlator/ipp_correlator.hpp"
+
+#include "../src/helpers/af_array_proxy.hpp"
+
 #include <execution>
 #include <random>
 
@@ -161,6 +166,7 @@ namespace dft {
 }
 #endif
 
+#if 0
 namespace matched_filter {
     constexpr auto max_range = 2048 << 8;
 
@@ -206,7 +212,71 @@ namespace matched_filter {
     }
     BENCHMARK_TEMPLATE(AfMf, float)->DFT_BENCHMARK_OPTIONS;
     BENCHMARK_TEMPLATE(AfMf, double)->DFT_BENCHMARK_OPTIONS;
+}
+#endif
 
+namespace correlator {
+    constexpr auto max_range = 2048 << 8;
+
+#define CORR_BENCHMARK_OPTIONS RangeMultiplier(2)->Range(2048, max_range)->Complexity()
+
+    template <typename T>
+    static void CpuCorr(benchmark::State& state) {
+        using CorrelatorType = ugsdr::Correlator<ugsdr::SequentialCorrelator>;
+
+        std::vector<std::complex<T>> signal(state.range());
+        std::vector<T> code(state.range());
+
+        for (auto _ : state) {
+            auto dst = CorrelatorType::Correlate(signal, std::span(code));
+            benchmark::DoNotOptimize(dst);
+        }
+        state.SetComplexityN(state.range());
+    }
+    BENCHMARK_TEMPLATE(CpuCorr, float)->CORR_BENCHMARK_OPTIONS;
+    //BENCHMARK_TEMPLATE(CpuCorr, double)->CORR_BENCHMARK_OPTIONS;
+
+    template <typename T>
+    static void IppCorr(benchmark::State& state) {
+        using CorrelatorType = ugsdr::Correlator<ugsdr::IppCorrelator>;
+
+        std::vector<std::complex<T>> signal(state.range());
+        std::vector<T> code(state.range());
+
+        for (auto _ : state) {
+            auto dst = CorrelatorType::Correlate(signal, std::span(code));
+            benchmark::DoNotOptimize(dst);
+        }
+        state.SetComplexityN(state.range());
+    }
+    BENCHMARK_TEMPLATE(IppCorr, float)->CORR_BENCHMARK_OPTIONS;
+    //BENCHMARK_TEMPLATE(IppCorr, double)->CORR_BENCHMARK_OPTIONS;
+
+    template <typename T>
+    static void AfCorr(benchmark::State& state) {
+        using CorrelatorType = ugsdr::Correlator<ugsdr::AfCorrelator>;
+
+        const std::vector<std::complex<T>> signal_max(max_range);
+        const std::vector<std::complex<T>> code_max(max_range);
+
+        auto signal_af_max = ugsdr::ArrayProxy(signal_max);
+        auto code_af_max = ugsdr::ArrayProxy(code_max);
+        CorrelatorType::Correlate(signal_af_max, code_af_max);
+
+        const std::vector<std::complex<T>> signal(state.range());
+        const std::vector<std::complex<T>> code(state.range());
+
+        auto signal_af = ugsdr::ArrayProxy(signal);
+        auto code_af = ugsdr::ArrayProxy(code);
+
+        for (auto _ : state) {
+            auto dst = CorrelatorType::Correlate(signal_af, code_af);
+            benchmark::DoNotOptimize(dst);
+        }
+        state.SetComplexityN(state.range());
+    }
+    BENCHMARK_TEMPLATE(AfCorr, float)->CORR_BENCHMARK_OPTIONS;
+    //BENCHMARK_TEMPLATE(AfCorr, double)->CORR_BENCHMARK_OPTIONS;
 }
 
 

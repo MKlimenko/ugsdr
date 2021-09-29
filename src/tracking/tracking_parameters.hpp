@@ -19,12 +19,20 @@ namespace ugsdr {
 																	intermediate_frequency(acquisition.intermediate_frequency), sv(acquisition.sv_number) {
 			switch (sv.system) {
 			case System::Gps:
+				code_frequency = 1.023e6;
+				base_code_frequency = 1.023e6;
 				break;
 			case System::Glonass:
+				code_frequency = 0.511e6;
+				base_code_frequency = 0.511e6;
 				break;
 			default:
 				break;
 			}
+		}
+
+		auto GetSamplesPerChip() const {
+			return sampling_rate / base_code_frequency;
 		}
 	};
 }

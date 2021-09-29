@@ -4,6 +4,8 @@
 #include "../signal_parameters.hpp"
 #include "../acquisition/acquisition_result.hpp"
 #include "../resample/upsampler.hpp"
+#include "../correlator/af_correlator.hpp"
+#include "../correlator/ipp_correlator.hpp"
 #include "tracking_parameters.hpp"
 
 #include "boost/timer/progress_display.hpp"
@@ -14,47 +16,52 @@
 
 namespace ugsdr {
 	template <typename UnderlyingType>
-	class Tracker final {
-		struct Codes final {
-		private:
-			using UpsamplerType = Upsampler<SequentialUpsampler>;
+	struct Codes final {
+	private:
+		using UpsamplerType = Upsampler<SequentialUpsampler>;
 
-			template <typename T>
-			auto RepeatCodeNTimes(std::vector<T> code, std::size_t repeats) {
-				auto ms_size = code.size();
-				for (std::size_t i = 1; i < repeats; ++i)
-					code.insert(code.end(), code.begin(), code.begin() + ms_size);
+		template <typename T>
+		auto RepeatCodeNTimes(std::vector<T> code, std::size_t repeats) {
+			auto ms_size = code.size();
+			for (std::size_t i = 1; i < repeats; ++i)
+				code.insert(code.end(), code.begin(), code.begin() + ms_size);
 
-				return code;
-			}
+			return code;
+		}
 
-			using MapType = std::map<Sv, std::vector<UnderlyingType>>;
-			
-		public:
-			MapType codes;
+		using MapType = std::map<Sv, std::vector<UnderlyingType>>;
 
-			Codes(double sampling_rate) {
-				for (std::int32_t i = 0; i < gps_sv_count; ++i) {
-					auto sv = Sv{ System::Gps, i };
-					codes[sv] = UpsamplerType::Transform(RepeatCodeNTimes(PrnGenerator<System::Gps>::Get<UnderlyingType>(0), 3),
-						static_cast<std::size_t>(3 * sampling_rate / 1e3));
-				}
+	public:
+		MapType codes;
 
-				auto sv = Sv{ System::Glonass, 0 };
-				codes[sv] = UpsamplerType::Transform(RepeatCodeNTimes(PrnGenerator<System::Glonass>::Get<UnderlyingType>(0), 3),
+		Codes(double sampling_rate) {
+			for (std::int32_t i = 0; i < gps_sv_count; ++i) {
+				auto sv = Sv{ System::Gps, i };
+				codes[sv] = UpsamplerType::Transform(RepeatCodeNTimes(PrnGenerator<System::Gps>::Get<UnderlyingType>(0), 3),
 					static_cast<std::size_t>(3 * sampling_rate / 1e3));
 			}
 
-			const auto& GetMap() const {
-				return codes;
-			}
-		};
+			auto sv = Sv{ System::Glonass, 0 };
+			codes[sv] = UpsamplerType::Transform(RepeatCodeNTimes(PrnGenerator<System::Glonass>::Get<UnderlyingType>(0), 3),
+				static_cast<std::size_t>(3 * sampling_rate / 1e3));
+		}
 
+		const auto& GetMap() const {
+			return codes;
+		}
+	};
+
+
+	template <typename UnderlyingType>
+	class Tracker final {
 		SignalParametersBase<UnderlyingType>& signal_parameters;
 		const std::vector<AcquisitionResult>& acquisition_results;
 
-		Codes codes;
+		Codes<UnderlyingType> codes;
+		const std::size_t samples_per_ms = 0;
 		std::vector<TrackingParameters> tracking_parameters;
+
+		using CorrelatorType = ugsdr::IppCorrelator;
 
 		void InitTrackingParameters() {
 			for (const auto& el : acquisition_results)
@@ -62,15 +69,21 @@ namespace ugsdr {
 		}
 		
 		template <typename T>
-		void TrackSingleSatellite(TrackingParameters& parameters, const std::vector<T>& signal) {
+		void TrackSingleSatellite(TrackingParameters& parameters, const T& signal) {
 			const auto& code_map = codes.GetMap();
 			const auto& full_code = code_map.at(parameters.sv);
 
+			auto full_phase = static_cast<std::size_t>(samples_per_ms + parameters.code_phase);
+			const auto current_code = std::span(full_code.begin() + full_phase, samples_per_ms);
+		
+			auto prompt = CorrelatorType::Correlate(signal, current_code);
 		}
 		
 	public:
 		Tracker(SignalParametersBase<UnderlyingType>& signal_params, 
-			const std::vector<AcquisitionResult>& acquisition_dst) : signal_parameters(signal_params), acquisition_results(acquisition_dst), codes(signal_parameters.GetSamplingRate()) {
+			const std::vector<AcquisitionResult>& acquisition_dst) :	signal_parameters(signal_params), acquisition_results(acquisition_dst), 
+																		codes(signal_parameters.GetSamplingRate()), 
+																		samples_per_ms(static_cast<std::size_t>(signal_parameters.GetSamplingRate() / 1e3)) {
 			InitTrackingParameters();
 		}
 

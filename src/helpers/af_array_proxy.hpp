@@ -6,6 +6,7 @@
 
 #include <arrayfire.h>
 #include <optional>
+#include <span>
 #include <variant>
 
 namespace ugsdr {
@@ -84,16 +85,22 @@ namespace ugsdr {
 		ArrayProxy(const std::vector<T>& vec) : array(vec.size(), vec.data()) {}
 
 		template <typename T>
-		ArrayProxy(const std::vector<std::complex<T>>& vec) {
+		ArrayProxy(const std::span<T>& vec) : array(vec.size(), vec.data()) {}
+
+		template <typename T>
+		ArrayProxy(const T* data, std::size_t size) {
 			if constexpr (std::is_same_v<T, double>)
-				array = af::array(vec.size(), reinterpret_cast<const af::cdouble*>(vec.data()));
+				array = af::array(size, reinterpret_cast<const af::cdouble*>(data));
 			else if constexpr (std::is_same_v<T, float>)
-				array = af::array(vec.size(), reinterpret_cast<const af::cfloat*>(vec.data()));
+				array = af::array(size, reinterpret_cast<const af::cfloat*>(data));
 			else {
-				auto converted_vector = std::vector<std::complex<float>>(vec.begin(), vec.end());
+				auto converted_vector = std::vector<std::complex<float>>(data, data + size);
 				array = af::array(converted_vector.size(), reinterpret_cast<const af::cfloat*>(converted_vector.data()));
 			}
 		}
+
+		template <typename T>
+		ArrayProxy(const std::vector<std::complex<T>>& vec) : ArrayProxy(vec.data(), vec.size()) {}
 
 		operator af::array& () {
 			return array;
