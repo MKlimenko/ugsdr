@@ -109,7 +109,7 @@ namespace ugsdr {
 			max_result.sv_number = sv;
 			if (max_result.GetSnr() > peak_threshold) {
 				dst.push_back(max_result);
-				ugsdr::Add(L"Satellite " + std::to_wstring(sv), output_peak);
+				//ugsdr::Add(L"Satellite " + std::to_wstring(static_cast<std::uint32_t>(sv)), output_peak);
 			}
 		}
 		
@@ -121,10 +121,10 @@ namespace ugsdr {
 				static_cast<std::size_t>(signal_parameters.GetSamplingRate()));
 
 			for (auto sv : gps_sv) {
-				const auto code = UpsamplerType::Transform(RepeatCodeNTimes(PrnGenerator<System::Gps>::Get<UnderlyingType>(sv), ms_to_process),
+				const auto code = UpsamplerType::Transform(RepeatCodeNTimes(PrnGenerator<System::Gps>::Get<UnderlyingType>(static_cast<std::int32_t>(sv)), ms_to_process),
 					static_cast<std::size_t>(ms_to_process * acquisition_sampling_rate / 1e3));
 
-				ProcessBpsk(downsampled_signal, code, { System::Gps, sv }, intermediate_frequency, dst);
+				ProcessBpsk(downsampled_signal, code, { sv, System::Gps }, intermediate_frequency, dst);
 			}
 		}
 
@@ -133,12 +133,12 @@ namespace ugsdr {
 				static_cast<std::size_t>(ms_to_process * acquisition_sampling_rate / 1e3));
 		
 			for (auto& litera_number : gln_sv) {
-				auto intermediate_frequency = -(signal_parameters.GetCentralFrequency() - (1602e6 + litera_number * 0.5625e6));
+				auto intermediate_frequency = -(signal_parameters.GetCentralFrequency() - (1602e6 + static_cast<std::int32_t>(litera_number) * 0.5625e6));
 				const auto translated_signal = MixerType::Translate(signal, signal_parameters.GetSamplingRate(), -intermediate_frequency);
 				auto downsampled_signal = Resampler<IppResampler>::Transform(translated_signal, static_cast<std::size_t>(acquisition_sampling_rate), 
 					static_cast<std::size_t>(signal_parameters.GetSamplingRate()));
 				
-				ProcessBpsk(downsampled_signal, code, { System::Glonass , litera_number }, intermediate_frequency, dst);
+				ProcessBpsk(downsampled_signal, code, { litera_number, System::Glonass }, intermediate_frequency, dst);
 			}
 		}
 		
@@ -157,7 +157,7 @@ namespace ugsdr {
 			ugsdr::Add(L"Acquisition input signal", signal, signal_parameters.GetSamplingRate());
 
 			ProcessGps(signal, dst);
-			ProcessGlonass(signal, dst);
+			//ProcessGlonass(signal, dst);
 
 			return dst;
 		}

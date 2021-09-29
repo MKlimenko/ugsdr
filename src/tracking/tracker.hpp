@@ -8,6 +8,9 @@
 #include "../correlator/ipp_correlator.hpp"
 #include "tracking_parameters.hpp"
 
+#include "../matched_filter/ipp_matched_filter.hpp"
+#include "../mixer/ipp_mixer.hpp"
+
 #include "boost/timer/progress_display.hpp"
 
 #include <map>
@@ -36,12 +39,12 @@ namespace ugsdr {
 
 		Codes(double sampling_rate) {
 			for (std::int32_t i = 0; i < gps_sv_count; ++i) {
-				auto sv = Sv{ System::Gps, i };
+				auto sv = Sv{ i, System::Gps};
 				codes[sv] = UpsamplerType::Transform(RepeatCodeNTimes(PrnGenerator<System::Gps>::Get<UnderlyingType>(0), 3),
 					static_cast<std::size_t>(3 * sampling_rate / 1e3));
 			}
 
-			auto sv = Sv{ System::Glonass, 0 };
+			auto sv = Sv{ 0, System::Glonass };
 			codes[sv] = UpsamplerType::Transform(RepeatCodeNTimes(PrnGenerator<System::Glonass>::Get<UnderlyingType>(0), 3),
 				static_cast<std::size_t>(3 * sampling_rate / 1e3));
 		}
@@ -61,11 +64,13 @@ namespace ugsdr {
 		const std::size_t samples_per_ms = 0;
 		std::vector<TrackingParameters> tracking_parameters;
 
-		using CorrelatorType = ugsdr::IppCorrelator;
-
+		using CorrelatorType = IppCorrelator;
+		using MatchedFilterType = IppMatchedFilter;
+		using MixerType = Mixer<IppMixer>;
+		
 		void InitTrackingParameters() {
 			for (const auto& el : acquisition_results)
-				tracking_parameters.emplace_back(el);
+				tracking_parameters.emplace_back(el, signal_parameters.GetSamplingRate());
 		}
 		
 		template <typename T>
@@ -73,10 +78,15 @@ namespace ugsdr {
 			const auto& code_map = codes.GetMap();
 			const auto& full_code = code_map.at(parameters.sv);
 
-			auto full_phase = static_cast<std::size_t>(samples_per_ms + parameters.code_phase);
+			auto full_phase = static_cast<std::size_t>(samples_per_ms + parameters.code_phase * 0);
+			const auto translated_signal = MixerType::Translate(signal, parameters.sampling_rate, parameters.carrier_frequency, parameters.carrier_phase); // <= increment phase!
 			const auto current_code = std::span(full_code.begin() + full_phase, samples_per_ms);
-		
-			auto prompt = CorrelatorType::Correlate(signal, current_code);
+			const auto current_code_v = std::vector(full_code.begin() + full_phase, full_code.begin() + full_phase + samples_per_ms);
+
+			ugsdr::Add(MatchedFilter<IppMatchedFilter>::Filter(translated_signal, current_code_v));
+			
+			auto prompt = CorrelatorType::Correlate(translated_signal, current_code);
+			parameters.prompt.push_back(prompt);
 		}
 		
 	public:
@@ -95,7 +105,11 @@ namespace ugsdr {
 
 				for (auto& current_tracking_parameters : tracking_parameters)
 					TrackSingleSatellite(current_tracking_parameters, current_signal_ms);
-				
+				return;
+			}
+
+			for(auto&el:tracking_parameters) {
+				ugsdr::Add(L"Tracking result", el.prompt);
 			}
 		}
 	};

@@ -19,15 +19,19 @@ namespace ugsdr {
 	};
 
 	struct Sv {
-		System system = System::Gps;
-		std::int32_t id = 0;
-		
+		std::int32_t id : 8;
+		System system : 24;
+				
 		operator System() const {
 			return system;
 		}
-
+		
 		operator std::int32_t() const {
 			return id;
+		}
+
+		explicit operator std::uint32_t() const {
+			return *reinterpret_cast<const std::uint32_t*>(this);
 		}
 
 		bool operator<(const Sv& rhs) const {

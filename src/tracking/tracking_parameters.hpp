@@ -15,8 +15,13 @@ namespace ugsdr {
         double sampling_rate = 0.0;
         Sv sv;
 
-		TrackingParameters(const AcquisitionResult& acquisition) :	code_phase(acquisition.code_offset), carrier_phase(acquisition.doppler),
-																	intermediate_frequency(acquisition.intermediate_frequency), sv(acquisition.sv_number) {
+		std::vector<std::complex<float>> prompt;
+		
+		TrackingParameters(const AcquisitionResult& acquisition, double sampling_frequency) :	code_phase(acquisition.code_offset),
+																								carrier_frequency(acquisition.doppler),
+																								intermediate_frequency(acquisition.intermediate_frequency),
+																								sv(acquisition.sv_number),
+																								sampling_rate(sampling_frequency)	{
 			switch (sv.system) {
 			case System::Gps:
 				code_frequency = 1.023e6;
@@ -29,6 +34,8 @@ namespace ugsdr {
 			default:
 				break;
 			}
+
+			prompt.reserve(10000);
 		}
 
 		auto GetSamplesPerChip() const {
