@@ -4,6 +4,7 @@
 #include <complex>
 #include <execution>
 #include <limits>
+#include <numbers>
 #include <vector>
 
 namespace ugsdr {
@@ -14,6 +15,13 @@ namespace ugsdr {
 		double mixer_frequency = 0.0;
 		double mixer_phase = 0.0;
 
+		template <typename T>
+		static void FixPhase(T& phase) {
+			phase = std::fmod(phase, 2 * std::numbers::pi_v<T>);
+			if (phase < 0)
+				phase += 2 * std::numbers::pi_v<T>;
+		}
+
 	public:
 		Mixer(double sampling_freq, double frequency, double phase) :
 			sampling_rate(sampling_freq),
@@ -22,6 +30,7 @@ namespace ugsdr {
 
 		template <typename UnderlyingType>
 		static void Translate(std::vector<std::complex<UnderlyingType>>& src_dst, double sampling_freq, double frequency, double phase = 0) {
+			FixPhase(phase);
 			MixerImpl::Process(src_dst, sampling_freq, frequency, phase);
 		}
 
@@ -30,6 +39,8 @@ namespace ugsdr {
 			auto dst = src_dst;
 			if (frequency < 0)
 				frequency = sampling_freq + frequency;
+
+			FixPhase(phase);
 			MixerImpl::Process(dst, sampling_freq, frequency, phase);
 			return dst;
 		}

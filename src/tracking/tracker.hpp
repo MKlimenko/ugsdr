@@ -95,8 +95,8 @@ namespace ugsdr {
 		}
 
 		template <typename T>
-		auto GetEpl(TrackingParameters<UnderlyingType>& parameters, T& translated_signal, double spacing_chips) {
-			MixerType::Translate(translated_signal, parameters.sampling_rate, -parameters.carrier_frequency, parameters.carrier_phase);
+		auto GetEpl(TrackingParameters<UnderlyingType>& parameters, const T& signal, double spacing_chips) {
+			auto translated_signal = MixerType::Translate(signal, parameters.sampling_rate, -parameters.carrier_frequency, parameters.carrier_phase);
 			parameters.carrier_phase += 2 * std::numbers::pi_v<double> *std::fmod(parameters.carrier_frequency / 1000.0, 1.0);
 			
 			const auto& full_code = codes.GetCode(parameters.sv);
@@ -121,7 +121,7 @@ namespace ugsdr {
 		}
 
 		template <typename T>
-		void TrackSingleSatellite(TrackingParameters<UnderlyingType>& parameters, T& signal) {
+		void TrackSingleSatellite(TrackingParameters<UnderlyingType>& parameters, const T& signal) {
 			auto [early, prompt, late] = GetEpl(parameters, signal, 0.5);
 			parameters.early.push_back(early);
 			parameters.prompt.push_back(prompt);
@@ -143,7 +143,7 @@ namespace ugsdr {
 				auto current_signal_ms = signal_parameters.GetOneMs(i);
 
 				std::for_each(std::execution::par_unseq, tracking_parameters.begin(), tracking_parameters.end(),
-					[current_signal_ms, this](auto& current_tracking_parameters) {
+					[&current_signal_ms, this](auto& current_tracking_parameters) {
 						TrackSingleSatellite(current_tracking_parameters, current_signal_ms);
 					});
 			}

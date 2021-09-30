@@ -59,7 +59,7 @@ namespace ugsdr {
 
 			thread_local std::vector<Ipp32fc> c_exp(src_dst.size());
 			c_exp.resize(src_dst.size());
-			float phase_float = phase;
+			float phase_float = static_cast<float>(phase);
 			ippsTone_32fc(c_exp.data(), static_cast<int>(c_exp.size()), scale, static_cast<Ipp32f>(frequency / sampling_freq), &phase_float, IppHintAlgorithm::ippAlgHintFast);
 			
 			Multiply(src_dst, c_exp);
