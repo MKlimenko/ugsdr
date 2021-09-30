@@ -34,6 +34,9 @@ namespace ugsdr {
 			ippsConvert_64f32f(reinterpret_cast<const Ipp64f*>(c_exp.data()), reinterpret_cast<Ipp32f*>(c_exp_fp32.data()), static_cast<int>(c_exp.size()) * 2);
 			ippsMul_32fc_I(c_exp_fp32.data(), reinterpret_cast<Ipp32fc*>(src_dst.data()), static_cast<int>(c_exp.size()));
 		}
+		static void Multiply(std::vector<std::complex<float>>& src_dst, const std::vector<Ipp32fc>& c_exp) {
+			ippsMul_32fc_I(c_exp.data(), reinterpret_cast<Ipp32fc*>(src_dst.data()), static_cast<int>(c_exp.size()));
+		}
 		static void Multiply(std::vector<std::complex<double>>& src_dst, const std::vector<Ipp64fc>& c_exp) {
 			ippsMul_64fc_I(c_exp.data(), reinterpret_cast<Ipp64fc*>(src_dst.data()), static_cast<int>(c_exp.size()));
 		}
@@ -44,11 +47,21 @@ namespace ugsdr {
 			if constexpr (std::is_integral_v<UnderlyingType>)
 				scale = 127;
 
-			//double pi_2 = 8 * std::atan(1.0);
 			thread_local std::vector<Ipp64fc> c_exp(src_dst.size());
 			c_exp.resize(src_dst.size());
 			ippsTone_64fc(c_exp.data(), static_cast<int>(c_exp.size()), scale, frequency / sampling_freq, &phase, IppHintAlgorithm::ippAlgHintFast);
 
+			Multiply(src_dst, c_exp);
+		}
+
+		static void Process(std::vector<std::complex<float>>& src_dst, double sampling_freq, double frequency, double phase = 0) {
+			float scale = 1.0;
+
+			thread_local std::vector<Ipp32fc> c_exp(src_dst.size());
+			c_exp.resize(src_dst.size());
+			float phase_float = phase;
+			ippsTone_32fc(c_exp.data(), static_cast<int>(c_exp.size()), scale, static_cast<Ipp32f>(frequency / sampling_freq), &phase_float, IppHintAlgorithm::ippAlgHintFast);
+			
 			Multiply(src_dst, c_exp);
 		}
 

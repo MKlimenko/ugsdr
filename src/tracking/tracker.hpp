@@ -87,23 +87,41 @@ namespace ugsdr {
 			return CorrelatorType::Correlate(translated_signal, current_code);
 		}
 
+		template <typename T1, typename T2>
+		auto Correlate(const T1& translated_signal, const T2& full_code, std::pair<double, std::complex<UnderlyingType>>& code_phase_and_output) {
+			auto full_phase = static_cast<std::size_t>(samples_per_ms + code_phase_and_output.first);
+			const auto current_code = std::span(full_code.begin() + full_phase, samples_per_ms);
+			code_phase_and_output.second = CorrelatorType::Correlate(translated_signal, current_code);
+		}
+
 		template <typename T>
-		auto GetEpl(TrackingParameters<UnderlyingType>& parameters, const T& signal, double spacing_chips) {
-			const auto translated_signal = MixerType::Translate(signal, parameters.sampling_rate, -parameters.carrier_frequency, parameters.carrier_phase);
+		auto GetEpl(TrackingParameters<UnderlyingType>& parameters, T& translated_signal, double spacing_chips) {
+			MixerType::Translate(translated_signal, parameters.sampling_rate, -parameters.carrier_frequency, parameters.carrier_phase);
 			parameters.carrier_phase += 2 * std::numbers::pi_v<double> *std::fmod(parameters.carrier_frequency / 1000.0, 1.0);
 			
 			const auto& full_code = codes.GetCode(parameters.sv);
 
 			auto spacing_offset = parameters.GetSamplesPerChip() * spacing_chips;
-			auto early_value = Correlate(translated_signal, full_code, parameters.code_phase - spacing_offset);
-			auto prompt_value = Correlate(translated_signal, full_code, parameters.code_phase);
-			auto late_value = Correlate(translated_signal, full_code, parameters.code_phase + spacing_offset);
 
-			return std::make_tuple(early_value, prompt_value, late_value);
+			auto output_array = std::array{
+				std::make_pair(parameters.code_phase - spacing_offset, std::complex<UnderlyingType>{}),
+				std::make_pair(parameters.code_phase, std::complex<UnderlyingType>{}),
+				std::make_pair(parameters.code_phase + spacing_offset, std::complex<UnderlyingType>{}),
+			};
+			
+			//auto early_value = Correlate(translated_signal, full_code, parameters.code_phase - spacing_offset);
+			//auto prompt_value = Correlate(translated_signal, full_code, parameters.code_phase);
+			//auto late_value = Correlate(translated_signal, full_code, parameters.code_phase + spacing_offset);
+			//return std::make_tuple(early_value, prompt_value, late_value);
+			std::for_each(std::execution::par_unseq, output_array.begin(), output_array.end(), [&](auto&pair) {
+				Correlate(translated_signal, full_code, pair);
+			});
+
+			return std::make_tuple(output_array[0].second, output_array[1].second, output_array[2].second);
 		}
 
 		template <typename T>
-		void TrackSingleSatellite(TrackingParameters<UnderlyingType>& parameters, const T& signal) {
+		void TrackSingleSatellite(TrackingParameters<UnderlyingType>& parameters, T& signal) {
 			auto [early, prompt, late] = GetEpl(parameters, signal, 0.5);
 			parameters.early.push_back(early);
 			parameters.prompt.push_back(prompt);
@@ -125,7 +143,7 @@ namespace ugsdr {
 				auto current_signal_ms = signal_parameters.GetOneMs(i);
 
 				std::for_each(std::execution::par_unseq, tracking_parameters.begin(), tracking_parameters.end(),
-					[&current_signal_ms, this](auto& current_tracking_parameters) {
+					[current_signal_ms, this](auto& current_tracking_parameters) {
 						TrackSingleSatellite(current_tracking_parameters, current_signal_ms);
 					});
 			}
