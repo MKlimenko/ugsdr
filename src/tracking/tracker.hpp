@@ -63,11 +63,11 @@ namespace ugsdr {
 	template <typename UnderlyingType>
 	class Tracker final {
 		SignalParametersBase<UnderlyingType>& signal_parameters;
-		const std::vector<AcquisitionResult>& acquisition_results;
+		const std::vector<AcquisitionResult<UnderlyingType>>& acquisition_results;
 
 		Codes<UnderlyingType> codes;
 		const std::size_t samples_per_ms = 0;
-		std::vector<TrackingParameters> tracking_parameters;
+		std::vector<TrackingParameters<UnderlyingType>> tracking_parameters;
 
 		using CorrelatorType = IppCorrelator;
 		using MatchedFilterType = IppMatchedFilter;
@@ -79,7 +79,7 @@ namespace ugsdr {
 		}
 
 		template <typename T>
-		void TrackSingleSatellite(TrackingParameters& parameters, const T& signal) {
+		void TrackSingleSatellite(TrackingParameters<UnderlyingType>& parameters, const T& signal) {
 			const auto& full_code =codes.GetCode(parameters.sv);
 
 			auto full_phase = static_cast<std::size_t>(samples_per_ms + parameters.code_phase);
@@ -95,9 +95,9 @@ namespace ugsdr {
 		
 	public:
 		Tracker(SignalParametersBase<UnderlyingType>& signal_params, 
-			const std::vector<AcquisitionResult>& acquisition_dst) :	signal_parameters(signal_params), acquisition_results(acquisition_dst), 
-																		codes(signal_parameters.GetSamplingRate()), 
-																		samples_per_ms(static_cast<std::size_t>(signal_parameters.GetSamplingRate() / 1e3)) {
+			const std::vector<AcquisitionResult<UnderlyingType>>& acquisition_dst) :	signal_parameters(signal_params), acquisition_results(acquisition_dst),
+																						codes(signal_parameters.GetSamplingRate()), 
+																						samples_per_ms(static_cast<std::size_t>(signal_parameters.GetSamplingRate() / 1e3)) {
 			InitTrackingParameters();
 		}
 

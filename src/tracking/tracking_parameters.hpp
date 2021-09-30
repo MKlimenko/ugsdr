@@ -4,6 +4,7 @@
 #include "../acquisition/acquisition_result.hpp"
 
 namespace ugsdr {
+	template <typename T>
 	struct TrackingParameters {
 		double code_phase = 0.0;
 		double code_frequency = 0.0;
@@ -15,13 +16,13 @@ namespace ugsdr {
         double sampling_rate = 0.0;
         Sv sv;
 
-		std::vector<std::complex<float>> prompt;
+		std::vector<std::complex<T>> prompt;
 		
-		TrackingParameters(const AcquisitionResult& acquisition, double sampling_frequency) :	code_phase(acquisition.code_offset),
-																								carrier_frequency(acquisition.doppler),
-																								intermediate_frequency(acquisition.intermediate_frequency),
-																								sv(acquisition.sv_number),
-																								sampling_rate(sampling_frequency)	{
+		TrackingParameters(const AcquisitionResult<T>& acquisition, double sampling_frequency) :	code_phase(acquisition.code_offset),
+																									carrier_frequency(acquisition.doppler),
+																									intermediate_frequency(acquisition.intermediate_frequency),
+																									sv(acquisition.sv_number),
+																									sampling_rate(sampling_frequency)	{
 			switch (sv.system) {
 			case System::Gps:
 				code_frequency = 1.023e6;

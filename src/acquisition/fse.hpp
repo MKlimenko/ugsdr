@@ -80,18 +80,17 @@ namespace ugsdr {
 			}
 		}
 
-		void ProcessBpsk(const std::vector<std::complex<UnderlyingType>>& signal, const std::vector<UnderlyingType>& code, Sv sv, double intermediate_frequency, std::vector<AcquisitionResult>& dst) {
-			decltype(GetOneMsPeak(MatchedFilterType::Filter(MixerType::Translate(signal, signal_parameters.GetSamplingRate(), 0.0), code))) output_peak;
-			AcquisitionResult tmp, max_result;
+		void ProcessBpsk(const std::vector<std::complex<UnderlyingType>>& signal, const std::vector<UnderlyingType>& code, Sv sv, double intermediate_frequency, std::vector<AcquisitionResult<UnderlyingType>>& dst) {
+			AcquisitionResult<UnderlyingType> tmp, max_result;
 			auto ratio = signal_parameters.GetSamplingRate() / acquisition_sampling_rate;
 
-			auto code_spectum = MatchedFilterType::PrepareCodeSpectrum(code);
+			auto code_spectrum = MatchedFilterType::PrepareCodeSpectrum(code);
 			
 			for (double doppler_frequency = -doppler_range;
 						doppler_frequency <= doppler_range;
 						doppler_frequency += doppler_step) {
 				const auto translated_signal = MixerType::Translate(signal, acquisition_sampling_rate, -doppler_frequency);
-				auto matched_output = MatchedFilterType::FilterOptimized(translated_signal, code_spectum);
+				auto matched_output = MatchedFilterType::FilterOptimized(translated_signal, code_spectrum);
 				auto peak_one_ms = GetOneMsPeak(matched_output);
 
 				std::reverse(std::execution::par_unseq, peak_one_ms.begin(), peak_one_ms.end());
@@ -105,44 +104,43 @@ namespace ugsdr {
 
 				if (max_result < tmp) {
 					max_result = tmp;
-					output_peak = std::move(peak_one_ms);
+					max_result.output_peak = std::move(peak_one_ms);
 				}
 			}
 			max_result.intermediate_frequency = intermediate_frequency;
 			max_result.sv_number = sv;
-			if (max_result.GetSnr() > peak_threshold) {
-				dst.push_back(max_result);
-				//ugsdr::Add(L"Satellite " + std::to_wstring(static_cast<std::uint32_t>(sv)), output_peak);
-			}
+			if (max_result.GetSnr() > peak_threshold) 
+				dst.push_back(std::move(max_result));
 		}
 		
-		void ProcessGps(const std::vector<std::complex<UnderlyingType>>& signal, std::vector<AcquisitionResult>& dst) {
+		void ProcessGps(const std::vector<std::complex<UnderlyingType>>& signal, std::vector<AcquisitionResult<UnderlyingType>>& dst) {
 			auto intermediate_frequency = -(signal_parameters.GetCentralFrequency() - 1575.42e6);
 
 			const auto translated_signal = MixerType::Translate(signal, signal_parameters.GetSamplingRate(), -intermediate_frequency);
 			auto downsampled_signal = Resampler<IppResampler>::Transform(translated_signal, static_cast<std::size_t>(acquisition_sampling_rate),
 				static_cast<std::size_t>(signal_parameters.GetSamplingRate()));
 
-			for (auto sv : gps_sv) {
+			std::for_each(std::execution::par_unseq, gps_sv.begin(), gps_sv.end(), [&](auto sv) {
 				const auto code = UpsamplerType::Transform(RepeatCodeNTimes(PrnGenerator<System::Gps>::Get<UnderlyingType>(static_cast<std::int32_t>(sv)), ms_to_process),
 					static_cast<std::size_t>(ms_to_process * acquisition_sampling_rate / 1e3));
 
 				ProcessBpsk(downsampled_signal, code, sv, intermediate_frequency, dst);
-			}
+			});
+			
 		}
 
-		void ProcessGlonass(const std::vector<std::complex<UnderlyingType>>& signal, std::vector<AcquisitionResult>& dst) {
+		void ProcessGlonass(const std::vector<std::complex<UnderlyingType>>& signal, std::vector<AcquisitionResult<UnderlyingType>>& dst) {
 			const auto code = UpsamplerType::Transform(RepeatCodeNTimes(PrnGenerator<System::Glonass>::Get<UnderlyingType>(0), ms_to_process),
 				static_cast<std::size_t>(ms_to_process * acquisition_sampling_rate / 1e3));
-		
-			for (auto& litera_number : gln_sv) {
+
+			std::for_each(std::execution::par_unseq, gln_sv.begin(), gln_sv.end(), [&](Sv litera_number) {
 				auto intermediate_frequency = -(signal_parameters.GetCentralFrequency() - (1602e6 + static_cast<std::int32_t>(litera_number) * 0.5625e6));
 				const auto translated_signal = MixerType::Translate(signal, signal_parameters.GetSamplingRate(), -intermediate_frequency);
-				auto downsampled_signal = Resampler<IppResampler>::Transform(translated_signal, static_cast<std::size_t>(acquisition_sampling_rate), 
+				auto downsampled_signal = Resampler<IppResampler>::Transform(translated_signal, static_cast<std::size_t>(acquisition_sampling_rate),
 					static_cast<std::size_t>(signal_parameters.GetSamplingRate()));
-				
+
 				ProcessBpsk(downsampled_signal, code, litera_number, intermediate_frequency, dst);
-			}
+			});
 		}
 		
 	public:
@@ -154,7 +152,7 @@ namespace ugsdr {
 		}
 
 		auto Process(std::size_t ms_offset = 0) {
-			std::vector<AcquisitionResult> dst;
+			std::vector<AcquisitionResult<UnderlyingType>> dst;
 			auto signal = signal_parameters.GetSeveralMs(ms_offset, ms_to_process);
 
 			ugsdr::Add(L"Acquisition input signal", signal, signal_parameters.GetSamplingRate());
@@ -162,6 +160,14 @@ namespace ugsdr {
 			ProcessGps(signal, dst);
 			ProcessGlonass(signal, dst);
 
+			std::sort(dst.begin(), dst.end(), [](auto& lhs, auto& rhs) {
+				return lhs.sv_number < rhs.sv_number;
+			});
+
+			for (auto& acquisition_result : dst)
+				ugsdr::Add(L"Satellite " + std::to_wstring(static_cast<std::uint32_t>(acquisition_result.sv_number)), acquisition_result.output_peak);
+
+		
 			return dst;
 		}
 	};

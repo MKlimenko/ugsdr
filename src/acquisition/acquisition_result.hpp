@@ -1,8 +1,10 @@
 #pragma once
 
 #include "../common.hpp"
+#include <vector>
 
 namespace ugsdr {
+	template <typename T>
 	struct AcquisitionResult {
 		Sv sv_number;
 		double doppler = 0;
@@ -11,7 +13,8 @@ namespace ugsdr {
 		double sigma = 1.0;
 		// satellite_system;
 		double intermediate_frequency = 0;
-
+		std::vector<T> output_peak;
+		
 		auto operator<=>(const AcquisitionResult& rhs) const {
 			return level <=> rhs.level;
 		}
