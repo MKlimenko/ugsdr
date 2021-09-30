@@ -77,7 +77,7 @@ namespace ugsdr {
 			for (const auto& el : acquisition_results)
 				tracking_parameters.emplace_back(el, signal_parameters.GetSamplingRate());
 		}
-		
+
 		template <typename T>
 		void TrackSingleSatellite(TrackingParameters& parameters, const T& signal) {
 			const auto& full_code =codes.GetCode(parameters.sv);
@@ -103,17 +103,19 @@ namespace ugsdr {
 
 		void Track(std::size_t epochs_to_process) {
 			auto timer = boost::timer::progress_display(static_cast<unsigned long>(epochs_to_process));
-			
-			for(std::size_t i = 0; i < epochs_to_process; ++i, ++timer) {
+
+			for (std::size_t i = 0; i < epochs_to_process; ++i, ++timer) {
 				auto current_signal_ms = signal_parameters.GetOneMs(i);
 
-				for (auto& current_tracking_parameters : tracking_parameters)
-					TrackSingleSatellite(current_tracking_parameters, current_signal_ms);
+				std::for_each(std::execution::par_unseq, tracking_parameters.begin(), tracking_parameters.end(),
+					[&current_signal_ms, this](auto& current_tracking_parameters) {
+						TrackSingleSatellite(current_tracking_parameters, current_signal_ms);
+					});
 			}
 
-			for(auto&el:tracking_parameters) {
+			for(auto&el:tracking_parameters) 
 				ugsdr::Add(L"Tracking result", el.prompt);
-			}
+			
 		}
 	};
 }
