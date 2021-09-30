@@ -13,6 +13,7 @@
 
 #include "boost/timer/progress_display.hpp"
 
+#include <execution>
 #include <map>
 #include <span>
 #include <vector>
@@ -75,22 +76,35 @@ namespace ugsdr {
 		
 		void InitTrackingParameters() {
 			for (const auto& el : acquisition_results)
-				tracking_parameters.emplace_back(el, signal_parameters.GetSamplingRate());
+				tracking_parameters.emplace_back(el, signal_parameters.GetSamplingRate(), signal_parameters.GetNumberOfEpochs());
+		}
+
+		template <typename T1, typename T2>
+		auto Correlate(const T1& translated_signal, const T2& full_code, double code_phase) {
+			auto full_phase = static_cast<std::size_t>(samples_per_ms + code_phase);
+			const auto current_code = std::span(full_code.begin() + full_phase, samples_per_ms);
+			return CorrelatorType::Correlate(translated_signal, current_code);
+		}
+
+		template <typename T>
+		auto GetEpl(TrackingParameters<UnderlyingType>& parameters, const T& signal, double spacing_chips) {
+			const auto translated_signal = MixerType::Translate(signal, parameters.sampling_rate, -parameters.carrier_frequency, parameters.carrier_phase); // <= increment phase!
+			const auto& full_code = codes.GetCode(parameters.sv);
+
+			auto spacing_offset = parameters.GetSamplesPerChip() * spacing_chips;
+			auto early_value = Correlate(translated_signal, full_code, parameters.code_phase - spacing_offset);
+			auto prompt_value = Correlate(translated_signal, full_code, parameters.code_phase);
+			auto late_value = Correlate(translated_signal, full_code, parameters.code_phase + spacing_offset);
+
+			return std::make_tuple(early_value, prompt_value, late_value);
 		}
 
 		template <typename T>
 		void TrackSingleSatellite(TrackingParameters<UnderlyingType>& parameters, const T& signal) {
-			const auto& full_code =codes.GetCode(parameters.sv);
-
-			auto full_phase = static_cast<std::size_t>(samples_per_ms + parameters.code_phase);
-			const auto translated_signal = MixerType::Translate(signal, parameters.sampling_rate, -parameters.carrier_frequency, parameters.carrier_phase); // <= increment phase!
-			const auto current_code = std::span(full_code.begin() + full_phase, samples_per_ms);
-			
-			//const auto current_code_v = std::vector(full_code.begin() + full_phase, full_code.begin() + full_phase + samples_per_ms);
-			//ugsdr::Add(MatchedFilter<IppMatchedFilter>::Filter(translated_signal, current_code_v));
-			
-			auto prompt = CorrelatorType::Correlate(translated_signal, current_code);
+			auto [early, prompt, late] = GetEpl(parameters, signal, 0.5);
+			parameters.early.push_back(early);
 			parameters.prompt.push_back(prompt);
+			parameters.late.push_back(late);
 		}
 		
 	public:
@@ -113,9 +127,12 @@ namespace ugsdr {
 					});
 			}
 
-			for(auto&el:tracking_parameters) 
-				ugsdr::Add(L"Tracking result", el.prompt);
-			
+			for (auto& el : tracking_parameters) {
+				ugsdr::Add(L"Early tracking result", el.early);
+				ugsdr::Add(L"Prompt tracking result", el.prompt);
+				ugsdr::Add(L"Late tracking result", el.late);
+				return;
+			}
 		}
 	};
 }
