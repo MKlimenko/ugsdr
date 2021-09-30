@@ -15,6 +15,7 @@
 
 #include <execution>
 #include <map>
+#include <numbers>
 #include <span>
 #include <vector>
 
@@ -88,7 +89,9 @@ namespace ugsdr {
 
 		template <typename T>
 		auto GetEpl(TrackingParameters<UnderlyingType>& parameters, const T& signal, double spacing_chips) {
-			const auto translated_signal = MixerType::Translate(signal, parameters.sampling_rate, -parameters.carrier_frequency, parameters.carrier_phase); // <= increment phase!
+			const auto translated_signal = MixerType::Translate(signal, parameters.sampling_rate, -parameters.carrier_frequency, parameters.carrier_phase);
+			parameters.carrier_phase += 2 * std::numbers::pi_v<double> *std::fmod(parameters.carrier_frequency / 1000.0, 1.0);
+			
 			const auto& full_code = codes.GetCode(parameters.sv);
 
 			auto spacing_offset = parameters.GetSamplesPerChip() * spacing_chips;

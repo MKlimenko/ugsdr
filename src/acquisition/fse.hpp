@@ -164,8 +164,8 @@ namespace ugsdr {
 				return lhs.sv_number < rhs.sv_number;
 			});
 
-			for (auto& acquisition_result : dst)
-				ugsdr::Add(L"Satellite " + std::to_wstring(static_cast<std::uint32_t>(acquisition_result.sv_number)), acquisition_result.output_peak);
+			//for (auto& acquisition_result : dst)
+			//	ugsdr::Add(L"Satellite " + std::to_wstring(static_cast<std::uint32_t>(acquisition_result.sv_number)), acquisition_result.output_peak);
 
 		
 			return dst;
