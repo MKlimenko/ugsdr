@@ -27,7 +27,7 @@ namespace ugsdr {
 			switch (file_type) {
 			case FileType::Iq_8_plus_8:
 				signal_file = std::ifstream(signal_file_path, std::ios::binary | std::ios::ate);
-				number_of_epochs = static_cast<std::size_t>(signal_file.tellg() / (sampling_rate / 1e3));
+				number_of_epochs = static_cast<std::size_t>(signal_file.tellg() / (sampling_rate / 1e3) / 2);
 				signal_file.seekg(0);
 				break;
 			default:

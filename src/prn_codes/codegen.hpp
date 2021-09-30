@@ -8,7 +8,7 @@ namespace ugsdr {
 	protected:
 		template <typename T>
 		static const auto& GetVector(std::size_t sv_number) {
-			static std::vector<T> code(CodegenImpl::GetCodeLength());
+			static thread_local std::vector<T> code(CodegenImpl::GetCodeLength());
 			Get(code.data(), sv_number);
 			return code;
 		}

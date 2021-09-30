@@ -32,6 +32,7 @@ namespace ugsdr {
 		constexpr static inline double peak_threshold = 3.5;
 		//constexpr static inline double acquisition_sampling_rate = 2.65e6;
 		constexpr static inline double acquisition_sampling_rate = 3.975e6;
+		//constexpr static inline double acquisition_sampling_rate = 39.75e6;
 
 		using MixerType = Mixer<IppMixer>;
 		using UpsamplerType = Upsampler<SequentialUpsampler>;
@@ -93,6 +94,8 @@ namespace ugsdr {
 				auto matched_output = MatchedFilterType::FilterOptimized(translated_signal, code_spectum);
 				auto peak_one_ms = GetOneMsPeak(matched_output);
 
+				std::reverse(std::execution::par_unseq, peak_one_ms.begin(), peak_one_ms.end());
+				
 				auto max_index = MaxIndexType::Transform(peak_one_ms);
 				auto mean_sigma = MeanStdDevType::Calculate(peak_one_ms);
 				tmp.level = max_index.value;
@@ -124,7 +127,7 @@ namespace ugsdr {
 				const auto code = UpsamplerType::Transform(RepeatCodeNTimes(PrnGenerator<System::Gps>::Get<UnderlyingType>(static_cast<std::int32_t>(sv)), ms_to_process),
 					static_cast<std::size_t>(ms_to_process * acquisition_sampling_rate / 1e3));
 
-				ProcessBpsk(downsampled_signal, code, { sv, System::Gps }, intermediate_frequency, dst);
+				ProcessBpsk(downsampled_signal, code, sv, intermediate_frequency, dst);
 			}
 		}
 
@@ -138,7 +141,7 @@ namespace ugsdr {
 				auto downsampled_signal = Resampler<IppResampler>::Transform(translated_signal, static_cast<std::size_t>(acquisition_sampling_rate), 
 					static_cast<std::size_t>(signal_parameters.GetSamplingRate()));
 				
-				ProcessBpsk(downsampled_signal, code, { litera_number, System::Glonass }, intermediate_frequency, dst);
+				ProcessBpsk(downsampled_signal, code, litera_number, intermediate_frequency, dst);
 			}
 		}
 		
@@ -157,7 +160,7 @@ namespace ugsdr {
 			ugsdr::Add(L"Acquisition input signal", signal, signal_parameters.GetSamplingRate());
 
 			ProcessGps(signal, dst);
-			//ProcessGlonass(signal, dst);
+			ProcessGlonass(signal, dst);
 
 			return dst;
 		}
