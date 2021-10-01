@@ -31,6 +31,9 @@ namespace ugsdr {
 		template <typename UnderlyingType>
 		static void Translate(std::vector<std::complex<UnderlyingType>>& src_dst, double sampling_freq, double frequency, double phase = 0) {
 			FixPhase(phase);
+			if (frequency < 0)
+				frequency = sampling_freq + frequency;
+
 			MixerImpl::Process(src_dst, sampling_freq, frequency, phase);
 		}
 

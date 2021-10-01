@@ -18,8 +18,14 @@ int main() {
 	auto fse = ugsdr::FastSearchEngineBase(signal_parameters, 5e3, 200);
 	auto acquisition_results = fse.Process();
 
+	auto pre = std::chrono::system_clock::now();
 	auto tracker = ugsdr::Tracker(signal_parameters, acquisition_results);
 	tracker.Track(signal_parameters.GetNumberOfEpochs());
+	auto post = std::chrono::system_clock::now();
+
+	std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(post - pre).count();
+
+	//std::exit(0);
 
 #ifndef HAS_SIGNAL_PLOT
 	return 0;

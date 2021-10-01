@@ -38,7 +38,7 @@ namespace ugsdr {
 		void GetPartialSignal(std::size_t length_samples, std::size_t samples_offset, OutputVectorType& dst) {
 			switch (file_type) {
 			case FileType::Iq_8_plus_8: {
-				std::vector<std::complex<std::int8_t>> data;
+				static thread_local std::vector<std::complex<std::int8_t>> data;
 				std::vector<std::complex<std::int8_t>>* data_ptr;
 
 				if constexpr (std::is_same_v<std::int8_t, UnderlyingType>)

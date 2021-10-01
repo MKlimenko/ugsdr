@@ -22,7 +22,7 @@ namespace ugsdr {
 	template <typename UnderlyingType>
 	class FastSearchEngineBase {
 	private:
-		constexpr static std::size_t ms_to_process = 5;
+		constexpr static std::size_t ms_to_process = 1;
 		
 		SignalParametersBase<UnderlyingType>& signal_parameters;
 		double doppler_range = 5e3;
@@ -31,12 +31,12 @@ namespace ugsdr {
 		std::vector<Sv> gln_sv;
 		constexpr static inline double peak_threshold = 3.5;
 		//constexpr static inline double acquisition_sampling_rate = 2.65e6;
-		constexpr static inline double acquisition_sampling_rate = 3.975e6;
-		//constexpr static inline double acquisition_sampling_rate = 39.75e6;
+		//constexpr static inline double acquisition_sampling_rate = 3.975e6;
+		constexpr static inline double acquisition_sampling_rate = 39.75e6;
 
 		using MixerType = Mixer<IppMixer>;
 		using UpsamplerType = Upsampler<SequentialUpsampler>;
-		using MatchedFilterType = MatchedFilter<AfMatchedFilter>;
+		using MatchedFilterType = MatchedFilter<IppMatchedFilter>;
 		using AbsType = Abs<IppAbs>;
 		using ReshapeAndSumType = ReshapeAndSum<IppReshapeAndSum>;
 		using MaxIndexType = MaxIndex<IppMaxIndex>;
