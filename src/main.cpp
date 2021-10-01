@@ -23,7 +23,8 @@ int main() {
 	tracker.Track(signal_parameters.GetNumberOfEpochs());
 	auto post = std::chrono::system_clock::now();
 
-	std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(post - pre).count();
+	std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(post - pre).count() << std::endl;
+	std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(post - pre).count() / static_cast<double>(signal_parameters.GetNumberOfEpochs()) * 100.0 << std::endl;
 
 	//std::exit(0);
 

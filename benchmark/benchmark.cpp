@@ -4,6 +4,7 @@
 #include "../src/mixer/mixer.hpp"
 #include "../src/mixer/batch_mixer.hpp"
 #include "../src/mixer/ipp_mixer.hpp"
+#include "../src/mixer/af_mixer.hpp"
 
 #include "../src/math/af_dft.hpp"
 #include "../src/math/ipp_dft.hpp"
@@ -23,7 +24,7 @@
 
 #include "ipp.h"
 
-#if 0
+#if 1
 namespace mixer {
 #define MIXER_BENCHMARK_OPTIONS RangeMultiplier(2)->Range(2048, 2048 << 6)->Complexity()
 
@@ -36,11 +37,11 @@ namespace mixer {
         }
         state.SetComplexityN(state.range());
     }
-    BENCHMARK_TEMPLATE(MixerSequential, std::int8_t)->MIXER_BENCHMARK_OPTIONS;
-    BENCHMARK_TEMPLATE(MixerSequential, std::int16_t)->MIXER_BENCHMARK_OPTIONS;
-    BENCHMARK_TEMPLATE(MixerSequential, std::int32_t)->MIXER_BENCHMARK_OPTIONS;
-    BENCHMARK_TEMPLATE(MixerSequential, float)->MIXER_BENCHMARK_OPTIONS;
-    BENCHMARK_TEMPLATE(MixerSequential, double)->MIXER_BENCHMARK_OPTIONS;
+    //BENCHMARK_TEMPLATE(MixerSequential, std::int8_t)->MIXER_BENCHMARK_OPTIONS;
+    //BENCHMARK_TEMPLATE(MixerSequential, std::int16_t)->MIXER_BENCHMARK_OPTIONS;
+    //BENCHMARK_TEMPLATE(MixerSequential, std::int32_t)->MIXER_BENCHMARK_OPTIONS;
+    //BENCHMARK_TEMPLATE(MixerSequential, float)->MIXER_BENCHMARK_OPTIONS;
+    //BENCHMARK_TEMPLATE(MixerSequential, double)->MIXER_BENCHMARK_OPTIONS;
 
     template <typename T>
     static void MixerParallel(benchmark::State& state) {
@@ -51,11 +52,11 @@ namespace mixer {
         }
         state.SetComplexityN(state.range());
     }
-    BENCHMARK_TEMPLATE(MixerParallel, std::int8_t)->MIXER_BENCHMARK_OPTIONS;
-    BENCHMARK_TEMPLATE(MixerParallel, std::int16_t)->MIXER_BENCHMARK_OPTIONS;
-    BENCHMARK_TEMPLATE(MixerParallel, std::int32_t)->MIXER_BENCHMARK_OPTIONS;
-    BENCHMARK_TEMPLATE(MixerParallel, float)->MIXER_BENCHMARK_OPTIONS;
-    BENCHMARK_TEMPLATE(MixerParallel, double)->MIXER_BENCHMARK_OPTIONS;
+    //BENCHMARK_TEMPLATE(MixerParallel, std::int8_t)->MIXER_BENCHMARK_OPTIONS;
+    //BENCHMARK_TEMPLATE(MixerParallel, std::int16_t)->MIXER_BENCHMARK_OPTIONS;
+    //BENCHMARK_TEMPLATE(MixerParallel, std::int32_t)->MIXER_BENCHMARK_OPTIONS;
+    //BENCHMARK_TEMPLATE(MixerParallel, float)->MIXER_BENCHMARK_OPTIONS;
+    //BENCHMARK_TEMPLATE(MixerParallel, double)->MIXER_BENCHMARK_OPTIONS;
 
     template <typename T>
     static void MixerIpp(benchmark::State& state) {
@@ -66,11 +67,26 @@ namespace mixer {
         }
         state.SetComplexityN(state.range());
     }
-    BENCHMARK_TEMPLATE(MixerIpp, std::int8_t)->MIXER_BENCHMARK_OPTIONS;
-    BENCHMARK_TEMPLATE(MixerIpp, std::int16_t)->MIXER_BENCHMARK_OPTIONS;
-    BENCHMARK_TEMPLATE(MixerIpp, std::int32_t)->MIXER_BENCHMARK_OPTIONS;
+    //BENCHMARK_TEMPLATE(MixerIpp, std::int8_t)->MIXER_BENCHMARK_OPTIONS;
+    //BENCHMARK_TEMPLATE(MixerIpp, std::int16_t)->MIXER_BENCHMARK_OPTIONS;
+    //BENCHMARK_TEMPLATE(MixerIpp, std::int32_t)->MIXER_BENCHMARK_OPTIONS;
     BENCHMARK_TEMPLATE(MixerIpp, float)->MIXER_BENCHMARK_OPTIONS;
     BENCHMARK_TEMPLATE(MixerIpp, double)->MIXER_BENCHMARK_OPTIONS;
+
+    template <typename T>
+    static void MixerAf(benchmark::State& state) {
+        std::vector<std::complex<T>> input(state.range());
+        for (auto _ : state) {
+            ugsdr::AfMixer::Translate(input, 100.0, 1.0);
+            benchmark::DoNotOptimize(input);
+        }
+        state.SetComplexityN(state.range());
+    }
+    //BENCHMARK_TEMPLATE(MixerAf, std::int8_t)->MIXER_BENCHMARK_OPTIONS;
+    //BENCHMARK_TEMPLATE(MixerAf, std::int16_t)->MIXER_BENCHMARK_OPTIONS;
+    //BENCHMARK_TEMPLATE(MixerAf, std::int32_t)->MIXER_BENCHMARK_OPTIONS;
+    BENCHMARK_TEMPLATE(MixerAf, float)->MIXER_BENCHMARK_OPTIONS;
+    BENCHMARK_TEMPLATE(MixerAf, double)->MIXER_BENCHMARK_OPTIONS;
 }
 #endif
 
@@ -215,6 +231,7 @@ namespace matched_filter {
 }
 #endif
 
+#if 0
 namespace correlator {
     constexpr auto max_range = 2048 << 8;
 
@@ -278,7 +295,7 @@ namespace correlator {
     BENCHMARK_TEMPLATE(AfCorr, float)->CORR_BENCHMARK_OPTIONS;
     //BENCHMARK_TEMPLATE(AfCorr, double)->CORR_BENCHMARK_OPTIONS;
 }
-
+#endif
 
 int main(int argc, char** argv) {
     ::benchmark::Initialize(&argc, argv);

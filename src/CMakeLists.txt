@@ -31,6 +31,7 @@ add_executable (${PROJECT_NAME}
 							math/ipp_reshape_and_sum.hpp
 							math/mean_stddev.hpp
 							math/ipp_mean_stddev.hpp
+							mixer/af_mixer.hpp
 							mixer/batch_mixer.hpp
 							mixer/ipp_mixer.hpp
 							mixer/mixer.hpp 

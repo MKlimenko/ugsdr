@@ -22,7 +22,7 @@ namespace ugsdr {
 	template <typename UnderlyingType>
 	class FastSearchEngineBase {
 	private:
-		constexpr static std::size_t ms_to_process = 1;
+		constexpr static std::size_t ms_to_process = 5;
 		
 		SignalParametersBase<UnderlyingType>& signal_parameters;
 		double doppler_range = 5e3;
@@ -31,12 +31,12 @@ namespace ugsdr {
 		std::vector<Sv> gln_sv;
 		constexpr static inline double peak_threshold = 3.5;
 		//constexpr static inline double acquisition_sampling_rate = 2.65e6;
-		//constexpr static inline double acquisition_sampling_rate = 3.975e6;
-		constexpr static inline double acquisition_sampling_rate = 39.75e6;
+		constexpr static inline double acquisition_sampling_rate = 3.975e6;
+		//constexpr static inline double acquisition_sampling_rate = 39.75e6;
 
 		using MixerType = Mixer<IppMixer>;
 		using UpsamplerType = Upsampler<SequentialUpsampler>;
-		using MatchedFilterType = MatchedFilter<IppMatchedFilter>;
+		using MatchedFilterType = MatchedFilter<AfMatchedFilter>;
 		using AbsType = Abs<IppAbs>;
 		using ReshapeAndSumType = ReshapeAndSum<IppReshapeAndSum>;
 		using MaxIndexType = MaxIndex<IppMaxIndex>;
@@ -151,7 +151,7 @@ namespace ugsdr {
 			InitSatellites();
 		}
 
-		auto Process(std::size_t ms_offset = 0) {
+		auto Process(bool plot_results = false, std::size_t ms_offset = 0) {
 			std::vector<AcquisitionResult<UnderlyingType>> dst;
 			auto signal = signal_parameters.GetSeveralMs(ms_offset, ms_to_process);
 
@@ -164,8 +164,9 @@ namespace ugsdr {
 				return lhs.sv_number < rhs.sv_number;
 			});
 
-			for (auto& acquisition_result : dst)
-				ugsdr::Add(L"Satellite " + std::to_wstring(static_cast<std::uint32_t>(acquisition_result.sv_number)), acquisition_result.output_peak);
+			if (plot_results)
+				for (auto& acquisition_result : dst)
+					ugsdr::Add(L"Satellite " + std::to_wstring(static_cast<std::uint32_t>(acquisition_result.sv_number)), acquisition_result.output_peak);
 		
 			return dst;
 		}

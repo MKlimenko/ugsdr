@@ -88,7 +88,7 @@ namespace ugsdr {
 		ArrayProxy(const std::span<T>& vec) : array(vec.size(), vec.data()) {}
 
 		template <typename T>
-		ArrayProxy(const T* data, std::size_t size) {
+		ArrayProxy(const std::complex<T>* data, std::size_t size) {
 			if constexpr (std::is_same_v<T, double>)
 				array = af::array(size, reinterpret_cast<const af::cdouble*>(data));
 			else if constexpr (std::is_same_v<T, float>)
