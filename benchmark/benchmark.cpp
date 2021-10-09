@@ -1,10 +1,13 @@
-﻿#include <benchmark/benchmark.h>
+﻿#define NOMINMAX
+
+#include <benchmark/benchmark.h>
 
 #include <complex>
 #include "../src/mixer/mixer.hpp"
 #include "../src/mixer/batch_mixer.hpp"
 #include "../src/mixer/ipp_mixer.hpp"
 #include "../src/mixer/af_mixer.hpp"
+#include "../src/mixer/table_mixer.hpp"
 
 #include "../src/math/af_dft.hpp"
 #include "../src/math/ipp_dft.hpp"
@@ -85,8 +88,23 @@ namespace mixer {
     //BENCHMARK_TEMPLATE(MixerAf, std::int8_t)->MIXER_BENCHMARK_OPTIONS;
     //BENCHMARK_TEMPLATE(MixerAf, std::int16_t)->MIXER_BENCHMARK_OPTIONS;
     //BENCHMARK_TEMPLATE(MixerAf, std::int32_t)->MIXER_BENCHMARK_OPTIONS;
-    BENCHMARK_TEMPLATE(MixerAf, float)->MIXER_BENCHMARK_OPTIONS;
-    BENCHMARK_TEMPLATE(MixerAf, double)->MIXER_BENCHMARK_OPTIONS;
+    //BENCHMARK_TEMPLATE(MixerAf, float)->MIXER_BENCHMARK_OPTIONS;
+    //BENCHMARK_TEMPLATE(MixerAf, double)->MIXER_BENCHMARK_OPTIONS;
+	
+    template <typename T>
+    static void MixerTable(benchmark::State& state) {
+        std::vector<std::complex<T>> input(state.range());
+        for (auto _ : state) {
+            ugsdr::TableMixer::Translate(input, 100.0, 1.0);
+            benchmark::DoNotOptimize(input);
+        }
+        state.SetComplexityN(state.range());
+    }
+    //BENCHMARK_TEMPLATE(MixerTable, std::int8_t)->MIXER_BENCHMARK_OPTIONS;
+    //BENCHMARK_TEMPLATE(MixerTable, std::int16_t)->MIXER_BENCHMARK_OPTIONS;
+    //BENCHMARK_TEMPLATE(MixerTable, std::int32_t)->MIXER_BENCHMARK_OPTIONS;
+    BENCHMARK_TEMPLATE(MixerTable, float)->MIXER_BENCHMARK_OPTIONS;
+    BENCHMARK_TEMPLATE(MixerTable, double)->MIXER_BENCHMARK_OPTIONS;
 }
 #endif
 

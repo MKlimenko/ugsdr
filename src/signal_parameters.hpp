@@ -5,6 +5,8 @@
 #include <filesystem>
 #include <fstream>
 
+#include "ipp.h"
+
 namespace ugsdr {
 	enum class FileType {
 		Iq_8_plus_8 = 0
@@ -46,16 +48,15 @@ namespace ugsdr {
 				else
 					data_ptr = &data;
 
-				data_ptr->clear();
 				data_ptr->resize(length_samples);
 
 				signal_file.seekg(samples_offset * sizeof(std::complex<std::int8_t>));
 				signal_file.read(reinterpret_cast<char*>(data_ptr->data()), length_samples * sizeof((*data_ptr)[0]));
 
 				if constexpr (!std::is_same_v<std::int8_t, UnderlyingType>) {
-					dst.clear();
 					dst.resize(length_samples);
 					std::copy(std::execution::par_unseq, data.begin(), data.end(), dst.begin());
+					//ippsConvert_8s32f((Ipp8s*)data.data(), (Ipp32f*)dst.data(), (int)dst.size() * 2); // <= significant speedup, move to separate function
 				}
 
 				break;

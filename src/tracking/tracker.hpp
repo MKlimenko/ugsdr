@@ -10,6 +10,7 @@
 
 #include "../matched_filter/ipp_matched_filter.hpp"
 #include "../mixer/ipp_mixer.hpp"
+#include "../mixer/table_mixer.hpp"
 
 #include "boost/timer/progress_display.hpp"
 
@@ -73,7 +74,7 @@ namespace ugsdr {
 
 		using CorrelatorType = IppCorrelator;
 		using MatchedFilterType = IppMatchedFilter;
-		using MixerType = Mixer<IppMixer>;
+		using MixerType = Mixer<TableMixer>;
 		
 		void InitTrackingParameters() {
 			for (const auto& el : acquisition_results)
@@ -81,15 +82,8 @@ namespace ugsdr {
 		}
 
 		template <typename T1, typename T2>
-		auto Correlate(const T1& translated_signal, const T2& full_code, double code_phase) {
-			auto full_phase = static_cast<std::size_t>(samples_per_ms + code_phase);
-			const auto current_code = std::span(full_code.begin() + full_phase, samples_per_ms);
-			return CorrelatorType::Correlate(translated_signal, current_code);
-		}
-
-		template <typename T1, typename T2>
 		auto Correlate(const T1& translated_signal, const T2& full_code, std::pair<double, std::complex<UnderlyingType>>& code_phase_and_output) {
-			auto full_phase = static_cast<std::size_t>(samples_per_ms + code_phase_and_output.first);
+			auto full_phase = static_cast<std::size_t>(std::ceil(samples_per_ms + code_phase_and_output.first));
 			const auto current_code = std::span(full_code.begin() + full_phase, samples_per_ms);
 			code_phase_and_output.second = CorrelatorType::Correlate(translated_signal, current_code);
 		}
@@ -113,7 +107,7 @@ namespace ugsdr {
 				std::make_pair(parameters.code_phase - spacing_offset, std::complex<UnderlyingType>{}),
 			};
 
-			std::for_each(std::execution::par_unseq, output_array.begin(), output_array.end(), [&translated_signal, &full_code, this](auto&pair) {
+			std::for_each(/*std::execution::par_unseq, */output_array.begin(), output_array.end(), [&translated_signal, &full_code, this](auto& pair) {
 				Correlate(translated_signal, full_code, pair);
 			});
 
@@ -122,8 +116,10 @@ namespace ugsdr {
 
 		template <typename T>
 		void TrackSingleSatellite(TrackingParameters<UnderlyingType>& parameters, const T& signal) {
-			parameters.translated_signal = signal;
+			//parameters.translated_signal = signal;
+			ippsCopy_32fc((const Ipp32fc*)signal.data(), (Ipp32fc*)parameters.translated_signal.data(), (int)signal.size()); 
 
+			
 			auto [early, prompt, late] = GetEpl(parameters, 0.5);
 			parameters.early.push_back(early);
 			parameters.prompt.push_back(prompt);
@@ -148,7 +144,7 @@ namespace ugsdr {
 			for (std::size_t i = 0; i < epochs_to_process; ++i, ++timer) {
 				signal_parameters.GetOneMs(i, current_signal_ms);
 
-				std::for_each(std::execution::par_unseq, tracking_parameters.begin(), tracking_parameters.end(),
+				std::for_each(/*std::execution::par_unseq, */tracking_parameters.begin(), tracking_parameters.end(),
 					[&current_signal_ms, this](auto& current_tracking_parameters) {
 						TrackSingleSatellite(current_tracking_parameters, current_signal_ms);
 					});
