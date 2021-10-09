@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 3.10)
+cmake_minimum_required (VERSION 3.19)
 
 include(FetchContent)
 FetchContent_Declare(googlebenchmark
@@ -25,3 +25,4 @@ target_include_directories(${PROJECT_NAME} PRIVATE ${ArrayFire_INCLUDE_DIRS})
 target_link_libraries(${PROJECT_NAME} benchmark::benchmark OpenMP::OpenMP_CXX ArrayFire::afcuda gcem)
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 20)
+set_property(TARGET ${PROJECT_NAME} PROPERTY ISPC_INSTRUCTION_SETS avx2)

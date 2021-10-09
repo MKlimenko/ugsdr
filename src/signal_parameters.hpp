@@ -7,6 +7,8 @@
 
 #include "ipp.h"
 
+#include "../external/plusifier/Plusifier.hpp"
+
 namespace ugsdr {
 	enum class FileType {
 		Iq_8_plus_8 = 0
@@ -37,6 +39,14 @@ namespace ugsdr {
 			}
 		}
 
+		static auto GetConvertWrapper() {
+			static auto convert_wrapper = plusifier::FunctionWrapper(
+				ippsConvert_8s32f, ippsCopy_8u
+			);
+
+			return convert_wrapper;
+		}
+
 		void GetPartialSignal(std::size_t length_samples, std::size_t samples_offset, OutputVectorType& dst) {
 			switch (file_type) {
 			case FileType::Iq_8_plus_8: {
@@ -55,8 +65,8 @@ namespace ugsdr {
 
 				if constexpr (!std::is_same_v<std::int8_t, UnderlyingType>) {
 					dst.resize(length_samples);
-					std::copy(std::execution::par_unseq, data.begin(), data.end(), dst.begin());
-					//ippsConvert_8s32f((Ipp8s*)data.data(), (Ipp32f*)dst.data(), (int)dst.size() * 2); // <= significant speedup, move to separate function
+					auto convert_wrapper = GetConvertWrapper();
+					convert_wrapper(reinterpret_cast<int8_t*>(data.data()), reinterpret_cast<UnderlyingType*>(dst.data()), static_cast<int>(dst.size()) * 2);
 				}
 
 				break;

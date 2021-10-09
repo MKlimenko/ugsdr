@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 3.10)
+cmake_minimum_required (VERSION 3.19)
 
 project(ugsdr)
 
@@ -53,6 +53,7 @@ add_executable (${PROJECT_NAME}
 )
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 20)
+set_property(TARGET ${PROJECT_NAME} PROPERTY ISPC_INSTRUCTION_SETS avx2)
 
 find_package(ArrayFire REQUIRED)
 find_package(OpenMP REQUIRED)
