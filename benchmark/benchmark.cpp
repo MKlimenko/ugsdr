@@ -66,15 +66,14 @@ namespace mixer {
         std::vector<std::complex<T>> input(state.range());
         for (auto _ : state) {
             ugsdr::IppMixer::Translate(input, 100.0, 1.0);
-            benchmark::DoNotOptimize(input);
         }
         state.SetComplexityN(state.range());
     }
     //BENCHMARK_TEMPLATE(MixerIpp, std::int8_t)->MIXER_BENCHMARK_OPTIONS;
     //BENCHMARK_TEMPLATE(MixerIpp, std::int16_t)->MIXER_BENCHMARK_OPTIONS;
     //BENCHMARK_TEMPLATE(MixerIpp, std::int32_t)->MIXER_BENCHMARK_OPTIONS;
-    BENCHMARK_TEMPLATE(MixerIpp, float)->MIXER_BENCHMARK_OPTIONS;
-    BENCHMARK_TEMPLATE(MixerIpp, double)->MIXER_BENCHMARK_OPTIONS;
+    //BENCHMARK_TEMPLATE(MixerIpp, float)->MIXER_BENCHMARK_OPTIONS;
+    //BENCHMARK_TEMPLATE(MixerIpp, double)->MIXER_BENCHMARK_OPTIONS;
 
     template <typename T>
     static void MixerAf(benchmark::State& state) {
@@ -96,7 +95,6 @@ namespace mixer {
         std::vector<std::complex<T>> input(state.range());
         for (auto _ : state) {
             ugsdr::TableMixer::Translate(input, 100.0, 1.0);
-            benchmark::DoNotOptimize(input);
         }
         state.SetComplexityN(state.range());
     }

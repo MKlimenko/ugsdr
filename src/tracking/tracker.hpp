@@ -12,6 +12,9 @@
 #include "../mixer/ipp_mixer.hpp"
 #include "../mixer/table_mixer.hpp"
 
+#include "../external/plusifier/Plusifier.hpp"
+#include "../helpers/ipp_complex_type_converter.hpp"
+
 #include "boost/timer/progress_display.hpp"
 
 #include <execution>
@@ -107,17 +110,28 @@ namespace ugsdr {
 				std::make_pair(parameters.code_phase - spacing_offset, std::complex<UnderlyingType>{}),
 			};
 
-			std::for_each(/*std::execution::par_unseq, */output_array.begin(), output_array.end(), [&translated_signal, &full_code, this](auto& pair) {
+			std::for_each(std::execution::par_unseq, output_array.begin(), output_array.end(), [&translated_signal, &full_code, this](auto& pair) {
 				Correlate(translated_signal, full_code, pair);
 			});
 
 			return std::make_tuple(output_array[0].second, output_array[1].second, output_array[2].second);
 		}
 
+
+		static auto GetCopyWrapper() {
+			static auto copy_wrapper = plusifier::FunctionWrapper(
+				ippsCopy_32fc, ippsCopy_64fc
+			);
+
+			return copy_wrapper;
+		}
+
 		template <typename T>
 		void TrackSingleSatellite(TrackingParameters<UnderlyingType>& parameters, const T& signal) {
-			//parameters.translated_signal = signal;
-			ippsCopy_32fc((const Ipp32fc*)signal.data(), (Ipp32fc*)parameters.translated_signal.data(), (int)signal.size()); 
+			auto copy_wrapper = GetCopyWrapper();
+
+			using IppType = typename IppTypeToComplex<UnderlyingType>::Type;
+			copy_wrapper(reinterpret_cast<const IppType*>(signal.data()), reinterpret_cast<IppType*>(parameters.translated_signal.data()), static_cast<int>(signal.size()));
 
 			
 			auto [early, prompt, late] = GetEpl(parameters, 0.5);
@@ -144,7 +158,7 @@ namespace ugsdr {
 			for (std::size_t i = 0; i < epochs_to_process; ++i, ++timer) {
 				signal_parameters.GetOneMs(i, current_signal_ms);
 
-				std::for_each(/*std::execution::par_unseq, */tracking_parameters.begin(), tracking_parameters.end(),
+				std::for_each(std::execution::par_unseq, tracking_parameters.begin(), tracking_parameters.end(),
 					[&current_signal_ms, this](auto& current_tracking_parameters) {
 						TrackSingleSatellite(current_tracking_parameters, current_signal_ms);
 					});

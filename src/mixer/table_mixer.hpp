@@ -9,6 +9,9 @@
 #include <cmath>
 #include <numbers>
 
+#include "../external/plusifier/Plusifier.hpp"
+#include "../helpers/ipp_complex_type_converter.hpp"
+
 namespace ugsdr {
 	class TableMixer final : public Mixer<TableMixer> {
 	protected:
@@ -37,7 +40,7 @@ namespace ugsdr {
 		static auto GetComplexExp(const std::array<T, table_size>& table, NumericallyControlledOscillator<nco_bits>& nco) {
 			constexpr auto cos_offset = table_size / 5;
 
-			auto table_index = (nco.holder & nco.mask) >> (nco_bits - phase_bits);
+			auto table_index = nco.holder >> (nco_bits - phase_bits);
 			nco.holder += nco.adder;
 
 			return std::complex<T>{table[table_index + cos_offset], table[table_index]};
@@ -50,6 +53,14 @@ namespace ugsdr {
 			return std::complex<T>{table[table_index + cos_offset], table[table_index]};
 		}
 
+
+		static auto GetMulWrapper() {
+			static auto mul_wrapper = plusifier::FunctionWrapper(
+				ippsMul_32fc_I, ippsMul_64fc_I
+			);
+
+			return mul_wrapper;
+		}
 		
 		template <typename UnderlyingType>
 		static void Process(std::vector<std::complex<UnderlyingType>>& src_dst, double sampling_freq, double frequency, double phase = 0) {
@@ -59,9 +70,17 @@ namespace ugsdr {
 			constexpr auto table = GetSinCosTable<phase_bits, UnderlyingType>();
 			NumericallyControlledOscillator<nco_bits> nco(sampling_freq, frequency, phase);
 
-			for (std::size_t i = 0; i < src_dst.size(); ++i)
-				//src_dst[i] *= GetComplexExp<phase_bits>(table, ((nco.holder + nco.adder * i) & nco.mask) >> (nco_bits - phase_bits));
-				src_dst[i] *= GetComplexExp<phase_bits>(table, nco);
+			static thread_local std::vector<std::complex<UnderlyingType>> complex_exp_vec;
+
+			complex_exp_vec.resize(src_dst.size());
+
+			for (std::size_t i = 0; i < complex_exp_vec.size(); ++i)
+				complex_exp_vec[i] = GetComplexExp<phase_bits>(table, nco);
+
+			auto mul_wrapper = GetMulWrapper();
+
+			using IppType = typename IppTypeToComplex<UnderlyingType>::Type;
+			mul_wrapper(reinterpret_cast<IppType*>(complex_exp_vec.data()), reinterpret_cast<IppType*>(src_dst.data()), static_cast<int>(src_dst.size()));
 		}
 
 	public:

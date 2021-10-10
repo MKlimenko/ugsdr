@@ -124,7 +124,7 @@ int main() {
 		acquisition_results[16].intermediate_frequency = 14812500.000000000;
 	}
 
-	acquisition_results.resize(1);
+	//acquisition_results.resize(1);
 	
 	auto pre = std::chrono::system_clock::now();
 	auto tracker = ugsdr::Tracker(signal_parameters, acquisition_results);
@@ -134,7 +134,7 @@ int main() {
 	std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(post - pre).count() << std::endl;
 	std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(post - pre).count() / static_cast<double>(signal_parameters.GetNumberOfEpochs()) * 100.0 << std::endl;
 
-	std::exit(0);
+	//std::exit(0);
 
 #ifndef HAS_SIGNAL_PLOT
 	return 0;

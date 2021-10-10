@@ -9,9 +9,9 @@ namespace ugsdr {
 	struct NumericallyControlledOscillator final {
 		static_assert(nco_bits <= 64, "Requested size of NCO is not supported (requires long math)");
 		constexpr static inline std::uint64_t mask = (1ull << nco_bits) - 1;
-		
-		std::uint64_t holder = 0;
+
 		std::uint64_t adder = 0;
+		std::uint64_t holder : nco_bits;
 
 		NumericallyControlledOscillator() = default;
 		NumericallyControlledOscillator(double sampling_freq, double frequency, double phase) {
