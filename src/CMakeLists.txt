@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 3.10)
+cmake_minimum_required (VERSION 3.19)
 
 project(ugsdr)
 
@@ -35,6 +35,8 @@ add_executable (${PROJECT_NAME}
 							mixer/batch_mixer.hpp
 							mixer/ipp_mixer.hpp
 							mixer/mixer.hpp 
+							mixer/nco.hpp
+							mixer/table_mixer.hpp
 							prn_codes/GlonassOf.hpp 
 							prn_codes/GpsL1Ca.hpp  
 							prn_codes/codegen.hpp 
@@ -51,17 +53,20 @@ add_executable (${PROJECT_NAME}
 )
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 20)
+set_property(TARGET ${PROJECT_NAME} PROPERTY ISPC_INSTRUCTION_SETS avx2)
 
 find_package(ArrayFire REQUIRED)
 find_package(OpenMP REQUIRED)
-find_package(Boost REQUIRED)
+find_package(Boost REQUIRED COMPONENTS system iostreams)
+find_package(gcem REQUIRED)
 
 target_include_directories(${PROJECT_NAME} PRIVATE ${ArrayFire_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS})
 
-target_link_libraries(${PROJECT_NAME} PRIVATE OpenMP::OpenMP_CXX ArrayFire::afcuda)
+target_link_libraries(${PROJECT_NAME} PRIVATE OpenMP::OpenMP_CXX ArrayFire::afcuda gcem ${Boost_LIBRARIES})
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
 	target_compile_options(${PROJECT_NAME} PUBLIC -ftime-trace)
+
 endif()
 
 if (WIN32)

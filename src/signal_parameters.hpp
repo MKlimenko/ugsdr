@@ -5,6 +5,11 @@
 #include <filesystem>
 #include <fstream>
 
+#include "boost/iostreams/device/mapped_file.hpp"
+#include "ipp.h"
+
+#include "../external/plusifier/Plusifier.hpp"
+
 namespace ugsdr {
 	enum class FileType {
 		Iq_8_plus_8 = 0
@@ -19,44 +24,60 @@ namespace ugsdr {
 		double sampling_rate = 0.0;
 		std::size_t number_of_epochs = 0;
 
-		std::ifstream signal_file;
+		boost::iostreams::mapped_file_source signal_file;
 
 		using OutputVectorType = std::vector<std::complex<UnderlyingType>>;
 
 		void OpenFile() {
 			switch (file_type) {
-			case FileType::Iq_8_plus_8:
-				signal_file = std::ifstream(signal_file_path, std::ios::binary | std::ios::ate);
-				number_of_epochs = static_cast<std::size_t>(signal_file.tellg() / (sampling_rate / 1e3) / 2);
-				signal_file.seekg(0);
+			case FileType::Iq_8_plus_8: 
+				signal_file.open(signal_file_path.string());
+				if (!signal_file.is_open())
+					throw std::runtime_error("Unable to open file");
+				number_of_epochs = static_cast<std::size_t>(signal_file.size() / (sampling_rate / 1e3) / 2);
+
 				break;
 			default:
 				throw std::runtime_error("Unexpected file type");
 			}
 		}
 
+		static auto GetConvertWrapper() {
+			static auto convert_wrapper = plusifier::FunctionWrapper(
+				ippsConvert_8s32f, ippsCopy_8u
+			);
+
+			return convert_wrapper;
+		}
+
 		void GetPartialSignal(std::size_t length_samples, std::size_t samples_offset, OutputVectorType& dst) {
 			switch (file_type) {
 			case FileType::Iq_8_plus_8: {
-				static thread_local std::vector<std::complex<std::int8_t>> data;
-				std::vector<std::complex<std::int8_t>>* data_ptr;
-
-				if constexpr (std::is_same_v<std::int8_t, UnderlyingType>)
-					data_ptr = &dst;
-				else
-					data_ptr = &data;
-
-				data_ptr->clear();
-				data_ptr->resize(length_samples);
-
-				signal_file.seekg(samples_offset * sizeof(std::complex<std::int8_t>));
-				signal_file.read(reinterpret_cast<char*>(data_ptr->data()), length_samples * sizeof((*data_ptr)[0]));
-
 				if constexpr (!std::is_same_v<std::int8_t, UnderlyingType>) {
-					dst.clear();
+					auto ptr_start = signal_file.data() + samples_offset * sizeof(std::complex<std::int8_t>);
 					dst.resize(length_samples);
-					std::copy(std::execution::par_unseq, data.begin(), data.end(), dst.begin());
+					auto convert_wrapper = GetConvertWrapper();
+					convert_wrapper(reinterpret_cast<const int8_t*>(ptr_start), reinterpret_cast<UnderlyingType*>(dst.data()), static_cast<int>(dst.size()) * 2);
 				}
+					
+				//static thread_local std::vector<std::complex<std::int8_t>> data;
+				//std::vector<std::complex<std::int8_t>>* data_ptr;
+
+				//if constexpr (std::is_same_v<std::int8_t, UnderlyingType>)
+				//	data_ptr = &dst;
+				//else
+				//	data_ptr = &data;
+
+				//data_ptr->resize(length_samples);
+
+				//signal_file.seekg(samples_offset * sizeof(std::complex<std::int8_t>));
+				//signal_file.read(reinterpret_cast<char*>(data_ptr->data()), length_samples * sizeof((*data_ptr)[0]));
+
+				//if constexpr (!std::is_same_v<std::int8_t, UnderlyingType>) {
+				//	dst.resize(length_samples);
+				//	auto convert_wrapper = GetConvertWrapper();
+				//	convert_wrapper(reinterpret_cast<int8_t*>(data.data()), reinterpret_cast<UnderlyingType*>(dst.data()), static_cast<int>(dst.size()) * 2);
+				//}
 
 				break;
 			}

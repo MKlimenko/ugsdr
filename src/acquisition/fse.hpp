@@ -11,10 +11,12 @@
 #include "../math/ipp_reshape_and_sum.hpp"
 #include "../math/ipp_mean_stddev.hpp"
 #include "../mixer/ipp_mixer.hpp"
+#include "../mixer/table_mixer.hpp"
 #include "../prn_codes/codegen_wrapper.hpp"
 #include "../resample/upsampler.hpp"
 #include "../resample/ipp_resampler.hpp"
 
+#include <functional>
 #include <numeric>
 #include <vector>
 
@@ -34,9 +36,9 @@ namespace ugsdr {
 		constexpr static inline double acquisition_sampling_rate = 3.975e6;
 		//constexpr static inline double acquisition_sampling_rate = 39.75e6;
 
-		using MixerType = Mixer<IppMixer>;
+		using MixerType = Mixer<TableMixer>;
 		using UpsamplerType = Upsampler<SequentialUpsampler>;
-		using MatchedFilterType = MatchedFilter<AfMatchedFilter>;
+		using MatchedFilterType = MatchedFilter<IppMatchedFilter>;
 		using AbsType = Abs<IppAbs>;
 		using ReshapeAndSumType = ReshapeAndSum<IppReshapeAndSum>;
 		using MaxIndexType = MaxIndex<IppMaxIndex>;
@@ -156,7 +158,7 @@ namespace ugsdr {
 			auto signal = signal_parameters.GetSeveralMs(ms_offset, ms_to_process);
 
 			ugsdr::Add(L"Acquisition input signal", signal, signal_parameters.GetSamplingRate());
-
+						
 			ProcessGps(signal, dst);
 			ProcessGlonass(signal, dst);
 
