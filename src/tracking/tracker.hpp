@@ -167,7 +167,7 @@ namespace ugsdr {
 			copy_wrapper(reinterpret_cast<const IppType*>(signal.data()), reinterpret_cast<IppType*>(parameters.translated_signal.data()), static_cast<int>(signal.size()));
 
 			
-			auto [early, prompt, late] = GetEpl(parameters, 0.1);
+			auto [early, prompt, late] = GetEpl(parameters, 0.25);
 			parameters.early.push_back(early);
 			parameters.prompt.push_back(prompt);
 			parameters.late.push_back(late);

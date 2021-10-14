@@ -20,7 +20,7 @@ int main() {
 
 #if 1
 	auto fse = ugsdr::FastSearchEngineBase(digital_frontend, 5e3, 200);
-	auto acquisition_results = fse.Process(true);
+	auto acquisition_results = fse.Process(false);
 #else
 	std::vector<ugsdr::AcquisitionResult<float>> acquisition_results(17);
 	{
@@ -133,9 +133,10 @@ int main() {
 		el.doppler = el.intermediate_frequency - el.doppler;
 	}
 #endif
+		
 	auto pre = std::chrono::system_clock::now();
 	auto tracker = ugsdr::Tracker(digital_frontend, acquisition_results);
-	tracker.Track(3000 + 0 * signal_parameters.GetNumberOfEpochs());
+	tracker.Track(signal_parameters.GetNumberOfEpochs());
 	auto post = std::chrono::system_clock::now();
 
 	std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(post - pre).count() << std::endl;
