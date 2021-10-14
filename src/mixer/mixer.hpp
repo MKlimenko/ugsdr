@@ -31,6 +31,8 @@ namespace ugsdr {
 		template <typename UnderlyingType>
 		static void Translate(std::vector<std::complex<UnderlyingType>>& src_dst, double sampling_freq, double frequency, double phase = 0) {
 			FixPhase(phase);
+			if (std::abs(frequency) == 0.0)
+				return;
 			if (frequency < 0)
 				frequency = sampling_freq + frequency;
 

@@ -34,6 +34,8 @@ namespace ugsdr {
 		
 	private:
 		SignalParametersBase<UnderlyingType>& signal_parameters;
+		IppMixer mixer;
+		IppResampler resampler;
 
 		static auto CentralFrequency(Signal signal) {
 			switch (signal) {
@@ -51,9 +53,9 @@ namespace ugsdr {
 		}
 
 	public:
-		Channel(SignalParametersBase<UnderlyingType>& signal_params, Signal signal) :
-			subband(signal), sampling_rate(signal_params.GetSamplingRate()), central_frequency(CentralFrequency(signal)),
-			signal_parameters(signal_params) {}
+		Channel(SignalParametersBase<UnderlyingType>& signal_params, Signal signal, double new_sampling_rate) :
+			subband(signal), sampling_rate(new_sampling_rate), central_frequency(CentralFrequency(signal)),
+			signal_parameters(signal_params), mixer(signal_parameters.GetSamplingRate(), signal_parameters.GetCentralFrequency() - central_frequency, 0) {}
 
 		auto GetNumberOfEpochs() const {
 			return signal_parameters.GetNumberOfEpochs();
@@ -62,6 +64,9 @@ namespace ugsdr {
 		void GetSeveralEpochs(std::size_t epoch_offset, std::size_t epoch_cnt, SignalEpoch<UnderlyingType>& epoch_data) {
 			auto& current_vector = epoch_data.GetSubband(subband);
 			signal_parameters.GetSeveralMs(epoch_offset, epoch_cnt, current_vector);
+
+			mixer.Translate(current_vector);
+			resampler.Transform(current_vector, static_cast<std::size_t>(sampling_rate), static_cast<std::size_t>(signal_parameters.GetSamplingRate()));
 		}
 
 		void GetEpoch(std::size_t epoch_offset, SignalEpoch<UnderlyingType>& epoch_data) {
