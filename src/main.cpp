@@ -18,7 +18,7 @@ int main() {
 		MakeChannel(signal_parameters, ugsdr::Signal::GlonassCivilFdma_L1, signal_parameters.GetSamplingRate() / 5)
 	);
 
-#if 1
+#if 0
 	auto fse = ugsdr::FastSearchEngineBase(digital_frontend, 5e3, 200);
 	auto acquisition_results = fse.Process(false);
 #else
@@ -95,19 +95,19 @@ int main() {
 		acquisition_results[11].code_offset = 25310.000000000000;
 		acquisition_results[11].level = 52812.101562500000;
 		acquisition_results[11].sigma = 7244.0068359375000;
-		acquisition_results[11].intermediate_frequency = 10312500.000000000;
+		acquisition_results[11].intermediate_frequency = 12000000.000000000;
 		acquisition_results[12].sv_number = ugsdr::Sv{ -2 , ugsdr::System::Glonass };
 		acquisition_results[12].doppler = 10877400.000000000;
 		acquisition_results[12].code_offset = 31400.000000000000;
 		acquisition_results[12].level = 37424.238281250000;
 		acquisition_results[12].sigma = 6635.4609375000000;
-		acquisition_results[12].intermediate_frequency = 10875000.000000000;
+		acquisition_results[12].intermediate_frequency = 12000000.000000000;
 		acquisition_results[13].sv_number = ugsdr::Sv{ -1 , ugsdr::System::Glonass };
 		acquisition_results[13].doppler = 11437700.000000000;
 		acquisition_results[13].code_offset = 14470.000000000000;
 		acquisition_results[13].level = 31658.154296875000;
 		acquisition_results[13].sigma = 6529.5556640625000;
-		acquisition_results[13].intermediate_frequency = 11437500.000000000;
+		acquisition_results[13].intermediate_frequency = 12000000.000000000;
 		acquisition_results[14].sv_number = ugsdr::Sv{ 0 , ugsdr::System::Glonass };
 		acquisition_results[14].doppler = 11998000.000000000;
 		acquisition_results[14].code_offset = 2320.0000000000000;
@@ -119,18 +119,18 @@ int main() {
 		acquisition_results[15].code_offset = 33470.000000000000;
 		acquisition_results[15].level = 35828.031250000000;
 		acquisition_results[15].sigma = 6888.7402343750000;
-		acquisition_results[15].intermediate_frequency = 14250000.000000000;
+		acquisition_results[15].intermediate_frequency = 12000000.000000000;
 		acquisition_results[16].sv_number = ugsdr::Sv{ 5 , ugsdr::System::Glonass };
 		acquisition_results[16].doppler = 14811500.000000000;
 		acquisition_results[16].code_offset = 18470.000000000000;
 		acquisition_results[16].level = 24222.138671875000;
 		acquisition_results[16].sigma = 6697.3046875000000;
-		acquisition_results[16].intermediate_frequency = 14812500.000000000;
+		acquisition_results[16].intermediate_frequency = 12000000.000000000;
 	}
 
 	for (auto& el : acquisition_results) {
 		el.code_offset /= signal_parameters.GetSamplingRate() / digital_frontend.GetSamplingRate(el.GetAcquiredSignalType());
-		el.doppler = el.intermediate_frequency - el.doppler;
+		el.doppler -= el.intermediate_frequency;
 	}
 #endif
 		
