@@ -14,11 +14,11 @@ int main() {
 	auto signal_parameters = ugsdr::SignalParametersBase<float>(R"(..\..\..\..\data\iq.bin)", ugsdr::FileType::Iq_8_plus_8, 1590e6, 79.5e6 / 2);
 
 	auto digital_frontend = ugsdr::DigitalFrontend(
-		MakeChannel(signal_parameters, ugsdr::Signal::GpsCoarseAcquisition_L1),
-		MakeChannel(signal_parameters, ugsdr::Signal::GlonassCivilFdma_L1)
+		MakeChannel(signal_parameters, ugsdr::Signal::GpsCoarseAcquisition_L1, signal_parameters.GetSamplingRate() / 10),
+		MakeChannel(signal_parameters, ugsdr::Signal::GlonassCivilFdma_L1, signal_parameters.GetSamplingRate() / 5)
 	);
 
-#if 0
+#if 1
 	auto fse = ugsdr::FastSearchEngineBase(digital_frontend, 5e3, 200);
 	auto acquisition_results = fse.Process(false);
 #else
@@ -127,8 +127,13 @@ int main() {
 		acquisition_results[16].sigma = 6697.3046875000000;
 		acquisition_results[16].intermediate_frequency = 14812500.000000000;
 	}
-#endif
 
+	for (auto& el : acquisition_results) {
+		el.code_offset /= signal_parameters.GetSamplingRate() / digital_frontend.GetSamplingRate(el.GetAcquiredSignalType());
+		el.doppler = el.intermediate_frequency - el.doppler;
+	}
+#endif
+		
 	auto pre = std::chrono::system_clock::now();
 	auto tracker = ugsdr::Tracker(digital_frontend, acquisition_results);
 	tracker.Track(signal_parameters.GetNumberOfEpochs());
