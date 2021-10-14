@@ -22,5 +22,16 @@ namespace ugsdr {
 		auto GetSnr() const {
 			return level / sigma;
 		}
+
+		auto GetAcquiredSignalType() const {
+			switch (sv_number.system) {
+			case System::Gps:
+				return Signal::GpsCoarseAcquisition_L1;
+			case System::Glonass: 
+				return Signal::GlonassCivilFdma_L1;
+			default:
+				throw std::runtime_error("Unexpected satellite system from acquisition");
+			}
+		}
 	};
 }

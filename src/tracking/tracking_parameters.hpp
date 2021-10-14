@@ -2,6 +2,7 @@
 
 #include "../common.hpp"
 #include "../acquisition/acquisition_result.hpp"
+#include "../dfe/dfe.hpp"
 
 namespace ugsdr {
 	template <typename T>
@@ -25,6 +26,9 @@ namespace ugsdr {
 		constexpr static inline double K2_DLL = SUMMATION_INTERVAL_DLL / TAU1CODE;
 
 	public:
+		Sv sv;
+		Signal signal_type;
+		
 		double code_phase = 0.0;
 		double code_frequency = 0.0;
         double base_code_frequency = 0.0;
@@ -33,7 +37,6 @@ namespace ugsdr {
         double carrier_frequency = 0.0;
         double intermediate_frequency = 0.0;
         double sampling_rate = 0.0;
-        Sv sv;
 
 		std::vector<double> phases;
 		std::vector<double> frequencies;
@@ -53,11 +56,14 @@ namespace ugsdr {
 		double code_nco = 0.0;
 		double code_error = 0.0;
 
-		TrackingParameters(const AcquisitionResult<T>& acquisition, double sampling_frequency, std::size_t epochs_to_process) :	code_phase(acquisition.code_offset),
-																																carrier_frequency(acquisition.doppler),
-																																intermediate_frequency(acquisition.intermediate_frequency),
-																																sampling_rate(sampling_frequency),
-																																sv(acquisition.sv_number)	{
+		TrackingParameters(const AcquisitionResult<T>& acquisition, DigitalFrontend<T>& digital_frontend) :
+			sv(acquisition.sv_number),
+			signal_type(acquisition.GetAcquiredSignalType()),
+			code_phase(acquisition.code_offset),
+			carrier_frequency(acquisition.doppler),
+			intermediate_frequency(acquisition.intermediate_frequency),
+			sampling_rate(digital_frontend.GetSamplingRate(signal_type)) {
+			
 			switch (sv.system) {
 			case System::Gps:
 				code_frequency = 1.023e6;
@@ -71,8 +77,10 @@ namespace ugsdr {
 				break;
 			}
 
-			translated_signal.resize(static_cast<std::size_t>(sampling_frequency / 1e3));
+			translated_signal.resize(static_cast<std::size_t>(sampling_rate / 1e3));
 
+			auto epochs_to_process = digital_frontend.GetNumberOfEpochs(signal_type);
+			
 			phases.reserve(epochs_to_process);
 			frequencies.reserve(epochs_to_process);
 			code_phases.reserve(epochs_to_process);

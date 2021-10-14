@@ -3,6 +3,7 @@
 #include "../common.hpp"
 #include "../signal_parameters.hpp"
 #include "../acquisition/acquisition_result.hpp"
+#include "../dfe/dfe.hpp"
 #include "../resample/upsampler.hpp"
 #include "../correlator/af_correlator.hpp"
 #include "../correlator/ipp_correlator.hpp"
@@ -45,16 +46,19 @@ namespace ugsdr {
 	public:
 		MapType codes;
 
-		Codes(double sampling_rate) {
+		Codes(const DigitalFrontend<UnderlyingType>& digital_frontend) {
+			auto gps_sampling_rate = digital_frontend.GetSamplingRate(Signal::GpsCoarseAcquisition_L1);
+			
 			for (std::int32_t i = 0; i < gps_sv_count; ++i) {
 				auto sv = Sv{ i, System::Gps};
 				codes[sv] = UpsamplerType::Transform(RepeatCodeNTimes(PrnGenerator<System::Gps>::Get<UnderlyingType>(i), 3),
-					static_cast<std::size_t>(3 * sampling_rate / 1e3));
+					static_cast<std::size_t>(3 * gps_sampling_rate / 1e3));
 			}
 
+			auto gln_sampling_rate = digital_frontend.GetSamplingRate(Signal::GlonassCivilFdma_L1);
 			auto sv = glonass_sv;
 			codes[sv] = UpsamplerType::Transform(RepeatCodeNTimes(PrnGenerator<System::Glonass>::Get<UnderlyingType>(0), 3),
-				static_cast<std::size_t>(3 * sampling_rate / 1e3));
+				static_cast<std::size_t>(3 * gln_sampling_rate / 1e3));
 		}
 
 		const auto& GetCode(Sv sv) const {
@@ -65,30 +69,58 @@ namespace ugsdr {
 		}
 	};
 
-
 	template <typename UnderlyingType>
 	class Tracker final {
-		SignalParametersBase<UnderlyingType>& signal_parameters;
+		DigitalFrontend<UnderlyingType>& digital_frontend;
 		const std::vector<AcquisitionResult<UnderlyingType>>& acquisition_results;
 
 		Codes<UnderlyingType> codes;
-		const std::size_t samples_per_ms = 0;
 		std::vector<TrackingParameters<UnderlyingType>> tracking_parameters;
 
 		using CorrelatorType = IppCorrelator;
 		using MatchedFilterType = IppMatchedFilter;
-		using MixerType = Mixer<TableMixer>;
+		using MixerType = Mixer<IppMixer>;
 		
 		void InitTrackingParameters() {
 			for (const auto& el : acquisition_results)
-				tracking_parameters.emplace_back(el, signal_parameters.GetSamplingRate(), signal_parameters.GetNumberOfEpochs());
+				tracking_parameters.emplace_back(el, digital_frontend);
+		}
+
+		template <typename T>
+		auto AddWithPhase(std::complex<T> lhs, std::complex<T> rhs, double relative_phase) {
+			if (relative_phase > 0.5)
+				std::swap(lhs, rhs);
+
+			const auto weighted_lhs = lhs.real() / relative_phase;
+			const auto weighted_rhs = rhs.real() / (1.0 - relative_phase);
+			if (std::abs(weighted_lhs + weighted_rhs) > std::abs(weighted_lhs))
+				return lhs + rhs;
+			return lhs - rhs;
 		}
 
 		template <typename T1, typename T2>
-		auto Correlate(const T1& translated_signal, const T2& full_code, std::pair<double, std::complex<UnderlyingType>>& code_phase_and_output) {
+		auto Correlate(const T1& translated_signal, const T2& full_code, std::size_t samples_per_ms, std::pair<double, std::complex<UnderlyingType>>& code_phase_and_output) {
 			auto full_phase = static_cast<std::size_t>(std::ceil(samples_per_ms + code_phase_and_output.first));
 			const auto current_code = std::span(full_code.begin() + full_phase, samples_per_ms);
-			code_phase_and_output.second = CorrelatorType::Correlate(translated_signal, current_code);
+			code_phase_and_output.second = CorrelatorType::Correlate(std::span(translated_signal), current_code);
+		}
+
+		template <typename T1, typename T2>
+		auto CorrelateSplit(const T1& translated_signal, const T2& full_code, std::size_t samples_per_ms, std::pair<double, std::complex<UnderlyingType>>& code_phase_and_output) {
+			if (code_phase_and_output.first < 0)
+				code_phase_and_output.first += samples_per_ms;
+
+			auto first_batch_length = static_cast<std::size_t>(std::ceil(samples_per_ms - code_phase_and_output.first));
+			auto second_batch_length = samples_per_ms - first_batch_length;
+
+			auto first_batch_phase = static_cast<std::size_t>(std::ceil(samples_per_ms + code_phase_and_output.first));
+			auto second_batch_phase = first_batch_phase + first_batch_length;
+
+			auto first = CorrelatorType::Correlate(std::span(translated_signal.begin(), first_batch_length), std::span(full_code.begin() + first_batch_phase, first_batch_length));
+			auto second = CorrelatorType::Correlate(std::span(translated_signal.begin() + first_batch_length, second_batch_length), std::span(full_code.begin() + second_batch_phase, second_batch_length));
+			
+
+			code_phase_and_output.second = AddWithPhase(first, second, code_phase_and_output.first / samples_per_ms);
 		}
 
 		auto GetEpl(TrackingParameters<UnderlyingType>& parameters, double spacing_chips) {
@@ -110,8 +142,8 @@ namespace ugsdr {
 				std::make_pair(parameters.code_phase - spacing_offset, std::complex<UnderlyingType>{}),
 			};
 
-			std::for_each(std::execution::par_unseq, output_array.begin(), output_array.end(), [&translated_signal, &full_code, this](auto& pair) {
-				Correlate(translated_signal, full_code, pair);
+			std::for_each(std::execution::par_unseq, output_array.begin(), output_array.end(), [&translated_signal, &full_code, samples_per_ms = static_cast<std::size_t>(parameters.sampling_rate / 1e3), this](auto& pair) {
+				CorrelateSplit(translated_signal, full_code, samples_per_ms, pair);
 			});
 
 			return std::make_tuple(output_array[0].second, output_array[1].second, output_array[2].second);
@@ -126,15 +158,16 @@ namespace ugsdr {
 			return copy_wrapper;
 		}
 
-		template <typename T>
-		void TrackSingleSatellite(TrackingParameters<UnderlyingType>& parameters, const T& signal) {
-			auto copy_wrapper = GetCopyWrapper();
+		void TrackSingleSatellite(TrackingParameters<UnderlyingType>& parameters, const SignalEpoch<UnderlyingType>& signal_epoch) {
+			const auto& signal = signal_epoch.GetSubband(parameters.signal_type);
 
+			auto copy_wrapper = GetCopyWrapper();
+						
 			using IppType = typename IppTypeToComplex<UnderlyingType>::Type;
 			copy_wrapper(reinterpret_cast<const IppType*>(signal.data()), reinterpret_cast<IppType*>(parameters.translated_signal.data()), static_cast<int>(signal.size()));
 
 			
-			auto [early, prompt, late] = GetEpl(parameters, 0.5);
+			auto [early, prompt, late] = GetEpl(parameters, 0.1);
 			parameters.early.push_back(early);
 			parameters.prompt.push_back(prompt);
 			parameters.late.push_back(late);
@@ -144,19 +177,18 @@ namespace ugsdr {
 		}
 		
 	public:
-		Tracker(SignalParametersBase<UnderlyingType>& signal_params, 
-			const std::vector<AcquisitionResult<UnderlyingType>>& acquisition_dst) :	signal_parameters(signal_params), acquisition_results(acquisition_dst),
-																						codes(signal_parameters.GetSamplingRate()), 
-																						samples_per_ms(static_cast<std::size_t>(signal_parameters.GetSamplingRate() / 1e3)) {
+		Tracker(DigitalFrontend<UnderlyingType>& dfe, 
+			const std::vector<AcquisitionResult<UnderlyingType>>& acquisition_dst) :	digital_frontend(dfe), acquisition_results(acquisition_dst),
+																						codes(digital_frontend) {
 			InitTrackingParameters();
 		}
 
 		void Track(std::size_t epochs_to_process) {
 			auto timer = boost::timer::progress_display(static_cast<unsigned long>(epochs_to_process));
 
-			auto current_signal_ms = signal_parameters.GetOneMs(0);
+			SignalEpoch<UnderlyingType> current_signal_ms;
 			for (std::size_t i = 0; i < epochs_to_process; ++i, ++timer) {
-				signal_parameters.GetOneMs(i, current_signal_ms);
+				digital_frontend.GetEpoch(i, current_signal_ms);
 
 				std::for_each(std::execution::par_unseq, tracking_parameters.begin(), tracking_parameters.end(),
 					[&current_signal_ms, this](auto& current_tracking_parameters) {

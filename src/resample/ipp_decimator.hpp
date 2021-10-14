@@ -77,7 +77,6 @@ namespace ugsdr {
 					reinterpret_cast<TypeToCast*>(src_dst.data()) + k++, IppHintAlgorithm::ippAlgHintNone);
 			
 			src_dst.resize(src_dst.size() / decimation_ratio);
-			src_dst.shrink_to_fit();
 			
 			auto div_wrapper = GetDivWrapper();
 			using UnderlyingIppType = typename IppComplexToType<TypeToCast>::Type;

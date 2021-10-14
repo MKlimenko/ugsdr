@@ -59,25 +59,6 @@ namespace ugsdr {
 					auto convert_wrapper = GetConvertWrapper();
 					convert_wrapper(reinterpret_cast<const int8_t*>(ptr_start), reinterpret_cast<UnderlyingType*>(dst.data()), static_cast<int>(dst.size()) * 2);
 				}
-					
-				//static thread_local std::vector<std::complex<std::int8_t>> data;
-				//std::vector<std::complex<std::int8_t>>* data_ptr;
-
-				//if constexpr (std::is_same_v<std::int8_t, UnderlyingType>)
-				//	data_ptr = &dst;
-				//else
-				//	data_ptr = &data;
-
-				//data_ptr->resize(length_samples);
-
-				//signal_file.seekg(samples_offset * sizeof(std::complex<std::int8_t>));
-				//signal_file.read(reinterpret_cast<char*>(data_ptr->data()), length_samples * sizeof((*data_ptr)[0]));
-
-				//if constexpr (!std::is_same_v<std::int8_t, UnderlyingType>) {
-				//	dst.resize(length_samples);
-				//	auto convert_wrapper = GetConvertWrapper();
-				//	convert_wrapper(reinterpret_cast<int8_t*>(data.data()), reinterpret_cast<UnderlyingType*>(dst.data()), static_cast<int>(dst.size()) * 2);
-				//}
 
 				break;
 			}

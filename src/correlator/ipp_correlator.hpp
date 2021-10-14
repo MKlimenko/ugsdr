@@ -20,7 +20,7 @@ namespace ugsdr {
 		friend class Correlator<IppCorrelator>;
 
 		template <typename UnderlyingType, typename T>
-		static auto Process(const std::vector<std::complex<UnderlyingType>>& signal, const std::span<T>& code) {
+		static auto Process(const std::span<const std::complex<UnderlyingType>>& signal, const std::span<const T>& code) {
 			if (signal.size() != code.size())
 				throw std::runtime_error("Size mismatch");
 

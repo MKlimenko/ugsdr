@@ -3,6 +3,7 @@
 #include "acquisition/fse.hpp"
 #include "prn_codes/GpsL1Ca.hpp"
 #include "tracking/tracker.hpp"
+#include "dfe/dfe.hpp"
 
 #ifdef HAS_SIGNAL_PLOT
 void GenerateSignals(CSignalsViewer* sv) {
@@ -11,13 +12,16 @@ void GenerateSignals(CSignalsViewer* sv) {
 int main() {
 #endif
 	auto signal_parameters = ugsdr::SignalParametersBase<float>(R"(..\..\..\..\data\iq.bin)", ugsdr::FileType::Iq_8_plus_8, 1590e6, 79.5e6 / 2);
-	//auto data = signal_parameters.GetOneMs(0);
 
-	//ugsdr::Add(L"Input signal", data);
+	auto digital_frontend = ugsdr::DigitalFrontend(
+		MakeChannel(signal_parameters, ugsdr::Signal::GpsCoarseAcquisition_L1),
+		MakeChannel(signal_parameters, ugsdr::Signal::GlonassCivilFdma_L1)
+	);
 
-	//auto fse = ugsdr::FastSearchEngineBase(signal_parameters, 5e3, 200);
-	//auto acquisition_results = fse.Process(true);
-	//return;
+#if 0
+	auto fse = ugsdr::FastSearchEngineBase(digital_frontend, 5e3, 200);
+	auto acquisition_results = fse.Process(false);
+#else
 	std::vector<ugsdr::AcquisitionResult<float>> acquisition_results(17);
 	{
 		acquisition_results[0].sv_number = ugsdr::Sv{ 0 ,ugsdr::System::Gps };
@@ -123,11 +127,10 @@ int main() {
 		acquisition_results[16].sigma = 6697.3046875000000;
 		acquisition_results[16].intermediate_frequency = 14812500.000000000;
 	}
+#endif
 
-	//acquisition_results.resize(1);
-	
 	auto pre = std::chrono::system_clock::now();
-	auto tracker = ugsdr::Tracker(signal_parameters, acquisition_results);
+	auto tracker = ugsdr::Tracker(digital_frontend, acquisition_results);
 	tracker.Track(signal_parameters.GetNumberOfEpochs());
 	auto post = std::chrono::system_clock::now();
 

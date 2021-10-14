@@ -11,6 +11,7 @@ add_executable (${PROJECT_NAME}
 							correlator/af_correlator.hpp
 							correlator/correlator.hpp
 							correlator/ipp_correlator.hpp
+							dfe/dfe.hpp
 							helpers/af_array_proxy.hpp
 							helpers/ipp_complex_type_converter.hpp
 							helpers/is_complex.hpp
@@ -66,7 +67,6 @@ target_link_libraries(${PROJECT_NAME} PRIVATE OpenMP::OpenMP_CXX ArrayFire::afcu
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
 	target_compile_options(${PROJECT_NAME} PUBLIC -ftime-trace)
-
 endif()
 
 if (WIN32)

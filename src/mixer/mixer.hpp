@@ -47,6 +47,23 @@ namespace ugsdr {
 			MixerImpl::Process(dst, sampling_freq, frequency, phase);
 			return dst;
 		}
+
+		template <typename UnderlyingType>
+		void Translate(std::vector<std::complex<UnderlyingType>>& src_dst) {
+			Translate(src_dst, sampling_rate, mixer_frequency, mixer_phase);
+			auto phase_mod = std::fmod(mixer_frequency / 1000.0, 1.0);
+			if (phase_mod < 0)
+				phase_mod += 1;
+			mixer_phase += 2 * std::numbers::pi_v<double> * phase_mod;
+		}
+
+		auto GetFrequency() const {
+			return mixer_frequency;
+		}
+
+		void SetPhase(double phase) {
+			mixer_phase = phase;
+		}
 	};
 
 	class SequentialMixer : public Mixer<SequentialMixer> {

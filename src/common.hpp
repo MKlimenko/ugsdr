@@ -13,6 +13,11 @@ namespace ugsdr {
 	constexpr std::int32_t gln_min_frequency = -7;
 	constexpr std::int32_t gln_max_frequency = 6;
 
+	enum class Signal : std::uint32_t {
+		GpsCoarseAcquisition_L1,
+		GlonassCivilFdma_L1,
+	};
+
 	enum class System : std::uint32_t {
 		Gps = 0,
 		Glonass,
