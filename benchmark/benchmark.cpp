@@ -3,6 +3,8 @@
 #include <benchmark/benchmark.h>
 
 #include <complex>
+#include "../src/signal_parameters.hpp"
+
 #include "../src/mixer/mixer.hpp"
 #include "../src/mixer/batch_mixer.hpp"
 #include "../src/mixer/ipp_mixer.hpp"
@@ -27,7 +29,56 @@
 
 #include "ipp.h"
 
+
 #if 1
+namespace signal_parameters {
+    template <typename T>
+    static void GetEpoch8plus8(benchmark::State& state) {
+        auto signal_parameters = ugsdr::SignalParametersBase<T>(R"(..\..\..\..\data\iq.bin)", ugsdr::FileType::Iq_8_plus_8, 1590e6, 79.5e6 / 2);
+        std::vector<std::complex<T>> input(static_cast<std::size_t>(signal_parameters.GetSamplingRate() / 1e3));
+        for (auto _ : state) {
+            signal_parameters.GetOneMs(0, input);
+        }
+    }
+    //BENCHMARK_TEMPLATE(GetEpoch8plus8, std::int8_t);
+    //BENCHMARK_TEMPLATE(GetEpoch8plus8, std::int16_t);
+    //BENCHMARK_TEMPLATE(GetEpoch8plus8, std::int32_t);
+    BENCHMARK_TEMPLATE(GetEpoch8plus8, float);
+    //BENCHMARK_TEMPLATE(GetEpoch8plus8, double);
+
+    template <typename T>
+    static void GetEpochNt1065Grabber(benchmark::State& state) {
+        // actual sampling rate is twice as high, limit for benchmarking purposes
+        auto signal_parameters = ugsdr::SignalParametersBase<T>(R"(..\..\..\..\data\nt1065_grabber.bin)", ugsdr::FileType::Nt1065GrabberFirst, 1590e6, 79.5e6 / 2);
+        std::vector<std::complex<T>> input(static_cast<std::size_t>(signal_parameters.GetSamplingRate() / 1e3));
+        for (auto _ : state) {
+            signal_parameters.GetOneMs(0, input);
+        }
+    }
+    //BENCHMARK_TEMPLATE(GetEpochNt1065Grabber, std::int8_t);
+    //BENCHMARK_TEMPLATE(GetEpochNt1065Grabber, std::int16_t);
+    //BENCHMARK_TEMPLATE(GetEpochNt1065Grabber, std::int32_t);
+    BENCHMARK_TEMPLATE(GetEpochNt1065Grabber, float);
+    //BENCHMARK_TEMPLATE(GetEpochNt1065Grabber, double);
+
+    template <typename T>
+    static void GetEpochNt1065GrabberRemote(benchmark::State& state) {
+        // actual sampling rate is twice as high, limit for benchmarking purposes
+        auto signal_parameters = ugsdr::SignalParametersBase<T>(R"(\\remote_server\m.klimenko\austin_university\ntlab\ntlab.bin)", ugsdr::FileType::Nt1065GrabberFirst, 1590e6, 79.5e6 / 2);
+        std::vector<std::complex<T>> input(static_cast<std::size_t>(signal_parameters.GetSamplingRate() / 1e3));
+        for (auto _ : state) {
+            signal_parameters.GetOneMs(0, input);
+        }
+    }
+    //BENCHMARK_TEMPLATE(GetEpochNt1065GrabberRemote, std::int8_t);
+    //BENCHMARK_TEMPLATE(GetEpochNt1065GrabberRemote, std::int16_t);
+    //BENCHMARK_TEMPLATE(GetEpochNt1065GrabberRemote, std::int32_t);
+    BENCHMARK_TEMPLATE(GetEpochNt1065GrabberRemote, float);
+    //BENCHMARK_TEMPLATE(GetEpochNt1065GrabberRemote, double);
+}
+#endif
+
+#if 0
 namespace mixer {
 #define MIXER_BENCHMARK_OPTIONS RangeMultiplier(2)->Range(2048, 2048 << 6)->Complexity()
 

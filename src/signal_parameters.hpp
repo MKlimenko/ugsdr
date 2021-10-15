@@ -31,17 +31,6 @@ namespace ugsdr {
 		boost::iostreams::mapped_file_source signal_file;
 
 		using OutputVectorType = std::vector<std::complex<UnderlyingType>>;
-
-		template <std::size_t bit_shift>
-		struct Nt1065GrabberSample {
-			std::int8_t : bit_shift;
-			std::int8_t sample : 2;
-			std::int8_t : 0;
-		};
-		static_assert(sizeof(Nt1065GrabberSample<0>) == 1, "Sample size is exceeded");
-		static_assert(sizeof(Nt1065GrabberSample<2>) == 1, "Sample size is exceeded");
-		static_assert(sizeof(Nt1065GrabberSample<4>) == 1, "Sample size is exceeded");
-		static_assert(sizeof(Nt1065GrabberSample<6>) == 1, "Sample size is exceeded");
 		
 		void OpenFile() {
 			switch (file_type) {
@@ -74,23 +63,31 @@ namespace ugsdr {
 			return convert_wrapper;
 		}
 
-		template <typename GrabberSampleType>
-		void GetPartialSignalNt1065(std::size_t length_samples, std::size_t samples_offset, OutputVectorType& dst) {
-			static thread_local std::vector<std::int8_t> unpacked_data;
-			unpacked_data.resize(length_samples);
-			auto ptr = reinterpret_cast<const GrabberSampleType*>(signal_file.data()) + samples_offset;
+		template <typename T>
+		void CheckResize(T& vec, std::size_t samples) {
+			if (vec.size() != samples)
+				vec.resize(samples);
+		}
 
-			dst.resize(length_samples);
-			std::transform(ptr, ptr + length_samples, dst.begin(), [](auto& val) {
-				auto dst = static_cast<UnderlyingType>(val.sample);
-				
-				if (dst == 0)
-					dst = -1;
-				else if (dst == 2)
-					dst = -3;
-				
-				return dst;
-			});
+		void GetPartialSignalNt1065(int bit_shift, std::size_t length_samples, std::size_t samples_offset, OutputVectorType& dst) {
+			static thread_local std::vector<std::int8_t> unpacked_data;
+			CheckResize(unpacked_data, length_samples);
+			auto ptr = reinterpret_cast<const Ipp8u*>(signal_file.data()) + samples_offset; // 4.9 n
+			ippsRShiftC_8u(ptr, bit_shift, reinterpret_cast<Ipp8u*>(unpacked_data.data()), static_cast<int>(unpacked_data.size())); // 1250n
+			ippsAndC_8u_I(0x3, reinterpret_cast<Ipp8u*>(unpacked_data.data()), static_cast<int>(unpacked_data.size()));				// 2406n
+
+			ippsReplaceC_8u(reinterpret_cast<Ipp8u*>(unpacked_data.data()), reinterpret_cast<Ipp8u*>(unpacked_data.data()), static_cast<int>(unpacked_data.size()), 0, 0xff); // 4200n
+			ippsReplaceC_8u(reinterpret_cast<Ipp8u*>(unpacked_data.data()), reinterpret_cast<Ipp8u*>(unpacked_data.data()), static_cast<int>(unpacked_data.size()), 2, 0xfd); // 6000n
+
+			static thread_local std::vector<std::int16_t> pseudo_complex_data;
+			CheckResize(pseudo_complex_data, length_samples);
+			ippsConvert_8s16s(unpacked_data.data(), pseudo_complex_data.data(), static_cast<int>(unpacked_data.size()));	//8000n
+			ippsAndC_16u_I(0x00FF, reinterpret_cast<std::uint16_t*>(pseudo_complex_data.data()), static_cast<int>(pseudo_complex_data.size()));	//9800n
+
+			CheckResize(dst, length_samples);
+		
+			auto convert_wrapper = GetConvertWrapper();
+			convert_wrapper(reinterpret_cast<const int8_t*>(pseudo_complex_data.data()), reinterpret_cast<UnderlyingType*>(dst.data()), static_cast<int>(length_samples) * 2); //21000n
 		}
 
 		void GetPartialSignal(std::size_t length_samples, std::size_t samples_offset, OutputVectorType& dst) {
@@ -98,6 +95,8 @@ namespace ugsdr {
 			case FileType::Iq_8_plus_8: {
 				if constexpr (!std::is_same_v<std::int8_t, UnderlyingType>) {
 					auto ptr_start = signal_file.data() + samples_offset * sizeof(std::complex<std::int8_t>);
+					if (dst.size() != length_samples)
+						dst.resize(length_samples);
 					dst.resize(length_samples);
 					auto convert_wrapper = GetConvertWrapper();
 					convert_wrapper(reinterpret_cast<const int8_t*>(ptr_start), reinterpret_cast<UnderlyingType*>(dst.data()), static_cast<int>(dst.size()) * 2);
@@ -105,17 +104,12 @@ namespace ugsdr {
 				break;
 			}
 			case FileType::Nt1065GrabberFirst:
-				GetPartialSignalNt1065<Nt1065GrabberSample<6>>(length_samples, samples_offset, dst);
-				break;
 			case FileType::Nt1065GrabberSecond:
-				GetPartialSignalNt1065<Nt1065GrabberSample<4>>(length_samples, samples_offset, dst);
-				break;
 			case FileType::Nt1065GrabberThird:
-				GetPartialSignalNt1065<Nt1065GrabberSample<2>>(length_samples, samples_offset, dst);
+			case FileType::Nt1065GrabberFourth: {
+				GetPartialSignalNt1065(2 * (static_cast<int>(FileType::Nt1065GrabberFourth) - static_cast<int>(file_type)), length_samples, samples_offset, dst);
 				break;
-			case FileType::Nt1065GrabberFourth:
-				GetPartialSignalNt1065<Nt1065GrabberSample<0>>(length_samples, samples_offset, dst);
-				break;
+			}
 			default:
 				throw std::runtime_error("Unexpected file type");
 			}

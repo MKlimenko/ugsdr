@@ -89,7 +89,7 @@ namespace ugsdr {
 		}
 		
 		void GetSeveralEpochs(std::size_t epoch_offset, std::size_t epoch_cnt, SignalEpoch<UnderlyingType>& epoch_data) {
-			std::for_each(/*std::execution::par_unseq, */channels.begin(), channels.end(), [epoch_offset, epoch_cnt, &epoch_data](Channel<UnderlyingType>& channel) {
+			std::for_each(std::execution::par_unseq, channels.begin(), channels.end(), [epoch_offset, epoch_cnt, &epoch_data](Channel<UnderlyingType>& channel) {
 				channel.GetSeveralEpochs(epoch_offset, epoch_cnt, epoch_data);
 			});
 		}
