@@ -2,6 +2,10 @@
 
 #include <cstdint>
 #include <cstring>
+#include <cereal/types/vector.hpp>
+#include <cereal/archives/binary.hpp>
+#include <cereal/archives/json.hpp>
+#include <cereal/archives/xml.hpp>
 
 #ifdef HAS_SIGNAL_PLOT
 #define NOMINMAX
@@ -43,6 +47,18 @@ namespace ugsdr {
 			if (system != rhs.system)
 				return static_cast<std::uint32_t>(system) < static_cast<std::uint32_t>(rhs.system);
 			return id < rhs.id;
+		}
+
+		template <class Archive>
+		void save(Archive& ar) const {
+			ar(static_cast<std::uint32_t>(*this));
+		}
+
+		template <class Archive>
+		void load(Archive& ar) {
+			std::uint32_t val = 0;
+			ar(val);
+			*reinterpret_cast<std::uint32_t*>(this) = val;
 		}
 	};
 

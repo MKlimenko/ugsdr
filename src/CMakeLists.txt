@@ -49,6 +49,7 @@ add_executable (${PROJECT_NAME}
 							resample/ipp_resampler.hpp 
 							resample/upsampler.hpp 
 							resample/ipp_upsampler.hpp 
+							serialization/serialization.hpp
 							tracking/tracker.hpp
 							tracking/tracking_parameters.hpp
 )
@@ -60,10 +61,11 @@ find_package(ArrayFire REQUIRED)
 find_package(OpenMP REQUIRED)
 find_package(Boost REQUIRED COMPONENTS system iostreams)
 find_package(gcem REQUIRED)
+find_package(cereal REQUIRED)
 
 target_include_directories(${PROJECT_NAME} PRIVATE ${ArrayFire_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS})
 
-target_link_libraries(${PROJECT_NAME} PRIVATE OpenMP::OpenMP_CXX ArrayFire::afcuda gcem ${Boost_LIBRARIES})
+target_link_libraries(${PROJECT_NAME} PRIVATE OpenMP::OpenMP_CXX ArrayFire::afcuda gcem ${Boost_LIBRARIES} cereal)
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
 	target_compile_options(${PROJECT_NAME} PUBLIC -ftime-trace)
