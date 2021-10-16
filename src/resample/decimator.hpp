@@ -57,7 +57,6 @@ namespace ugsdr {
 				src_dst[k++] = tmp / static_cast<underlying_t<T>>(decimation_ratio);
 			}
 			src_dst.resize(src_dst.size() / decimation_ratio);
-			src_dst.shrink_to_fit();
 		}
 
 	public:

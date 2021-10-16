@@ -16,7 +16,7 @@ namespace ugsdr {
 
 			double pi_2 = 8 * std::atan(1.0);
 			thread_local static std::vector<std::complex<double>> c_exp;
-			c_exp.resize(src_dst.size());
+			CheckResize(c_exp, src_dst.size());
 			std::iota(c_exp.begin(), c_exp.end(), 0.0);
 			std::transform(std::execution::par_unseq, c_exp.begin(), c_exp.end(), c_exp.begin(), [=](auto& val) {
 				return val * pi_2 * frequency / sampling_freq + phase;

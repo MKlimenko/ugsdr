@@ -71,8 +71,7 @@ namespace ugsdr {
 			NumericallyControlledOscillator<nco_bits> nco(sampling_freq, frequency, phase);
 
 			static thread_local std::vector<std::complex<UnderlyingType>> complex_exp_vec;
-
-			complex_exp_vec.resize(src_dst.size());
+			CheckResize(complex_exp_vec, src_dst.size());
 
 			for (std::size_t i = 0; i < complex_exp_vec.size(); ++i)
 				complex_exp_vec[i] = GetComplexExp<phase_bits>(table, nco);

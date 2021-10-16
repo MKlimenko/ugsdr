@@ -32,15 +32,24 @@ int main() {
 	ugsdr::Load("acquisition_results_cache", acquisition_results);
 #endif
 
+#if 0
 	auto pre = std::chrono::system_clock::now();
 	auto tracker = ugsdr::Tracker(digital_frontend, acquisition_results);
 	tracker.Track(signal_parameters.GetNumberOfEpochs());
 	auto post = std::chrono::system_clock::now();
+	ugsdr::Save("tracking_results_cache", tracker.GetTrackingParameters());
 
 	std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(post - pre).count() << std::endl;
 	std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(post - pre).count() / static_cast<double>(signal_parameters.GetNumberOfEpochs()) * 100.0 << std::endl;
+# else
+	std::vector<ugsdr::TrackingParameters<float>> tracking_parameters;
+	ugsdr::Load("tracking_results_cache", tracking_parameters);
+	for (auto& el : tracking_parameters)
+		ugsdr::Add(L"Prompt tracking result", el.prompt);
 
-	//std::exit(0);
+#endif
+	
+//	std::exit(0);
 
 #ifndef HAS_SIGNAL_PLOT
 	return 0;

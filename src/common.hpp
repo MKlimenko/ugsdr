@@ -17,6 +17,12 @@ namespace ugsdr {
 	constexpr std::int32_t gln_min_frequency = -7;
 	constexpr std::int32_t gln_max_frequency = 6;
 
+	template <typename T>
+	void CheckResize(T& vec, std::size_t samples) {
+		if (vec.size() != samples)
+			vec.resize(samples);
+	}
+	
 	enum class Signal : std::uint32_t {
 		GpsCoarseAcquisition_L1,
 		GlonassCivilFdma_L1,

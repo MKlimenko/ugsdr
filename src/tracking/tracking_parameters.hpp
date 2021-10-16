@@ -1,5 +1,7 @@
 #pragma once
 
+#include "boost/pfr.hpp"
+
 #include "../common.hpp"
 #include "../acquisition/acquisition_result.hpp"
 #include "../dfe/dfe.hpp"
@@ -56,6 +58,7 @@ namespace ugsdr {
 		double code_nco = 0.0;
 		double code_error = 0.0;
 
+		TrackingParameters() = default;
 		TrackingParameters(const AcquisitionResult<T>& acquisition, DigitalFrontend<T>& digital_frontend) :
 			sv(acquisition.sv_number),
 			signal_type(acquisition.GetAcquiredSignalType()),
@@ -131,6 +134,64 @@ namespace ugsdr {
 			code_phase -= sampling_rate / 1000 / 2 * (code_frequency / base_code_frequency - 1);
 			code_phases.push_back(code_phase);
 			code_frequencies.push_back(code_frequency);
+		}
+
+		template <typename Archive>
+		void save(Archive& ar) const {
+			ar(
+				CEREAL_NVP(sv),
+				CEREAL_NVP(signal_type),
+				CEREAL_NVP(code_phase),
+				CEREAL_NVP(code_frequency),
+				CEREAL_NVP(base_code_frequency),
+				CEREAL_NVP(carrier_phase),
+				CEREAL_NVP(carrier_frequency),
+				CEREAL_NVP(intermediate_frequency),
+				CEREAL_NVP(sampling_rate),
+				CEREAL_NVP(phases),
+				CEREAL_NVP(frequencies),
+				CEREAL_NVP(code_phases),
+				CEREAL_NVP(code_frequencies),
+				CEREAL_NVP(phase_residuals),
+				CEREAL_NVP(code_residuals),
+				CEREAL_NVP(translated_signal),
+				CEREAL_NVP(early),
+				CEREAL_NVP(prompt),
+				CEREAL_NVP(late),
+				CEREAL_NVP(previous_prompt),
+				CEREAL_NVP(carrier_phase_error),
+				CEREAL_NVP(code_nco),
+				CEREAL_NVP(code_error)
+			);
+		}
+
+		template <typename Archive>
+		void load(Archive& ar) {
+			ar(
+				sv,
+				signal_type,
+				code_phase,
+				code_frequency,
+				base_code_frequency,
+				carrier_phase,
+				carrier_frequency,
+				intermediate_frequency,
+				sampling_rate,
+				phases,
+				frequencies,
+				code_phases,
+				code_frequencies,
+				phase_residuals,
+				code_residuals,
+				translated_signal,
+				early,
+				prompt,
+				late,
+				previous_prompt,
+				carrier_phase_error,
+				code_nco,
+				code_error
+			);
 		}
 	};
 }

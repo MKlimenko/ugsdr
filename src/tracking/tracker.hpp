@@ -195,13 +195,19 @@ namespace ugsdr {
 						TrackSingleSatellite(current_tracking_parameters, current_signal_ms);
 					});
 			}
+		}
 
+		void Plot() const {
 			for (auto& el : tracking_parameters) {
 				//ugsdr::Add(L"Early tracking result", el.early);
 				ugsdr::Add(L"Prompt tracking result", el.prompt);
 				//ugsdr::Add(L"Late tracking result", el.late);
 				//return;
-			}
+			}			
+		}
+
+		const auto& GetTrackingParameters() const {
+			return tracking_parameters;
 		}
 	};
 }

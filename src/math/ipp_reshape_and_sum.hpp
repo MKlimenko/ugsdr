@@ -26,7 +26,7 @@ namespace ugsdr {
 				add_wrapper(reinterpret_cast<const TypeToCast*>(src_dst.data()) + block_size * (i + 1), 
 					reinterpret_cast<TypeToCast*>(src_dst.data()), static_cast<int>(block_size));
 			
-			src_dst.resize(block_size);
+			CheckResize(src_dst, block_size);
 		}
 
 	protected:

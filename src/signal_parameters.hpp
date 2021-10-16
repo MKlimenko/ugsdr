@@ -8,6 +8,7 @@
 #include "boost/iostreams/device/mapped_file.hpp"
 #include "ipp.h"
 
+#include "common.hpp"
 #include "../external/plusifier/Plusifier.hpp"
 
 namespace ugsdr {
@@ -63,12 +64,6 @@ namespace ugsdr {
 			return convert_wrapper;
 		}
 
-		template <typename T>
-		void CheckResize(T& vec, std::size_t samples) {
-			if (vec.size() != samples)
-				vec.resize(samples);
-		}
-
 		void GetPartialSignalNt1065(int bit_shift, std::size_t length_samples, std::size_t samples_offset, OutputVectorType& dst) {
 			static thread_local std::vector<std::int8_t> unpacked_data;
 			CheckResize(unpacked_data, length_samples);
@@ -95,9 +90,8 @@ namespace ugsdr {
 			case FileType::Iq_8_plus_8: {
 				if constexpr (!std::is_same_v<std::int8_t, UnderlyingType>) {
 					auto ptr_start = signal_file.data() + samples_offset * sizeof(std::complex<std::int8_t>);
-					if (dst.size() != length_samples)
-						dst.resize(length_samples);
-					dst.resize(length_samples);
+					CheckResize(dst, length_samples);
+					
 					auto convert_wrapper = GetConvertWrapper();
 					convert_wrapper(reinterpret_cast<const int8_t*>(ptr_start), reinterpret_cast<UnderlyingType*>(dst.data()), static_cast<int>(dst.size()) * 2);
 				}
