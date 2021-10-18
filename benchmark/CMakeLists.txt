@@ -1,20 +1,14 @@
 cmake_minimum_required (VERSION 3.19)
 
-include(FetchContent)
-FetchContent_Declare(googlebenchmark
-                     GIT_REPOSITORY https://github.com/google/benchmark
-        )
-FetchContent_MakeAvailable(googlebenchmark)
-
 project(ugsdr_benchmark)
 add_executable (${PROJECT_NAME} 
 							benchmark.cpp	
 )
-
 find_package(OpenMP)
 find_package(ArrayFire REQUIRED)
 find_package(Boost REQUIRED system iostreams)
 find_package(gcem REQUIRED)
+find_package(benchmark REQUIRED)
 
 if (OPENMP_FOUND)
     set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
