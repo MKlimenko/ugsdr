@@ -16,7 +16,9 @@ namespace ugsdr {
 			auto dot_product = ArrayProxy(af::dot(signal, code));
 
 			std::complex<float> dst{};
-			static_cast<af::array>(dot_product).host(&dst);
+			auto dst_vec = static_cast<std::vector<std::complex<float>>>(dot_product);
+			dst = dst_vec.at(0);
+			
 			return dst;
 		}
 	};

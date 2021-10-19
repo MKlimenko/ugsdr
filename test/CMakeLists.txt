@@ -42,6 +42,5 @@ target_link_libraries(${PROJECT_NAME} OpenMP::OpenMP_CXX ArrayFire::afcuda gcem 
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 20)
 set_property(TARGET ${PROJECT_NAME} PROPERTY ISPC_INSTRUCTION_SETS avx2)
 
-
 enable_testing()
 add_test(NAME ${PROJECT_NAME} COMMAND ${PROJECT_NAME})

@@ -157,16 +157,64 @@ namespace ugsdr {
 				}
 				break;
 			case f64:
-			case b8:
-			case s32:
-			case u32:
-			case u8:
-			case s64:
-			case u64:
-			case s16:
-			case u16:
-			case f16:
+				if (std::is_same_v<T, double>) {
+					optional_dst.resize(array.elements());
+					array.host(optional_dst.data());
+					return std::nullopt;
+				}
+				break;
 			case f32:
+				if (std::is_same_v<T, float>) {
+					optional_dst.resize(array.elements());
+					array.host(optional_dst.data());
+					return std::nullopt;
+				}
+				break;
+			case s32:
+				if (std::is_same_v<T, std::int32_t>) {
+					optional_dst.resize(array.elements());
+					array.host(optional_dst.data());
+					return std::nullopt;
+				}
+				break;
+			case u32:
+				if (std::is_same_v<T, std::uint32_t>) {
+					optional_dst.resize(array.elements());
+					array.host(optional_dst.data());
+					return std::nullopt;
+				}
+				break;
+			case s64:
+				if (std::is_same_v<T, std::int64_t>) {
+					optional_dst.resize(array.elements());
+					array.host(optional_dst.data());
+					return std::nullopt;
+				}
+				break;
+			case u64:
+				if (std::is_same_v<T, std::uint64_t>) {
+					optional_dst.resize(array.elements());
+					array.host(optional_dst.data());
+					return std::nullopt;
+				}
+				break;
+			case s16:
+				if (std::is_same_v<T, std::int16_t>) {
+					optional_dst.resize(array.elements());
+					array.host(optional_dst.data());
+					return std::nullopt;
+				}
+				break;
+			case u16:
+				if (std::is_same_v<T, std::uint16_t>) {
+					optional_dst.resize(array.elements());
+					array.host(optional_dst.data());
+					return std::nullopt;
+				}
+				break;
+			case b8:
+			case u8:
+			case f16:
 			default:
 				break;
 			}
