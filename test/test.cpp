@@ -3,9 +3,13 @@
 #include "../src/correlator/af_correlator.hpp"
 #include "../src/correlator/ipp_correlator.hpp"
 #include "../src/prn_codes/GpsL1Ca.hpp"
+#include "../src/prn_codes/GlonassOf.hpp"
 
 #include "../src/helpers/af_array_proxy.hpp"
 #include "../src/helpers/is_complex.hpp"
+
+#include "../src/matched_filter/ipp_matched_filter.hpp"
+#include "../src/matched_filter/af_matched_filter.hpp"
 
 #include <type_traits>
 
@@ -118,8 +122,30 @@ namespace HelpersTests {
 	}
 }
 
+namespace MatchedFilterTests {
+	template <typename T>
+	class MatchedFilterTest : public testing::Test {
+	public:
+		using Type = T;
+	};
+	using MatchedFilterTypes = ::testing::Types<
+		ugsdr::SequentialMatchedFilter, ugsdr::IppMatchedFilter, ugsdr::AfMatchedFilter>;
+	TYPED_TEST_SUITE(MatchedFilterTest, MatchedFilterTypes);
 
 
+	TYPED_TEST(MatchedFilterTest, float_matched_filter) {
+		auto matched_filter = TestFixture::Type();
+
+		const auto signal = ugsdr::Codegen<ugsdr::GlonassOf>::Get<std::complex<float>>(0);
+		const auto code = ugsdr::Codegen<ugsdr::GlonassOf>::Get<float>(0);
+
+		auto dst = matched_filter.Filter(signal, code);
+
+		ASSERT_NEAR(dst[0].real(), code.size(), 1e-4);
+		for (std::size_t i = 1; i < dst.size(); ++i)
+			ASSERT_NEAR(dst[i].real(), -1.0, 1e-4);
+	}
+}
 TEST(placeholder_tests, placeholder) {
 	ASSERT_TRUE(true);
 }
