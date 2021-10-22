@@ -14,6 +14,7 @@
 namespace ugsdr {
 	enum class FileType {
 		Iq_8_plus_8 = 0,
+		Iq_16_plus_16,
 		Nt1065GrabberFirst,
 		Nt1065GrabberSecond,
 		Nt1065GrabberThird,
@@ -35,11 +36,18 @@ namespace ugsdr {
 		
 		void OpenFile() {
 			switch (file_type) {
-			case FileType::Iq_8_plus_8: 
+			case FileType::Iq_8_plus_8:
 				signal_file.open(signal_file_path.string());
 				if (!signal_file.is_open())
 					throw std::runtime_error("Unable to open file");
-				number_of_epochs = static_cast<std::size_t>(signal_file.size() / (sampling_rate / 1e3) / 2);
+				number_of_epochs = static_cast<std::size_t>(signal_file.size() / (sampling_rate / 1e3) / sizeof(std::complex<std::int8_t>));
+
+				break;
+			case FileType::Iq_16_plus_16:
+				signal_file.open(signal_file_path.string());
+				if (!signal_file.is_open())
+					throw std::runtime_error("Unable to open file");
+				number_of_epochs = static_cast<std::size_t>(signal_file.size() / (sampling_rate / 1e3) / sizeof(std::complex<std::int16_t>));
 
 				break;
 			case FileType::Nt1065GrabberFirst:
@@ -63,6 +71,10 @@ namespace ugsdr {
 					static thread_local std::vector<Ipp32f> internal_data(len); CheckResize(internal_data, len);
 					ippsConvert_8s32f(src, internal_data.data(), len);
 					ippsConvert_32f64f(internal_data.data(), dst, len);
+				},
+				ippsConvert_16s32f,
+				[](const Ipp16s* src, Ipp64f* dst, int len) {
+					ippsConvert_16s64f_Sfs(src, dst, len, 0);
 				},
 				ippsCopy_8u
 			);
@@ -99,6 +111,16 @@ namespace ugsdr {
 					
 					auto convert_wrapper = GetConvertWrapper();
 					convert_wrapper(reinterpret_cast<const int8_t*>(ptr_start), reinterpret_cast<UnderlyingType*>(dst.data()), static_cast<int>(dst.size()) * 2);
+				}
+				break;
+			}
+			case FileType::Iq_16_plus_16: {
+				if constexpr (!std::is_same_v<std::int8_t, UnderlyingType>) {
+					auto ptr_start = signal_file.data() + samples_offset * sizeof(std::complex<std::int16_t>);
+					CheckResize(dst, length_samples);
+
+					auto convert_wrapper = GetConvertWrapper();
+					convert_wrapper(reinterpret_cast<const int16_t*>(ptr_start), reinterpret_cast<UnderlyingType*>(dst.data()), static_cast<int>(dst.size()) * 2);
 				}
 				break;
 			}
