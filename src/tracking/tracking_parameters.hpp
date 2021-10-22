@@ -1,7 +1,5 @@
 #pragma once
 
-#include "boost/pfr.hpp"
-
 #include "../common.hpp"
 #include "../acquisition/acquisition_result.hpp"
 #include "../dfe/dfe.hpp"
@@ -132,6 +130,12 @@ namespace ugsdr {
 			code_error = new_code_error;
 			code_frequency = base_code_frequency - code_nco;
 			code_phase -= sampling_rate / 1000 / 2 * (code_frequency / base_code_frequency - 1);
+
+			auto samples_per_ms = sampling_rate / 1000;
+
+			while (code_phase < 0)
+				code_phase += samples_per_ms;
+
 			code_phases.push_back(code_phase);
 			code_frequencies.push_back(code_frequency);
 		}

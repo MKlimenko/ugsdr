@@ -1,12 +1,12 @@
 #pragma once
 
 #include "mixer.hpp"
+#include "../common.hpp"
 
 namespace ugsdr {
 	class BatchMixer : public Mixer<BatchMixer> {
 	protected:
 		friend class Mixer<BatchMixer>;
-
 
 		template <typename UnderlyingType>
 		static void Process(std::vector<std::complex<UnderlyingType>>& src_dst, double sampling_freq, double frequency, double phase = 0) {
@@ -23,7 +23,7 @@ namespace ugsdr {
 				});
 
 			std::transform(std::execution::par_unseq, c_exp.begin(), c_exp.end(), src_dst.begin(), src_dst.begin(), [](auto& exp_val, auto& src_val) {
-				return src_val * std::complex<UnderlyingType>(exp_val);
+				return src_val * std::exp(std::complex<UnderlyingType>(0, exp_val.real()));
 				});
 		}
 

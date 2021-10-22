@@ -29,7 +29,7 @@ namespace ugsdr {
 		
 			for (std::size_t i = 0; i < table_size; ++i) {
 				auto value = scale * gcem::sin(i * table_step);
-				table[i] = std::is_integral_v<T> ? static_cast<T>(std::round(value)) : static_cast<T>(value);
+				table[i] = std::is_integral_v<T> ? static_cast<T>(gcem::round(value)) : static_cast<T>(value);
 			}
 			
 			return table;

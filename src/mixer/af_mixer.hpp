@@ -13,16 +13,16 @@ namespace ugsdr {
 		static void Process(std::vector<std::complex<UnderlyingType>>& src_dst, double sampling_freq, double frequency, double phase = 0) {
 			double scale = 1.0;
 			auto signal = ArrayProxy(const_cast<const std::vector<std::complex<UnderlyingType>>&>(src_dst));
-			auto triarg = ArrayProxy(af::iota(src_dst.size()) * frequency / sampling_freq + phase);
+			auto triarg = ArrayProxy(af::iota(src_dst.size()) * frequency / sampling_freq * 2 * std::numbers::pi + phase);
 			auto sine = ArrayProxy(af::sin(triarg));
 			auto cosine = ArrayProxy(af::cos(triarg));
 			sine = ArrayProxy(af::complex(cosine, sine).as(static_cast<af::array>(signal).type()));
 			signal = ArrayProxy(static_cast<af::array>(signal) * sine);
 
-			//auto mixer_output_optional = signal.CopyFromGpu(src_dst);
+			auto mixer_output_optional = signal.CopyFromGpu(src_dst);
 
-			//if (mixer_output_optional.has_value())
-			//	src_dst = std::move(mixer_output_optional.value());
+			if (mixer_output_optional.has_value())
+				src_dst = std::move(mixer_output_optional.value());
 		}
 			
 	public:

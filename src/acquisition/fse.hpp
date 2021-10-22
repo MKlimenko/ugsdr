@@ -37,13 +37,13 @@ namespace ugsdr {
 		constexpr static inline double acquisition_sampling_rate = 3.975e6;
 		//constexpr static inline double acquisition_sampling_rate = 39.75e6;
 
-		using MixerType = Mixer<TableMixer>;
-		using UpsamplerType = Upsampler<SequentialUpsampler>;
-		using MatchedFilterType = MatchedFilter<IppMatchedFilter>;
-		using AbsType = Abs<IppAbs>;
-		using ReshapeAndSumType = ReshapeAndSum<IppReshapeAndSum>;
-		using MaxIndexType = MaxIndex<IppMaxIndex>;
-		using MeanStdDevType = MeanStdDev<IppMeanStdDev>;
+		using MixerType = TableMixer;
+		using UpsamplerType = SequentialUpsampler;
+		using MatchedFilterType = IppMatchedFilter;
+		using AbsType = IppAbs;
+		using ReshapeAndSumType = IppReshapeAndSum;
+		using MaxIndexType = IppMaxIndex;
+		using MeanStdDevType = IppMeanStdDev;
 
 		void InitSatellites() {
 			gps_sv.resize(ugsdr::gps_sv_count);

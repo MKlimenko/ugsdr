@@ -1,4 +1,5 @@
-﻿#include "gtest/gtest.h"
+﻿#define NOMINMAX
+#include "gtest/gtest.h"
 
 #include "../src/correlator/af_correlator.hpp"
 #include "../src/correlator/ipp_correlator.hpp"
@@ -11,6 +12,20 @@
 #include "../src/matched_filter/ipp_matched_filter.hpp"
 #include "../src/matched_filter/af_matched_filter.hpp"
 
+#include "../src/mixer/af_mixer.hpp"
+#include "../src/mixer/batch_mixer.hpp"
+#include "../src/mixer/ipp_mixer.hpp"
+#include "../src/mixer/table_mixer.hpp"
+
+#include "../src/math/ipp_abs.hpp"
+#include "../src/math/ipp_conj.hpp"
+#include "../src/math/af_dft.hpp"
+#include "../src/math/ipp_dft.hpp"
+
+#include "../src/resample/ipp_decimator.hpp"
+#include "../src/resample/ipp_resampler.hpp"
+#include "../src/resample/ipp_upsampler.hpp"
+
 #include <type_traits>
 
 namespace CorrelatorTests {
@@ -21,35 +36,54 @@ namespace CorrelatorTests {
 	};
 	using CorrelatorTypes = ::testing::Types<float, double>;
 	TYPED_TEST_SUITE(CorrelatorTest, CorrelatorTypes);
-	
+
 	TYPED_TEST(CorrelatorTest, sequential_correlator) {
-		const auto signal = ugsdr::Codegen<ugsdr::GpsL1Ca>::Get<std::complex<typename TestFixture::Type>>(0);
 		const auto code = ugsdr::Codegen<ugsdr::GpsL1Ca>::Get<typename TestFixture::Type>(0);
+		const auto signal = std::vector<std::complex<typename TestFixture::Type>>(code.begin(), code.end());
 
 		auto dst = ugsdr::SequentialCorrelator::Correlate(std::span(signal), std::span(code));
 
-		ASSERT_FLOAT_EQ(dst.real(), code.size());
-		ASSERT_FLOAT_EQ(dst.imag(), 0);
+		if (std::is_floating_point_v<typename TestFixture::Type>) {
+			ASSERT_DOUBLE_EQ(dst.real(), static_cast<typename TestFixture::Type>(code.size()));
+			ASSERT_DOUBLE_EQ(dst.imag(), 0);
+		}
+		else {
+			ASSERT_EQ(dst.real(), code.size());
+			ASSERT_EQ(dst.imag(), 0);
+		}
 	}
 
 	TYPED_TEST(CorrelatorTest, ipp_correlator) {
-		const auto signal = ugsdr::Codegen<ugsdr::GpsL1Ca>::Get<std::complex<typename TestFixture::Type>>(0);
 		const auto code = ugsdr::Codegen<ugsdr::GpsL1Ca>::Get<typename TestFixture::Type>(0);
+		const auto signal = std::vector<std::complex<typename TestFixture::Type>>(code.begin(), code.end());
 
 		auto dst = ugsdr::IppCorrelator::Correlate(std::span(signal), std::span(code));
 
-		ASSERT_FLOAT_EQ(dst.real(), code.size());
-		ASSERT_FLOAT_EQ(dst.imag(), 0);
+		if (std::is_floating_point_v<typename TestFixture::Type>) {
+			ASSERT_DOUBLE_EQ(dst.real(), static_cast<typename TestFixture::Type>(code.size()));
+			ASSERT_DOUBLE_EQ(dst.imag(), 0);
+		}
+		else {
+			ASSERT_EQ(dst.real(), code.size());
+			ASSERT_EQ(dst.imag(), 0);
+		}
 	}
 
 	TYPED_TEST(CorrelatorTest, af_correlator) {
-		const auto signal = ugsdr::Codegen<ugsdr::GpsL1Ca>::Get<std::complex<typename TestFixture::Type>>(0);
+		const auto signal_real = ugsdr::Codegen<ugsdr::GpsL1Ca>::Get<typename TestFixture::Type>(0);
+		const auto signal = std::vector<std::complex<typename TestFixture::Type>>(signal_real.begin(), signal_real.end());
 		const auto code = signal;
 
 		auto dst = ugsdr::AfCorrelator::Correlate(ugsdr::ArrayProxy(signal), ugsdr::ArrayProxy(code));
 
-		ASSERT_FLOAT_EQ(dst.real(), code.size());
-		ASSERT_FLOAT_EQ(dst.imag(), 0);
+		if (std::is_floating_point_v<typename TestFixture::Type>) {
+			ASSERT_DOUBLE_EQ(dst.real(), static_cast<typename TestFixture::Type>(code.size()));
+			ASSERT_DOUBLE_EQ(dst.imag(), 0);
+		}
+		else {
+			ASSERT_EQ(dst.real(), code.size());
+			ASSERT_EQ(dst.imag(), 0);
+		}
 	}
 }
 
@@ -116,9 +150,52 @@ namespace HelpersTests {
 		TYPED_TEST(IsComplexTest, underlying_types) {
 			auto same_type = std::is_same_v<ugsdr::underlying_t<std::complex<typename TestFixture::Type>>,
 				typename TestFixture::Type>;
-			
+
 			ASSERT_TRUE(same_type);
 		}
+	}
+}
+
+namespace MixerTests {
+	template <typename T>
+	class MixerTest : public testing::Test {
+	public:
+		using Type = T;
+	};
+	using MixerTypes = ::testing::Types</*int, */ float, double>;
+	TYPED_TEST_SUITE(MixerTest, MixerTypes);
+
+	template <typename MixerType, typename T> 
+	void TestMixer(double precision = 1e-12) {
+		auto mixer = MixerType(1e6, 1e6 / 2, 0);
+
+		auto signal = std::vector<std::complex<T>>(1000, 1);
+		mixer.Translate(signal);
+
+		for (std::size_t i = 0; i < signal.size(); ++i) {
+			ASSERT_DOUBLE_EQ(signal[i].real(), 1.0 + -2.0 * (i & 1));
+			ASSERT_NEAR(signal[i].imag(), 0, precision);
+		}
+	}
+
+	TYPED_TEST(MixerTest, sequential_mixer) {
+		TestMixer<ugsdr::SequentialMixer, typename TestFixture::Type>();
+	}
+
+	TYPED_TEST(MixerTest, batch_mixer) {
+		TestMixer<ugsdr::BatchMixer, typename TestFixture::Type>(1e-3);
+	}
+
+	TYPED_TEST(MixerTest, ipp_mixer) {
+		TestMixer<ugsdr::IppMixer, typename TestFixture::Type>();
+	}
+
+	TYPED_TEST(MixerTest, table_mixer) {
+		TestMixer<ugsdr::TableMixer, typename TestFixture::Type>();
+	}
+
+	TYPED_TEST(MixerTest, af_mixer) {
+		TestMixer<ugsdr::AfMixer, typename TestFixture::Type>(1e-3);
 	}
 }
 
@@ -132,20 +209,189 @@ namespace MatchedFilterTests {
 		ugsdr::SequentialMatchedFilter, ugsdr::IppMatchedFilter, ugsdr::AfMatchedFilter>;
 	TYPED_TEST_SUITE(MatchedFilterTest, MatchedFilterTypes);
 
-
 	TYPED_TEST(MatchedFilterTest, float_matched_filter) {
-		auto matched_filter = TestFixture::Type();
-
 		const auto signal = ugsdr::Codegen<ugsdr::GlonassOf>::Get<std::complex<float>>(0);
 		const auto code = ugsdr::Codegen<ugsdr::GlonassOf>::Get<float>(0);
 
-		auto dst = matched_filter.Filter(signal, code);
+		auto dst = TestFixture::Type::Filter(signal, code);
 
 		ASSERT_NEAR(dst[0].real(), code.size(), 1e-4);
 		for (std::size_t i = 1; i < dst.size(); ++i)
 			ASSERT_NEAR(dst[i].real(), -1.0, 1e-4);
 	}
 }
-TEST(placeholder_tests, placeholder) {
+
+namespace MathTests {
+	namespace Abs {
+		template <typename T>
+		class AbsTest : public testing::Test {
+		public:
+			using Type = T;
+		};
+		using AbsTypes = ::testing::Types<float, double>;
+		TYPED_TEST_SUITE(AbsTest, AbsTypes);
+
+		TYPED_TEST(AbsTest, ipp_abs) {
+			const std::vector<std::complex<typename TestFixture::Type>> data(1000, {1, -1});
+
+			auto result = ugsdr::IppAbs::Transform(data);
+
+			ASSERT_EQ(result.size(), data.size());
+			for (auto& el : result)
+				ASSERT_NEAR(el, std::sqrt(2.0), 1e-2);
+		}
+	}
+	namespace Conj {
+		template <typename T>
+		class ConjTest : public testing::Test {
+		public:
+			using Type = T;
+		};
+		using ConjTypes = ::testing::Types<float, double>;
+		TYPED_TEST_SUITE(ConjTest, ConjTypes);
+
+		TYPED_TEST(ConjTest, ipp_conj) {
+			const std::vector<std::complex<typename TestFixture::Type>> data(1000, { 1, 1 });
+
+			auto result = ugsdr::IppConj::Transform(data);
+
+			ASSERT_EQ(result.size(), data.size());
+			for (auto& el : result) {
+				ASSERT_DOUBLE_EQ(el.real(), 1);
+				ASSERT_DOUBLE_EQ(el.imag(), -1);
+			}
+		}
+	}
+	namespace Dft {
+		template <typename T>
+		class DftTest : public testing::Test {
+		public:
+			using Type = T;
+		};
+		using DftTypes = ::testing::Types<float/*, double*/>;
+		TYPED_TEST_SUITE(DftTest, DftTypes);
+
+		template <typename T>
+		auto GetVector() {
+			std::vector<std::complex<T>> vec(1000);
+			for (std::size_t i = 0; i < vec.size(); ++i)
+				vec[i] = std::exp(std::complex<T>(0, 2 * std::numbers::pi * i * 0.1));
+
+			return vec;
+		}
+
+		template <typename DftType, typename T>
+		void TestPeak() {
+			const auto data = GetVector<T>();
+			auto result = static_cast<std::vector<std::complex<T>>>(DftType::Transform(data));
+
+			ASSERT_EQ(result.size(), data.size());
+			ASSERT_NEAR(result[result.size() / 10].real(), result.size(), 1e-4);
+			ASSERT_NEAR(result[result.size() / 10].imag(), 0, 1e-4);
+			ASSERT_NEAR(std::abs(result[result.size() / 10]), result.size(), 1e-4);
+
+		}
+
+		TYPED_TEST(DftTest, ipp_dft) {
+			TestPeak<ugsdr::IppDft, typename TestFixture::Type>();
+		}
+
+		TYPED_TEST(DftTest, af_dft) {
+			TestPeak<ugsdr::AfDft, typename TestFixture::Type>();
+		}
+	}
+}
+
+namespace ResampleTests {
+	template <typename T>
+	class ResampleTest : public testing::Test {
+	public:
+		using Type = T;
+	};
+	using ResampleTypes = ::testing::Types<float, double, std::complex<float>, std::complex<double>>;
+	TYPED_TEST_SUITE(ResampleTest, ResampleTypes);
+
+	template <typename T>
+	auto GetSlope() {
+		std::vector<T> vec(1000);
+		for (std::size_t i = 0; i < vec.size(); ++i)
+			vec[i] = i;
+		return vec;
+	}
+
+	template <typename DecimatorImpl, typename T>
+	void TestDecimator() {
+		const auto data = GetSlope<T>();
+
+		auto decimation_ratio = 10;
+		auto result = DecimatorImpl::Transform(data, decimation_ratio);
+
+		for (std::size_t i = 0; i < result.size(); ++i) {
+			if constexpr (ugsdr::is_complex_v<T>) {
+				ASSERT_DOUBLE_EQ(result[i].real(), data[i * decimation_ratio].real());
+				ASSERT_DOUBLE_EQ(result[i].imag(), data[i * decimation_ratio].imag());
+			}
+			else
+				ASSERT_DOUBLE_EQ(result[i], data[i * decimation_ratio]);
+		}
+	}
+
+	template <typename UpsamplerImpl, typename T>
+	void TestUpsampler() {
+		const auto data = GetSlope<T>();
+
+		auto up_ratio = 10;
+		auto result = UpsamplerImpl::Transform(data, data.size() * up_ratio);
+
+		for (std::size_t i = 0; i < data.size(); ++i) {
+			for (std::size_t j = 0; j < up_ratio; ++j) {
+				if constexpr (ugsdr::is_complex_v<T>) {
+					ASSERT_NEAR(result[i * up_ratio + j].real(), data[i].real(), 1e-4);
+					ASSERT_NEAR(result[i * up_ratio + j].imag(), data[i].imag(), 1e-4);
+				}
+				else
+					ASSERT_NEAR(result[i * up_ratio + j], data[i], 1e-4);
+			}
+		}
+	}
+
+	TYPED_TEST(ResampleTest, sequential_decimator) {
+		TestDecimator<ugsdr::SequentialDecimator, typename TestFixture::Type>();
+	}
+
+	TYPED_TEST(ResampleTest, ipp_decimator) {
+		TestDecimator<ugsdr::IppDecimator, typename TestFixture::Type>();
+	}
+
+	TYPED_TEST(ResampleTest, ipp_accumulator) {
+		const auto data = GetSlope<typename TestFixture::Type>();
+
+		auto decimation_ratio = 10;
+		auto result = ugsdr::IppAccumulator::Transform(data, decimation_ratio);
+
+		for (std::size_t i = 0; i < result.size(); ++i) {
+			auto val = (data[i * decimation_ratio] + data[(i + 1) * decimation_ratio - 1]) / 
+				static_cast<ugsdr::underlying_t<typename TestFixture::Type>>(2.0);
+			if constexpr (ugsdr::is_complex_v<typename TestFixture::Type>) {
+				ASSERT_NEAR(result[i].real(), val.real(), 1e-4);
+				ASSERT_NEAR(result[i].imag(), val.imag(), 1e-4);
+			}
+			else
+				ASSERT_NEAR(result[i], val, 1e-4);
+		}
+	}
+
+	TYPED_TEST(ResampleTest, sequential_upsampler) {
+		TestUpsampler<ugsdr::SequentialUpsampler, typename TestFixture::Type>();
+	}
+
+	TYPED_TEST(ResampleTest, ipp_upsampler) {
+		TestUpsampler<ugsdr::IppUpsampler, typename TestFixture::Type>();
+	}
+}
+	
+
+TEST(
+placeholder_tests, placeholder) {
 	ASSERT_TRUE(true);
 }

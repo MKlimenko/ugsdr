@@ -21,7 +21,7 @@ namespace ugsdr {
 		static auto GetBufferSize() {
 			int buffer_size = 0;
 			ippsFIRGenGetBufferSize(taps_len, &buffer_size);
-			return buffer_size;
+			return static_cast<std::size_t>(buffer_size);
 		}
 
 		template <typename TypeToCast>
