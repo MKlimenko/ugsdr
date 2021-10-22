@@ -208,30 +208,32 @@ namespace basic_tests {
 		public:
 			using Type = T;
 		};
-		using MatchedFilterTypes = ::testing::Types<
-			ugsdr::SequentialMatchedFilter, ugsdr::IppMatchedFilter, ugsdr::AfMatchedFilter>;
+		using MatchedFilterTypes = ::testing::Types<float, double>;
 		TYPED_TEST_SUITE(MatchedFilterTest, MatchedFilterTypes);
 
-		TYPED_TEST(MatchedFilterTest, float_matched_filter) {
-			const auto signal = ugsdr::Codegen<ugsdr::GlonassOf>::Get<std::complex<float>>(0);
-			const auto code = ugsdr::Codegen<ugsdr::GlonassOf>::Get<float>(0);
+		template <typename FilterType, typename T>
+		void TestMatched() {
+			const auto signal = ugsdr::Codegen<ugsdr::GlonassOf>::Get<std::complex<T>>(0);
+			const auto code = ugsdr::Codegen<ugsdr::GlonassOf>::Get<T>(0);
 
-			auto dst = TestFixture::Type::Filter(signal, code);
+			auto dst = FilterType::Filter(signal, code);
 
 			ASSERT_NEAR(dst[0].real(), code.size(), 1e-4);
 			for (std::size_t i = 1; i < dst.size(); ++i)
 				ASSERT_NEAR(dst[i].real(), -1.0, 1e-4);
+			
+		}
+		
+		TYPED_TEST(MatchedFilterTest, sequential_matched_filter) {
+			TestMatched<ugsdr::SequentialMatchedFilter, typename TestFixture::Type>();
 		}
 
-		TYPED_TEST(MatchedFilterTest, double_matched_filter) {
-			const auto signal = ugsdr::Codegen<ugsdr::GlonassOf>::Get<std::complex<double>>(0);
-			const auto code = ugsdr::Codegen<ugsdr::GlonassOf>::Get<double>(0);
+		TYPED_TEST(MatchedFilterTest, ipp_matched_filter) {
+			TestMatched<ugsdr::IppMatchedFilter, typename TestFixture::Type>();
+		}
 
-			auto dst = TestFixture::Type::Filter(signal, code);
-
-			ASSERT_NEAR(dst[0].real(), code.size(), 1e-4);
-			for (std::size_t i = 1; i < dst.size(); ++i)
-				ASSERT_NEAR(dst[i].real(), -1.0, 1e-4);
+		TYPED_TEST(MatchedFilterTest, af_matched_filter) {
+			TestMatched<ugsdr::AfMatchedFilter, typename TestFixture::Type>();
 		}
 	}
 
