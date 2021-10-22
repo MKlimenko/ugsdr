@@ -33,9 +33,7 @@ namespace ugsdr {
 		std::vector<Sv> gps_sv;
 		std::vector<Sv> gln_sv;
 		constexpr static inline double peak_threshold = 3.5;
-		//constexpr static inline double acquisition_sampling_rate = 2.65e6;
-		constexpr static inline double acquisition_sampling_rate = 3.975e6;
-		//constexpr static inline double acquisition_sampling_rate = 39.75e6;
+		constexpr static inline double acquisition_sampling_rate = 4e6;
 
 		using MixerType = TableMixer;
 		using UpsamplerType = SequentialUpsampler;
@@ -68,8 +66,8 @@ namespace ugsdr {
 		}
 
 		template <typename T, bool coherent = true>
-		auto GetOneMsPeak(const std::vector<std::complex<T>>& signal) {
-			const auto samples_per_ms = static_cast<std::size_t>(acquisition_sampling_rate / 1e3);
+		auto GetOneMsPeak(const std::vector<std::complex<T>>& signal, double new_sampling_rate) {
+			const auto samples_per_ms = static_cast<std::size_t>(new_sampling_rate / 1e3);
 			
 			if constexpr (coherent) {
 				const auto abs_value = AbsType::Transform(signal);
@@ -83,19 +81,40 @@ namespace ugsdr {
 			}
 		}
 
+		auto AdjustSamplingRate(double signal_sampling_rate) const {
+			auto new_sampling_rate = signal_sampling_rate;
+			auto delta = [](auto lhs, auto rhs) {
+				return std::abs(lhs - rhs);
+			};
+
+			for (std::size_t i = 1; i < static_cast<std::size_t>(2 * signal_sampling_rate / acquisition_sampling_rate); ++i) {
+				auto fs_candidate = signal_sampling_rate / i;
+				if (std::fmod(fs_candidate * 1e3, 1) != 0.0)
+					continue;
+				
+				if (delta(acquisition_sampling_rate, fs_candidate) > delta(acquisition_sampling_rate, new_sampling_rate))
+					return new_sampling_rate;
+
+				new_sampling_rate = fs_candidate;
+			}
+			
+			return signal_sampling_rate;
+		}
+
 		void ProcessBpsk(const std::vector<std::complex<UnderlyingType>>& signal, const std::vector<UnderlyingType>& code,
-			Sv sv, double signal_sampling_rate, double intermediate_frequency, std::vector<AcquisitionResult<UnderlyingType>>& dst) {
+			Sv sv, double signal_sampling_rate, double new_sampling_rate, double intermediate_frequency, 
+			std::vector<AcquisitionResult<UnderlyingType>>& dst) {
 			AcquisitionResult<UnderlyingType> tmp, max_result;
-			auto ratio = signal_sampling_rate / acquisition_sampling_rate;
+			auto ratio = signal_sampling_rate / new_sampling_rate;
 
 			auto code_spectrum = MatchedFilterType::PrepareCodeSpectrum(code);
 			
 			for (double doppler_frequency = -doppler_range;
 						doppler_frequency <= doppler_range;
 						doppler_frequency += doppler_step) {
-				const auto translated_signal = MixerType::Translate(signal, acquisition_sampling_rate, -doppler_frequency);
+				const auto translated_signal = MixerType::Translate(signal, new_sampling_rate, -doppler_frequency);
 				auto matched_output = MatchedFilterType::FilterOptimized(translated_signal, code_spectrum);
-				auto peak_one_ms = GetOneMsPeak(matched_output);
+				auto peak_one_ms = GetOneMsPeak(matched_output, new_sampling_rate);
 
 				std::reverse(std::execution::par_unseq, peak_one_ms.begin(), peak_one_ms.end());
 				
@@ -125,14 +144,15 @@ namespace ugsdr {
 			auto intermediate_frequency = -(central_frequency - 1575.42e6);
 
 			const auto translated_signal = MixerType::Translate(signal, signal_sampling_rate, -intermediate_frequency);
-			auto downsampled_signal = Resampler<IppResampler>::Transform(translated_signal, static_cast<std::size_t>(acquisition_sampling_rate),
+			auto new_sampling_rate = AdjustSamplingRate(signal_sampling_rate);
+			auto downsampled_signal = Resampler<IppResampler>::Transform(translated_signal, static_cast<std::size_t>(new_sampling_rate),
 				static_cast<std::size_t>(signal_sampling_rate));
 
 			std::for_each(std::execution::par_unseq, gps_sv.begin(), gps_sv.end(), [&](auto sv) {
 				const auto code = UpsamplerType::Transform(RepeatCodeNTimes(PrnGenerator<System::Gps>::Get<UnderlyingType>(static_cast<std::int32_t>(sv)), ms_to_process),
-					static_cast<std::size_t>(ms_to_process * acquisition_sampling_rate / 1e3));
+					static_cast<std::size_t>(ms_to_process * new_sampling_rate / 1e3));
 
-				ProcessBpsk(downsampled_signal, code, sv, signal_sampling_rate, intermediate_frequency, dst);
+				ProcessBpsk(downsampled_signal, code, sv, signal_sampling_rate, new_sampling_rate, intermediate_frequency, dst);
 			});
 			
 		}
@@ -141,17 +161,18 @@ namespace ugsdr {
 			const auto& signal = epoch.GetSubband(Signal::GlonassCivilFdma_L1);
 			auto signal_sampling_rate = digital_frontend.GetSamplingRate(Signal::GlonassCivilFdma_L1);
 			auto central_frequency = digital_frontend.GetCentralFrequency(Signal::GlonassCivilFdma_L1);
+			auto new_sampling_rate = AdjustSamplingRate(signal_sampling_rate);
 
 			const auto code = UpsamplerType::Transform(RepeatCodeNTimes(PrnGenerator<System::Glonass>::Get<UnderlyingType>(0), ms_to_process),
-				static_cast<std::size_t>(ms_to_process * acquisition_sampling_rate / 1e3));
+				static_cast<std::size_t>(ms_to_process * new_sampling_rate / 1e3));
 
 			std::for_each(std::execution::par_unseq, gln_sv.begin(), gln_sv.end(), [&](Sv litera_number) {
 				auto intermediate_frequency = -(central_frequency - (1602e6 + static_cast<std::int32_t>(litera_number) * 0.5625e6));
 				const auto translated_signal = MixerType::Translate(signal, signal_sampling_rate, -intermediate_frequency);
-				auto downsampled_signal = Resampler<IppResampler>::Transform(translated_signal, static_cast<std::size_t>(acquisition_sampling_rate),
+				auto downsampled_signal = Resampler<IppResampler>::Transform(translated_signal, static_cast<std::size_t>(new_sampling_rate),
 					static_cast<std::size_t>(signal_sampling_rate));
 
-				ProcessBpsk(downsampled_signal, code, litera_number, signal_sampling_rate, intermediate_frequency, dst);
+				ProcessBpsk(downsampled_signal, code, litera_number, signal_sampling_rate, new_sampling_rate, intermediate_frequency, dst);
 			});
 		}
 		
@@ -168,12 +189,16 @@ namespace ugsdr {
 			dst.reserve(gps_sv.size() + gln_sv.size());
 			auto epoch_data = digital_frontend.GetSeveralEpochs(ms_offset, ms_to_process);
 
-			ugsdr::Add(L"GPS acquisition input signal", epoch_data.GetSubband(Signal::GpsCoarseAcquisition_L1), digital_frontend.GetSamplingRate(Signal::GpsCoarseAcquisition_L1));
-			ugsdr::Add(L"Glonass acquisition input signal", epoch_data.GetSubband(Signal::GlonassCivilFdma_L1), digital_frontend.GetSamplingRate(Signal::GlonassCivilFdma_L1));
-						
-			ProcessGps(epoch_data, dst);
-			ProcessGlonass(epoch_data, dst);
+			if (digital_frontend.HasSignal(Signal::GpsCoarseAcquisition_L1))
+				ugsdr::Add(L"GPS acquisition input signal", epoch_data.GetSubband(Signal::GpsCoarseAcquisition_L1), digital_frontend.GetSamplingRate(Signal::GpsCoarseAcquisition_L1));
+			if (digital_frontend.HasSignal(Signal::GlonassCivilFdma_L1))
+				ugsdr::Add(L"Glonass acquisition input signal", epoch_data.GetSubband(Signal::GlonassCivilFdma_L1), digital_frontend.GetSamplingRate(Signal::GlonassCivilFdma_L1));
 
+			if (digital_frontend.HasSignal(Signal::GpsCoarseAcquisition_L1))
+				ProcessGps(epoch_data, dst);
+			if (digital_frontend.HasSignal(Signal::GlonassCivilFdma_L1))
+				ProcessGlonass(epoch_data, dst);
+		
 			std::sort(dst.begin(), dst.end(), [](auto& lhs, auto& rhs) {
 				return lhs.sv_number < rhs.sv_number;
 			});

@@ -87,6 +87,12 @@ namespace ugsdr {
 		DigitalFrontend(Channel<UnderlyingType> channel, Args ... rem) : DigitalFrontend(rem...) {
 			channels.push_back(channel);
 		}
+
+		bool HasSignal(Signal signal) {
+			auto it = GetChannelIt(signal);
+
+			return it != channels.end() ? true : false;
+		}
 		
 		void GetSeveralEpochs(std::size_t epoch_offset, std::size_t epoch_cnt, SignalEpoch<UnderlyingType>& epoch_data) {
 			std::for_each(std::execution::par_unseq, channels.begin(), channels.end(), [epoch_offset, epoch_cnt, &epoch_data](Channel<UnderlyingType>& channel) {
@@ -127,10 +133,14 @@ namespace ugsdr {
 		std::vector<Channel<UnderlyingType>> channels;
 		std::size_t current_epoch = 0;
 
-		auto GetChannel(Signal signal) const {
-			auto it = std::find_if(channels.begin(), channels.end(), [signal](auto& el) {
+		auto GetChannelIt(Signal signal) const {
+			return std::find_if(channels.begin(), channels.end(), [signal](auto& el) {
 				return el.subband == signal;
-				});
+			});
+		}		
+		
+		auto GetChannel(Signal signal) const {
+			auto it = GetChannelIt(signal);
 
 			if (it == channels.end())
 				throw std::runtime_error(R"(Digital frontend doesn't contain requested signal)");
