@@ -58,9 +58,14 @@ namespace ugsdr {
 
 		static auto GetConvertWrapper() {
 			static auto convert_wrapper = plusifier::FunctionWrapper(
-				ippsConvert_8s32f, ippsCopy_8u
+				ippsConvert_8s32f,
+				[](const Ipp8s* src, Ipp64f* dst, int len) {
+					static thread_local std::vector<Ipp32f> internal_data(len); CheckResize(internal_data, len);
+					ippsConvert_8s32f(src, internal_data.data(), len);
+					ippsConvert_32f64f(internal_data.data(), dst, len);
+				},
+				ippsCopy_8u
 			);
-
 			return convert_wrapper;
 		}
 
@@ -120,6 +125,8 @@ namespace ugsdr {
 
 		void GetSeveralMs(std::size_t ms_offset, std::size_t ms_cnt, OutputVectorType& dst) {
 			const auto samples_per_ms = static_cast<std::size_t>(sampling_rate / 1000);
+			if (ms_cnt + ms_offset > number_of_epochs)
+				throw std::runtime_error("Exceeding epoch requested");
 			GetPartialSignal(samples_per_ms * ms_cnt, samples_per_ms * ms_offset, dst);
 		}
 
