@@ -222,6 +222,17 @@ namespace basic_tests {
 			for (std::size_t i = 1; i < dst.size(); ++i)
 				ASSERT_NEAR(dst[i].real(), -1.0, 1e-4);
 		}
+
+		TYPED_TEST(MatchedFilterTest, double_matched_filter) {
+			const auto signal = ugsdr::Codegen<ugsdr::GlonassOf>::Get<std::complex<double>>(0);
+			const auto code = ugsdr::Codegen<ugsdr::GlonassOf>::Get<double>(0);
+
+			auto dst = TestFixture::Type::Filter(signal, code);
+
+			ASSERT_NEAR(dst[0].real(), code.size(), 1e-4);
+			for (std::size_t i = 1; i < dst.size(); ++i)
+				ASSERT_NEAR(dst[i].real(), -1.0, 1e-4);
+		}
 	}
 
 	namespace MathTests {
@@ -271,7 +282,7 @@ namespace basic_tests {
 			public:
 				using Type = T;
 			};
-			using DftTypes = ::testing::Types<float/*, double*/>;
+			using DftTypes = ::testing::Types<float, double>;
 			TYPED_TEST_SUITE(DftTest, DftTypes);
 
 			template <typename T>
