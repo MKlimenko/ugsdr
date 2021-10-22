@@ -9,12 +9,14 @@
 #include "ipp.h"
 
 #include "common.hpp"
+#include "helpers/ipp_complex_type_converter.hpp"
 #include "../external/plusifier/Plusifier.hpp"
 
 namespace ugsdr {
 	enum class FileType {
 		Iq_8_plus_8 = 0,
 		Iq_16_plus_16,
+		Real_8,
 		Nt1065GrabberFirst,
 		Nt1065GrabberSecond,
 		Nt1065GrabberThird,
@@ -50,6 +52,7 @@ namespace ugsdr {
 				number_of_epochs = static_cast<std::size_t>(signal_file.size() / (sampling_rate / 1e3) / sizeof(std::complex<std::int16_t>));
 
 				break;
+			case FileType::Real_8:
 			case FileType::Nt1065GrabberFirst:
 			case FileType::Nt1065GrabberSecond:
 			case FileType::Nt1065GrabberThird:
@@ -79,6 +82,14 @@ namespace ugsdr {
 				ippsCopy_8u
 			);
 			return convert_wrapper;
+		}
+
+		static auto GetRealToComplexWrapper() {
+			static auto real_to_complex_wrapper = plusifier::FunctionWrapper(
+				ippsRealToCplx_32f,
+				ippsRealToCplx_64f
+			);
+			return real_to_complex_wrapper;
 		}
 
 		void GetPartialSignalNt1065(int bit_shift, std::size_t length_samples, std::size_t samples_offset, OutputVectorType& dst) {
@@ -121,6 +132,21 @@ namespace ugsdr {
 
 					auto convert_wrapper = GetConvertWrapper();
 					convert_wrapper(reinterpret_cast<const int16_t*>(ptr_start), reinterpret_cast<UnderlyingType*>(dst.data()), static_cast<int>(dst.size()) * 2);
+				}
+				break;
+			}
+			case FileType::Real_8: {
+				if constexpr (!std::is_same_v<std::int8_t, UnderlyingType>) {
+					auto ptr_start = signal_file.data() + samples_offset * sizeof(std::int8_t);
+					CheckResize(dst, length_samples);
+
+					static thread_local std::vector<UnderlyingType> local_data(length_samples); CheckResize(local_data, length_samples);
+					auto convert_wrapper = GetConvertWrapper();
+					convert_wrapper(reinterpret_cast<const int8_t*>(ptr_start), local_data.data(), static_cast<int>(dst.size()));
+
+					auto real_to_complex_wrapper = GetRealToComplexWrapper();
+					using IppType = typename IppTypeToComplex<UnderlyingType>::Type;
+					real_to_complex_wrapper(local_data.data(), nullptr, reinterpret_cast<IppType*>(dst.data()), static_cast<int>(length_samples));
 				}
 				break;
 			}

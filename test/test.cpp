@@ -404,11 +404,25 @@ namespace integration_tests {
 		using SignalParametersTypes = ::testing::Types<float, double>;
 		TYPED_TEST_SUITE(SignalParametersTest, SignalParametersTypes);
 
+		template <typename T>
+		auto GetSignalParameters(ugsdr::FileType file_type) {
+			std::map<ugsdr::FileType, ugsdr::SignalParametersBase<T>> map{
+				{ ugsdr::FileType::Iq_8_plus_8 , ugsdr::SignalParametersBase<T>(R"(..\..\..\..\data\iq_8_plus_8.bin)", ugsdr::FileType::Iq_8_plus_8, 1590e6, 79.5e6 / 2) },
+				{ ugsdr::FileType::Iq_16_plus_16 , ugsdr::SignalParametersBase<T>(R"(..\..\..\..\data\iq_16_plus_16.bin)", ugsdr::FileType::Iq_16_plus_16, 1575.42e6, 4e6) },
+				{ ugsdr::FileType::Real_8 , ugsdr::SignalParametersBase<T>(R"(..\..\..\..\data\real_8.bin)", ugsdr::FileType::Real_8, 1575.42e6 + 9.55e6, 38.192e6) },
+				{ ugsdr::FileType::Nt1065GrabberFirst , ugsdr::SignalParametersBase<T>(R"(..\..\..\..\data\nt1065_grabber.bin)", ugsdr::FileType::Nt1065GrabberFirst, 1590e6, 79.5e6) },
+				{ ugsdr::FileType::Nt1065GrabberSecond , ugsdr::SignalParametersBase<T>(R"(..\..\..\..\data\nt1065_grabber.bin)", ugsdr::FileType::Nt1065GrabberSecond, 1590e6, 79.5e6) },
+				{ ugsdr::FileType::Nt1065GrabberThird , ugsdr::SignalParametersBase<T>(R"(..\..\..\..\data\nt1065_grabber.bin)", ugsdr::FileType::Nt1065GrabberThird, 1200e6, 79.5e6) },
+				{ ugsdr::FileType::Nt1065GrabberFourth , ugsdr::SignalParametersBase<T>(R"(..\..\..\..\data\nt1065_grabber.bin)", ugsdr::FileType::Nt1065GrabberFourth, 1200e6, 79.5e6) },
+			};
+
+			return map.at(file_type);
+		}
+		
 		TYPED_TEST(SignalParametersTest, iq_8_plus_8) {
 			auto sampling_rate = 79.5e6 / 2;
 			auto central_frequency = 1590e6;
-			auto signal_params = ugsdr::SignalParametersBase<typename TestFixture::Type>(R"(..\..\..\..\data\iq_8_plus_8.bin)",
-				ugsdr::FileType::Iq_8_plus_8, central_frequency, sampling_rate);
+			auto signal_params = GetSignalParameters<typename TestFixture::Type>(ugsdr::FileType::Iq_8_plus_8);
 
 			ASSERT_EQ(signal_params.GetSamplingRate(), sampling_rate);
 			ASSERT_EQ(signal_params.GetCentralFrequency(), central_frequency);
@@ -427,8 +441,7 @@ namespace integration_tests {
 		TYPED_TEST(SignalParametersTest, iq_16_plus_16) {
 			auto sampling_rate = 4e6;
 			auto central_frequency = 1575.42e6;
-			auto signal_params = ugsdr::SignalParametersBase<typename TestFixture::Type>(R"(..\..\..\..\data\iq_16_plus_16.bin)",
-				ugsdr::FileType::Iq_16_plus_16, central_frequency, sampling_rate);
+			auto signal_params = GetSignalParameters<typename TestFixture::Type>(ugsdr::FileType::Iq_16_plus_16);
 
 			ASSERT_EQ(signal_params.GetSamplingRate(), sampling_rate);
 			ASSERT_EQ(signal_params.GetCentralFrequency(), central_frequency);
@@ -444,12 +457,29 @@ namespace integration_tests {
 			FAIL();
 		}
 
+		TYPED_TEST(SignalParametersTest, real_8) {
+			auto sampling_rate = 38.192e6;
+			auto central_frequency = 1575.42e6 + 9.55e6; 
+			auto signal_params = GetSignalParameters<typename TestFixture::Type>(ugsdr::FileType::Real_8);
+
+			ASSERT_EQ(signal_params.GetSamplingRate(), sampling_rate);
+			ASSERT_EQ(signal_params.GetCentralFrequency(), central_frequency);
+			ASSERT_EQ(signal_params.GetNumberOfEpochs(), 100);
+
+			auto single_ms = signal_params.GetOneMs(0);
+			ASSERT_EQ(single_ms.size(), static_cast<std::size_t>(sampling_rate / 1e3));
+			ASSERT_EQ(single_ms[0], std::complex<typename TestFixture::Type>(-2));
+			try {
+				auto exceeding_epoch = signal_params.GetOneMs(signal_params.GetNumberOfEpochs() + 1);
+			}
+			catch (...) { return; }
+			FAIL();
+		}
+
 		template <typename T>
-		void TestNt1065Grabber(ugsdr::FileType file_type, int value) {
+		void TestNt1065Grabber(ugsdr::FileType file_type, double central_frequency, int value) {
 			auto sampling_rate = 79.5e6;
-			auto central_frequency = 1590e6;
-			auto signal_params = ugsdr::SignalParametersBase<T>(R"(..\..\..\..\data\nt1065_grabber.bin)",
-				file_type, central_frequency, sampling_rate);
+			auto signal_params = GetSignalParameters<T>(file_type);
 
 			ASSERT_EQ(signal_params.GetSamplingRate(), sampling_rate);
 			ASSERT_EQ(signal_params.GetCentralFrequency(), central_frequency);
@@ -466,19 +496,19 @@ namespace integration_tests {
 		}
 
 		TYPED_TEST(SignalParametersTest, nt1065_grabber_first) {
-			TestNt1065Grabber<typename TestFixture::Type>(ugsdr::FileType::Nt1065GrabberFirst, 1);
+			TestNt1065Grabber<typename TestFixture::Type>(ugsdr::FileType::Nt1065GrabberFirst, 1590e6, 1);
 		}
 
 		TYPED_TEST(SignalParametersTest, nt1065_grabber_second) {
-			TestNt1065Grabber<typename TestFixture::Type>(ugsdr::FileType::Nt1065GrabberSecond, 1);
+			TestNt1065Grabber<typename TestFixture::Type>(ugsdr::FileType::Nt1065GrabberSecond, 1590e6, 1);
 		}
 
 		TYPED_TEST(SignalParametersTest, nt1065_grabber_third) {
-			TestNt1065Grabber<typename TestFixture::Type>(ugsdr::FileType::Nt1065GrabberThird, 1);
+			TestNt1065Grabber<typename TestFixture::Type>(ugsdr::FileType::Nt1065GrabberThird, 1200e6, 1);
 		}
 
 		TYPED_TEST(SignalParametersTest, nt1065_grabber_fourth) {
-			TestNt1065Grabber<typename TestFixture::Type>(ugsdr::FileType::Nt1065GrabberFourth, 3);
+			TestNt1065Grabber<typename TestFixture::Type>(ugsdr::FileType::Nt1065GrabberFourth, 1200e6, 3);
 		}
 	}
 }
