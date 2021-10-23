@@ -28,6 +28,9 @@
 
 #include "../src/signal_parameters.hpp"
 
+#include "../src/dfe/dfe.hpp"
+#include "../src/acquisition/fse.hpp"
+
 #include <type_traits>
 
 namespace basic_tests {
@@ -522,6 +525,69 @@ namespace integration_tests {
 
 		TYPED_TEST(SignalParametersTest, nt1065_grabber_fourth) {
 			TestNt1065Grabber<typename TestFixture::Type>(ugsdr::FileType::Nt1065GrabberFourth, 1200e6, 3);
+		}
+	}
+
+	namespace AcquisitionTests {
+		template <typename T>
+		class AcquisitionTest : public testing::Test {
+		public:
+			using Type = T;
+		};
+		using AcquisitionTypes = ::testing::Types<float, double>;
+		TYPED_TEST_SUITE(AcquisitionTest, AcquisitionTypes);
+
+		template <typename T>
+		auto GetSignalParameters(ugsdr::FileType file_type) {
+			std::map<ugsdr::FileType, ugsdr::SignalParametersBase<T>> map{
+				{ ugsdr::FileType::Iq_8_plus_8 , ugsdr::SignalParametersBase<T>(R"(..\..\..\..\data\iq_8_plus_8.bin)", ugsdr::FileType::Iq_8_plus_8, 1590e6, 79.5e6 / 2) },
+				{ ugsdr::FileType::Iq_16_plus_16 , ugsdr::SignalParametersBase<T>(R"(..\..\..\..\data\iq_16_plus_16.bin)", ugsdr::FileType::Iq_16_plus_16, 1575.42e6, 4e6) },
+				{ ugsdr::FileType::Real_8 , ugsdr::SignalParametersBase<T>(R"(..\..\..\..\data\real_8.bin)", ugsdr::FileType::Real_8, 1575.42e6 - 9.55e6, 38.192e6) },
+				{ ugsdr::FileType::Nt1065GrabberFirst , ugsdr::SignalParametersBase<T>(R"(..\..\..\..\data\nt1065_grabber.bin)", ugsdr::FileType::Nt1065GrabberFirst, 1590e6, 79.5e6) },
+				{ ugsdr::FileType::Nt1065GrabberSecond , ugsdr::SignalParametersBase<T>(R"(..\..\..\..\data\nt1065_grabber.bin)", ugsdr::FileType::Nt1065GrabberSecond, 1590e6, 79.5e6) },
+				{ ugsdr::FileType::Nt1065GrabberThird , ugsdr::SignalParametersBase<T>(R"(..\..\..\..\data\nt1065_grabber.bin)", ugsdr::FileType::Nt1065GrabberThird, 1200e6, 79.5e6) },
+				{ ugsdr::FileType::Nt1065GrabberFourth , ugsdr::SignalParametersBase<T>(R"(..\..\..\..\data\nt1065_grabber.bin)", ugsdr::FileType::Nt1065GrabberFourth, 1200e6, 79.5e6) },
+			};
+
+			return map.at(file_type);
+		}
+
+		template <typename T>
+		void TestAcquisition(ugsdr::FileType file_type, ugsdr::Signal signal, double doppler_range = 5e3) {
+			auto signal_parameters = GetSignalParameters<T>(file_type);
+
+			auto digital_frontend = ugsdr::DigitalFrontend(
+				MakeChannel(signal_parameters, signal, signal_parameters.GetSamplingRate())
+			);
+
+			auto fse = ugsdr::FastSearchEngineBase(digital_frontend, doppler_range, 200);
+			auto acquisition_results = fse.Process(false);
+
+			ASSERT_FALSE(acquisition_results.empty());
+		}
+
+		TYPED_TEST(AcquisitionTest, iq_8_plus_8_gps) {
+			TestAcquisition<typename TestFixture::Type>(ugsdr::FileType::Iq_8_plus_8, ugsdr::Signal::GpsCoarseAcquisition_L1);
+		}
+
+		TYPED_TEST(AcquisitionTest, iq_8_plus_8_gln) {
+			TestAcquisition<typename TestFixture::Type>(ugsdr::FileType::Iq_8_plus_8, ugsdr::Signal::GlonassCivilFdma_L1);
+		}
+
+		TYPED_TEST(AcquisitionTest, iq_16_plus_16_gps) {
+			TestAcquisition<typename TestFixture::Type>(ugsdr::FileType::Iq_16_plus_16, ugsdr::Signal::GpsCoarseAcquisition_L1, 15e3);
+		}
+
+		TYPED_TEST(AcquisitionTest, real_8_gps) {
+			TestAcquisition<typename TestFixture::Type>(ugsdr::FileType::Real_8, ugsdr::Signal::GpsCoarseAcquisition_L1);
+		}
+
+		TYPED_TEST(AcquisitionTest, nt1065_grabber_gps) {
+			TestAcquisition<typename TestFixture::Type>(ugsdr::FileType::Nt1065GrabberFirst, ugsdr::Signal::GpsCoarseAcquisition_L1);
+		}
+
+		TYPED_TEST(AcquisitionTest, nt1065_grabber_gln) {
+			TestAcquisition<typename TestFixture::Type>(ugsdr::FileType::Nt1065GrabberSecond, ugsdr::Signal::GlonassCivilFdma_L1);
 		}
 	}
 }

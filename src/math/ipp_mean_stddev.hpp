@@ -12,9 +12,9 @@ namespace ugsdr {
 	private:
 		static auto GetMeanStdDevWrapper() {
 			static auto mean_stddev_wrapper = plusifier::FunctionWrapper(
-				ippsMeanStdDev_32f, ippsMeanStdDev_64f
+				[](const Ipp32f* src, int length, Ipp32f* mean, Ipp32f* std_dev) { return ippsMeanStdDev_32f(src, length, mean, std_dev, IppHintAlgorithm::ippAlgHintNone); },
+				ippsMeanStdDev_64f
 			);
-
 			return mean_stddev_wrapper;
 		}
 
@@ -27,7 +27,7 @@ namespace ugsdr {
 			
 			T mean{};
 			T sigma{};
-			stddev_wrapper(src_dst.data(), static_cast<int>(src_dst.size()), &mean, &sigma, IppHintAlgorithm::ippAlgHintNone);
+			stddev_wrapper(src_dst.data(), static_cast<int>(src_dst.size()), &mean, &sigma);
 			
 			MeanStdDev<IppMeanStdDev>::Result<T> result;
 			result.mean = mean;

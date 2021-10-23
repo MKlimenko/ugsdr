@@ -39,7 +39,7 @@ namespace ugsdr {
 
 		template <typename UnderlyingType>
 		static void Process(std::vector<std::complex<UnderlyingType>>& src_dst, std::size_t decimation_ratio) {
-			using IppType = IppTypeToComplex<UnderlyingType>::Type;
+			using IppType = typename IppTypeToComplex<UnderlyingType>::Type;
 			ProcessImpl<IppType>(src_dst, decimation_ratio);
 		}
 	};

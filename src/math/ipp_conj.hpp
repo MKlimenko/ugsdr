@@ -23,7 +23,7 @@ namespace ugsdr {
 		template <typename UnderlyingType>
 		static void Process(std::vector<std::complex<UnderlyingType>>& src_dst) {
 			auto conj_wrapper = GetConjWrapper();
-			using IppType = IppTypeToComplex<UnderlyingType>::Type;
+			using IppType = typename IppTypeToComplex<UnderlyingType>::Type;
 						
 			conj_wrapper(reinterpret_cast<const IppType*>(src_dst.data()), reinterpret_cast<IppType*>(src_dst.data()), static_cast<int>(src_dst.size()));
 		}

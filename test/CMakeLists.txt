@@ -36,6 +36,10 @@ if (OPENMP_FOUND)
     set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
 endif()
 
+if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+	target_compile_options(${PROJECT_NAME} PUBLIC -ftime-trace)
+endif()
+
 target_include_directories(${PROJECT_NAME} PRIVATE ${ArrayFire_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS})
 target_link_libraries(${PROJECT_NAME} OpenMP::OpenMP_CXX ArrayFire::afcuda gcem ${Boost_LIBRARIES} gtest_main)
 

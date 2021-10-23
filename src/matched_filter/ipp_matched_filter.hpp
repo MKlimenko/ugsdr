@@ -63,7 +63,8 @@ namespace ugsdr {
 		static auto Prepare(const std::vector<T>& impulse_response) {
 			auto ir_spectrum = DftImpl::Transform(impulse_response);
 			auto conj_wrapper = GetConjWrapper();
-			conj_wrapper((Ipp32fc*)ir_spectrum.data(), static_cast<int>(ir_spectrum.size()));
+			using IppType = typename IppTypeToComplex<underlying_t<T>>::Type;
+			conj_wrapper(reinterpret_cast<IppType*>(ir_spectrum.data()), static_cast<int>(ir_spectrum.size()));
 			return ir_spectrum;
 		}
 

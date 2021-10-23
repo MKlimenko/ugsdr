@@ -19,11 +19,12 @@
 
 #include <functional>
 #include <numeric>
+#include <thread>
 #include <vector>
 
 namespace ugsdr {
 	template <typename UnderlyingType>
-	class FastSearchEngineBase {
+	class FastSearchEngineBase final {
 	private:
 		constexpr static std::size_t ms_to_process = 5;
 		
@@ -35,7 +36,9 @@ namespace ugsdr {
 		constexpr static inline double peak_threshold = 3.5;
 		constexpr static inline double acquisition_sampling_rate = 4e6;
 
-		using MixerType = TableMixer;
+		std::mutex m;
+
+		using MixerType = IppMixer;
 		using UpsamplerType = SequentialUpsampler;
 		using MatchedFilterType = IppMatchedFilter;
 		using AbsType = IppAbs;
@@ -89,7 +92,7 @@ namespace ugsdr {
 
 			for (std::size_t i = 1; i < static_cast<std::size_t>(2 * signal_sampling_rate / acquisition_sampling_rate); ++i) {
 				auto fs_candidate = signal_sampling_rate / i;
-				if (std::fmod(fs_candidate * 1e3, 1) != 0.0)
+				if (std::fmod(fs_candidate / 1e3, 1) != 0.0)
 					continue;
 				
 				if (delta(acquisition_sampling_rate, fs_candidate) > delta(acquisition_sampling_rate, new_sampling_rate))
@@ -132,8 +135,10 @@ namespace ugsdr {
 			}
 			max_result.intermediate_frequency = intermediate_frequency;
 			max_result.sv_number = sv;
-			if (max_result.GetSnr() > peak_threshold) 
+			if (max_result.GetSnr() > peak_threshold) {
+				auto lock = std::unique_lock(m);
 				dst.push_back(std::move(max_result));
+			}
 		}
 		
 		void ProcessGps(const SignalEpoch<UnderlyingType>& epoch, std::vector<AcquisitionResult<UnderlyingType>>& dst) {
