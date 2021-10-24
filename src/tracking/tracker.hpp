@@ -13,7 +13,7 @@
 #include "../mixer/ipp_mixer.hpp"
 #include "../mixer/table_mixer.hpp"
 
-#include "../external/plusifier/Plusifier.hpp"
+#include "../../external/plusifier/Plusifier.hpp"
 #include "../helpers/ipp_complex_type_converter.hpp"
 
 #include "boost/timer/progress_display.hpp"

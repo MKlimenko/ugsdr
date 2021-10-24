@@ -17,7 +17,9 @@
 #include "../resample/upsampler.hpp"
 #include "../resample/ipp_resampler.hpp"
 
+#include <cstring>
 #include <functional>
+#include <mutex>
 #include <numeric>
 #include <thread>
 #include <vector>
@@ -27,7 +29,7 @@ namespace ugsdr {
 	class FastSearchEngineBase final {
 	private:
 		constexpr static std::size_t ms_to_process = 5;
-		
+
 		DigitalFrontend<UnderlyingType>& digital_frontend;
 		double doppler_range = 5e3;
 		double doppler_step = 20;
@@ -45,7 +47,7 @@ namespace ugsdr {
 		using ReshapeAndSumType = IppReshapeAndSum;
 		using MaxIndexType = IppMaxIndex;
 		using MeanStdDevType = IppMeanStdDev;
-
+	
 		void InitSatellites() {
 			gps_sv.resize(ugsdr::gps_sv_count);
 			for(std::size_t i = 0; i < gps_sv.size(); ++i) {
