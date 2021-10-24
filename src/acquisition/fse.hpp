@@ -196,11 +196,13 @@ namespace ugsdr {
 			dst.reserve(gps_sv.size() + gln_sv.size());
 			auto epoch_data = digital_frontend.GetSeveralEpochs(ms_offset, ms_to_process);
 
-			if (digital_frontend.HasSignal(Signal::GpsCoarseAcquisition_L1))
-				ugsdr::Add(L"GPS acquisition input signal", epoch_data.GetSubband(Signal::GpsCoarseAcquisition_L1), digital_frontend.GetSamplingRate(Signal::GpsCoarseAcquisition_L1));
-			if (digital_frontend.HasSignal(Signal::GlonassCivilFdma_L1))
-				ugsdr::Add(L"Glonass acquisition input signal", epoch_data.GetSubband(Signal::GlonassCivilFdma_L1), digital_frontend.GetSamplingRate(Signal::GlonassCivilFdma_L1));
-
+			if (plot_results) {
+				if (digital_frontend.HasSignal(Signal::GpsCoarseAcquisition_L1))
+					ugsdr::Add(L"GPS acquisition input signal", epoch_data.GetSubband(Signal::GpsCoarseAcquisition_L1), digital_frontend.GetSamplingRate(Signal::GpsCoarseAcquisition_L1));
+				if (digital_frontend.HasSignal(Signal::GlonassCivilFdma_L1))
+					ugsdr::Add(L"Glonass acquisition input signal", epoch_data.GetSubband(Signal::GlonassCivilFdma_L1), digital_frontend.GetSamplingRate(Signal::GlonassCivilFdma_L1));
+			}
+				
 			if (digital_frontend.HasSignal(Signal::GpsCoarseAcquisition_L1))
 				ProcessGps(epoch_data, dst);
 			if (digital_frontend.HasSignal(Signal::GlonassCivilFdma_L1))
