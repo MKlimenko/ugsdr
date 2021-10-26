@@ -36,7 +36,10 @@ namespace ugsdr {
 	struct Sv {
 		std::int32_t id : 8;
 		System system : 24;
-				
+			
+		constexpr Sv(std::int32_t id_val, System system_val) : id(id_val), system(system_val) {}
+		constexpr Sv() : Sv(0, System::Gps) {}
+
 		operator System() const {
 			return system;
 		}

@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 3.19)
+cmake_minimum_required (VERSION 3.16)
 
 project(ugsdr)
 
@@ -32,6 +32,9 @@ add_executable (${PROJECT_NAME}
 							math/ipp_reshape_and_sum.hpp
 							math/mean_stddev.hpp
 							math/ipp_mean_stddev.hpp
+							measurements/measurement_engine.hpp
+							measurements/observable.hpp
+							measurements/timescale.hpp
 							mixer/af_mixer.hpp
 							mixer/batch_mixer.hpp
 							mixer/ipp_mixer.hpp
@@ -55,10 +58,9 @@ add_executable (${PROJECT_NAME}
 )
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 20)
-set_property(TARGET ${PROJECT_NAME} PROPERTY ISPC_INSTRUCTION_SETS avx2)
 
 target_include_directories(${PROJECT_NAME} PRIVATE ${ArrayFire_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS} ${IPP_INCLUDE_DIRS})
-target_link_libraries(${PROJECT_NAME} PRIVATE OpenMP::OpenMP_CXX ArrayFire::afcuda gcem ${Boost_LIBRARIES} cereal IPP::ippcore)
+target_link_libraries(${PROJECT_NAME} PRIVATE OpenMP::OpenMP_CXX ArrayFire::afcuda gcem ${Boost_LIBRARIES} cereal IPP::ippcore IPP::ippcc IPP::ippch TBB::tbb)
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
 	target_compile_options(${PROJECT_NAME} PUBLIC -ftime-trace)

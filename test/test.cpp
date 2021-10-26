@@ -101,8 +101,7 @@ namespace basic_tests {
 				using Type = T;
 			};
 			using ArrayProxyTypes = ::testing::Types<
-				std::int16_t, std::uint16_t, std::int32_t,
-				std::uint32_t, std::int64_t, std::uint64_t, float, double,
+				std::int16_t, std::int32_t, float, double,
 				std::complex<float>, std::complex<double>>;
 			TYPED_TEST_SUITE(ArrayProxyTest, ArrayProxyTypes);
 
@@ -540,13 +539,13 @@ namespace integration_tests {
 		template <typename T>
 		auto GetSignalParameters(ugsdr::FileType file_type) {
 			std::map<ugsdr::FileType, ugsdr::SignalParametersBase<T>> map{
-				{ ugsdr::FileType::Iq_8_plus_8 , ugsdr::SignalParametersBase<T>(R"(..\..\..\..\data\iq_8_plus_8.bin)", ugsdr::FileType::Iq_8_plus_8, 1590e6, 79.5e6 / 2) },
-				{ ugsdr::FileType::Iq_16_plus_16 , ugsdr::SignalParametersBase<T>(R"(..\..\..\..\data\iq_16_plus_16.bin)", ugsdr::FileType::Iq_16_plus_16, 1575.42e6, 4e6) },
-				{ ugsdr::FileType::Real_8 , ugsdr::SignalParametersBase<T>(R"(..\..\..\..\data\real_8.bin)", ugsdr::FileType::Real_8, 1575.42e6 - 9.55e6, 38.192e6) },
-				{ ugsdr::FileType::Nt1065GrabberFirst , ugsdr::SignalParametersBase<T>(R"(..\..\..\..\data\nt1065_grabber.bin)", ugsdr::FileType::Nt1065GrabberFirst, 1590e6, 79.5e6) },
-				{ ugsdr::FileType::Nt1065GrabberSecond , ugsdr::SignalParametersBase<T>(R"(..\..\..\..\data\nt1065_grabber.bin)", ugsdr::FileType::Nt1065GrabberSecond, 1590e6, 79.5e6) },
-				{ ugsdr::FileType::Nt1065GrabberThird , ugsdr::SignalParametersBase<T>(R"(..\..\..\..\data\nt1065_grabber.bin)", ugsdr::FileType::Nt1065GrabberThird, 1200e6, 79.5e6) },
-				{ ugsdr::FileType::Nt1065GrabberFourth , ugsdr::SignalParametersBase<T>(R"(..\..\..\..\data\nt1065_grabber.bin)", ugsdr::FileType::Nt1065GrabberFourth, 1200e6, 79.5e6) },
+				{ ugsdr::FileType::Iq_8_plus_8 , ugsdr::SignalParametersBase<T>(R"(../../../../data/iq_8_plus_8.bin)", ugsdr::FileType::Iq_8_plus_8, 1590e6, 79.5e6 / 2) },
+				{ ugsdr::FileType::Iq_16_plus_16 , ugsdr::SignalParametersBase<T>(R"(../../../../data/iq_16_plus_16.bin)", ugsdr::FileType::Iq_16_plus_16, 1575.42e6, 4e6) },
+				{ ugsdr::FileType::Real_8 , ugsdr::SignalParametersBase<T>(R"(../../../../data/real_8.bin)", ugsdr::FileType::Real_8, 1575.42e6 - 9.55e6, 38.192e6) },
+				{ ugsdr::FileType::Nt1065GrabberFirst , ugsdr::SignalParametersBase<T>(R"(../../../../data/nt1065_grabber.bin)", ugsdr::FileType::Nt1065GrabberFirst, 1590e6, 79.5e6) },
+				{ ugsdr::FileType::Nt1065GrabberSecond , ugsdr::SignalParametersBase<T>(R"(../../../../data/nt1065_grabber.bin)", ugsdr::FileType::Nt1065GrabberSecond, 1590e6, 79.5e6) },
+				{ ugsdr::FileType::Nt1065GrabberThird , ugsdr::SignalParametersBase<T>(R"(../../../../data/nt1065_grabber.bin)", ugsdr::FileType::Nt1065GrabberThird, 1200e6, 79.5e6) },
+				{ ugsdr::FileType::Nt1065GrabberFourth , ugsdr::SignalParametersBase<T>(R"(../../../../data/nt1065_grabber.bin)", ugsdr::FileType::Nt1065GrabberFourth, 1200e6, 79.5e6) },
 			};
 
 			return map.at(file_type);

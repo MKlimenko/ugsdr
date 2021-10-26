@@ -5,6 +5,7 @@
 #include "serialization/serialization.hpp"
 #include "tracking/tracker.hpp"
 #include "dfe/dfe.hpp"
+#include "measurements/measurement_engine.hpp"
 
 #include <chrono>
 
@@ -14,13 +15,14 @@ void GenerateSignals(CSignalsViewer* sv) {
 #else
 int main() {
 #endif
-	auto signal_parameters = ugsdr::SignalParametersBase<float>(R"(..\..\..\..\data\nt1065_grabber.bin)", ugsdr::FileType::Nt1065GrabberFirst, 1590e6, 79.5e6);
-	auto signal_parameters_gln = ugsdr::SignalParametersBase<float>(R"(..\..\..\..\data\nt1065_grabber.bin)", ugsdr::FileType::Nt1065GrabberSecond, 1590e6, 79.5e6);
-	//auto signal_parameters = ugsdr::SignalParametersBase<float>(R"(..\..\..\..\data\iq.bin)", ugsdr::FileType::Iq_8_plus_8, 1590e6, 79.5e6 / 2);
+	//auto signal_parameters = ugsdr::SignalParametersBase<float>(R"(../../../../data/nt1065_grabber.bin)", ugsdr::FileType::Nt1065GrabberFirst, 1590e6, 79.5e6);
+	//auto signal_parameters_gln = ugsdr::SignalParametersBase<float>(R"(../../../../data/nt1065_grabber.bin)", ugsdr::FileType::Nt1065GrabberSecond, 1590e6, 79.5e6);
+	auto signal_parameters = ugsdr::SignalParametersBase<float>(R"(../../../../data/iq.bin)", ugsdr::FileType::Iq_8_plus_8, 1590e6, 79.5e6 / 2);
+	auto& signal_parameters_gln = signal_parameters;
 
 	auto digital_frontend = ugsdr::DigitalFrontend(
-		MakeChannel(signal_parameters, ugsdr::Signal::GpsCoarseAcquisition_L1, signal_parameters.GetSamplingRate() / 20),
-		MakeChannel(signal_parameters_gln, ugsdr::Signal::GlonassCivilFdma_L1, signal_parameters_gln.GetSamplingRate() / 10)
+		MakeChannel(signal_parameters, ugsdr::Signal::GpsCoarseAcquisition_L1, signal_parameters.GetSamplingRate() / 10),
+		MakeChannel(signal_parameters_gln, ugsdr::Signal::GlonassCivilFdma_L1, signal_parameters_gln.GetSamplingRate() / 3)
 	);
 
 #if 0
@@ -44,12 +46,14 @@ int main() {
 # else
 	std::vector<ugsdr::TrackingParameters<float>> tracking_parameters;
 	ugsdr::Load("tracking_results_cache", tracking_parameters);
+	tracking_parameters.resize(1);
 	for (auto& el : tracking_parameters)
 		ugsdr::Add(L"Prompt tracking result", el.prompt);
-
 #endif
 	
-//	std::exit(0);
+	auto measurement_engine = ugsdr::MeasurementEngine(tracking_parameters);
+
+	//std::exit(0);
 
 #ifndef HAS_SIGNAL_PLOT
 	return 0;

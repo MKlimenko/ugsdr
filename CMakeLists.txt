@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 3.19)
+cmake_minimum_required (VERSION 3.16)
 
 project (ugsdr_root)
 
@@ -8,12 +8,13 @@ set(IPP_INCLUDE_DIRS "$ENV{ONEAPI_ROOT}ipp/latest/include")
 string(REPLACE "\\" "/" IPP_INCLUDE_DIRS ${IPP_INCLUDE_DIRS})
 set(IPP_SHARED FALSE)
 
-find_package(ArrayFire REQUIRED)
+find_package(ArrayFire CONFIG REQUIRED)
 find_package(Boost REQUIRED COMPONENTS system iostreams)
-find_package(cereal REQUIRED)
-find_package(gcem REQUIRED)
-find_package(IPP REQUIRED PATHS ${IPP_PATH})
+find_package(cereal CONFIG REQUIRED)
+find_package(gcem CONFIG REQUIRED)
+find_package(IPP CONFIG REQUIRED PATHS ${IPP_PATH})
 find_package(OpenMP REQUIRED)
+find_package(TBB CONFIG REQUIRED)
 
 if (OPENMP_FOUND)
     set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")

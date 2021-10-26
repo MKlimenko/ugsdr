@@ -3,6 +3,7 @@
 #include "../helpers/is_complex.hpp"
 
 #include <cmath>
+#include <span>
 #include <vector>
 
 namespace ugsdr {
@@ -16,10 +17,15 @@ namespace ugsdr {
 		}
 
 		template <typename T>
-		static auto Transform(const std::vector<T>& src_dst, std::size_t decimation_ratio) {
-			auto dst = src_dst;
+		static auto Transform(std::span<const T> src_dst, std::size_t decimation_ratio) {
+			auto dst = std::vector<T>(src_dst.begin(), src_dst.end());
 			DecimatorImpl::Process(dst, decimation_ratio);
 			return dst;
+		}
+
+		template <typename T>
+		static auto Transform(const std::vector<T>& src_dst, std::size_t decimation_ratio) {
+			return Transform(std::span(src_dst), decimation_ratio);
 		}
 	};
 
