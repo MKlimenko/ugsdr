@@ -28,15 +28,16 @@ namespace ugsdr {
 	template <typename UnderlyingType>
 	class FastSearchEngineBase final {
 	private:
-		constexpr static std::size_t ms_to_process = 5;
+		constexpr static std::size_t ms_to_process = 4;
 
 		DigitalFrontend<UnderlyingType>& digital_frontend;
 		double doppler_range = 5e3;
 		double doppler_step = 20;
 		std::vector<Sv> gps_sv;
 		std::vector<Sv> gln_sv;
+		std::vector<Sv> galileo_sv;
 		constexpr static inline double peak_threshold = 3.5;
-		constexpr static inline double acquisition_sampling_rate = 4e6;
+		constexpr static inline double acquisition_sampling_rate = 79.5e6;
 
 		std::mutex m;
 
@@ -59,6 +60,11 @@ namespace ugsdr {
 				gln_sv[i].system = System::Glonass;
 				gln_sv[i].id = ugsdr::gln_min_frequency + static_cast<std::int32_t>(i);
 			}
+			galileo_sv.resize(galileo_sv_count);
+			for (std::size_t i = 0; i < galileo_sv.size(); ++i) {
+				galileo_sv[i].system = System::Galileo;
+				galileo_sv[i].id = static_cast<std::int32_t>(i);
+			}
 		}
 
 		template <typename T>
@@ -70,19 +76,24 @@ namespace ugsdr {
 			return code;
 		}
 
-		template <typename T, bool coherent = true>
+		template <bool reshape = true, bool coherent = true, typename T = int>
 		auto GetOneMsPeak(const std::vector<std::complex<T>>& signal, double new_sampling_rate) {
 			const auto samples_per_ms = static_cast<std::size_t>(new_sampling_rate / 1e3);
 			
-			if constexpr (coherent) {
-				const auto abs_value = AbsType::Transform(signal);
-				auto one_ms_peak = ReshapeAndSumType::Transform(abs_value, samples_per_ms);
-				return one_ms_peak;
+			if constexpr (!reshape) {
+				return AbsType::Transform(signal);
 			}
 			else {
-				const auto one_ms_peak = ReshapeAndSumType::Transform(signal, samples_per_ms);
-				const auto abs_peak = AbsType::Transform(one_ms_peak);
-				return abs_peak;
+				if constexpr (coherent) {
+					const auto abs_value = AbsType::Transform(signal);
+					auto one_ms_peak = ReshapeAndSumType::Transform(abs_value, samples_per_ms);
+					return one_ms_peak;
+				}
+				else {
+					const auto one_ms_peak = ReshapeAndSumType::Transform(signal, samples_per_ms);
+					const auto abs_peak = AbsType::Transform(one_ms_peak);
+					return abs_peak;
+				}
 			}
 		}
 
@@ -106,6 +117,7 @@ namespace ugsdr {
 			return signal_sampling_rate;
 		}
 
+		template <bool reshape = true>
 		void ProcessBpsk(const std::vector<std::complex<UnderlyingType>>& signal, const std::vector<UnderlyingType>& code,
 			Sv sv, double signal_sampling_rate, double new_sampling_rate, double intermediate_frequency, 
 			std::vector<AcquisitionResult<UnderlyingType>>& dst) {
@@ -119,7 +131,7 @@ namespace ugsdr {
 						doppler_frequency += doppler_step) {
 				const auto translated_signal = MixerType::Translate(signal, new_sampling_rate, -doppler_frequency);
 				auto matched_output = MatchedFilterType::FilterOptimized(translated_signal, code_spectrum);
-				auto peak_one_ms = GetOneMsPeak(matched_output, new_sampling_rate);
+				auto peak_one_ms = GetOneMsPeak<reshape>(matched_output, new_sampling_rate);
 
 				std::reverse(std::execution::par_unseq, peak_one_ms.begin(), peak_one_ms.end());
 				
@@ -137,7 +149,7 @@ namespace ugsdr {
 			}
 			max_result.intermediate_frequency = intermediate_frequency;
 			max_result.sv_number = sv;
-			if (max_result.GetSnr() > peak_threshold) {
+			if (!reshape || max_result.GetSnr() > peak_threshold) {
 				auto lock = std::unique_lock(m);
 				dst.push_back(std::move(max_result));
 			}
@@ -182,6 +194,49 @@ namespace ugsdr {
 				ProcessBpsk(downsampled_signal, code, litera_number, signal_sampling_rate, new_sampling_rate, intermediate_frequency, dst);
 			});
 		}
+
+		void ProcessGalileo(const SignalEpoch<UnderlyingType>& epoch, std::vector<AcquisitionResult<UnderlyingType>>& dst) {
+			const auto& signal = epoch.GetSubband(Signal::Galileo_E1b);
+			auto signal_sampling_rate = digital_frontend.GetSamplingRate(Signal::Galileo_E1b);
+			auto central_frequency = digital_frontend.GetCentralFrequency(Signal::Galileo_E1b);
+
+			auto intermediate_frequency = -(central_frequency - 1575.42e6 + 1.023e6);
+
+			const auto translated_signal = MixerType::Translate(signal, signal_sampling_rate, -intermediate_frequency);
+			auto new_sampling_rate = AdjustSamplingRate(signal_sampling_rate);
+			auto downsampled_signal = Resampler<IppResampler>::Transform(translated_signal, static_cast<std::size_t>(new_sampling_rate),
+				static_cast<std::size_t>(signal_sampling_rate));
+
+			std::for_each(std::execution::par_unseq, galileo_sv.begin(), galileo_sv.end(), [&](auto sv) {
+				auto samples_per_ms = static_cast<std::size_t>(new_sampling_rate / 1e3);
+				
+				const auto ref_code = UpsamplerType::Transform(PrnGenerator<System::Galileo>::Get<UnderlyingType>(static_cast<std::int32_t>(sv)),
+					ms_to_process * samples_per_ms);
+				std::vector<AcquisitionResult<UnderlyingType>> temporary_dst;
+				std::array sign_permutations{
+					std::array<int, 4>{	1,	1,	1,	1	},
+					std::array<int, 4>{	1,	1,	1,	-1	},
+					std::array<int, 4>{	1,	1,	-1,	-1	},
+					std::array<int, 4>{	1,	-1,	-1,	-1	}
+				};
+
+				for (auto& sign_permutation : sign_permutations) {
+					auto code = ref_code;
+					for (std::size_t i = 0; i < sign_permutation.size(); ++i) {
+						std::transform(code.begin() + i * samples_per_ms, code.begin() + (i + 1) * samples_per_ms, code.begin() + i * samples_per_ms,
+							[cur_mul = sign_permutation[i]](auto& val) {return val * cur_mul; });
+					}
+					ProcessBpsk<false>(downsampled_signal, code, sv, signal_sampling_rate, new_sampling_rate, intermediate_frequency, temporary_dst);
+				}
+				auto it = std::max_element(temporary_dst.begin(), temporary_dst.end());
+
+				if (it->GetSnr() > peak_threshold) {
+					auto lock = std::unique_lock(m);
+					dst.push_back(std::move(*it));
+				}
+			});
+
+		}
 		
 	public:
 		FastSearchEngineBase(DigitalFrontend<UnderlyingType>& dfe, double range, double step) :
@@ -201,12 +256,16 @@ namespace ugsdr {
 					ugsdr::Add(L"GPS acquisition input signal", epoch_data.GetSubband(Signal::GpsCoarseAcquisition_L1), digital_frontend.GetSamplingRate(Signal::GpsCoarseAcquisition_L1));
 				if (digital_frontend.HasSignal(Signal::GlonassCivilFdma_L1))
 					ugsdr::Add(L"Glonass acquisition input signal", epoch_data.GetSubband(Signal::GlonassCivilFdma_L1), digital_frontend.GetSamplingRate(Signal::GlonassCivilFdma_L1));
+				if (digital_frontend.HasSignal(Signal::GpsCoarseAcquisition_L1))
+					ugsdr::Add(L"Galileo acquisition input signal", epoch_data.GetSubband(Signal::Galileo_E1b), digital_frontend.GetSamplingRate(Signal::Galileo_E1b));
 			}
 				
 			if (digital_frontend.HasSignal(Signal::GpsCoarseAcquisition_L1))
 				ProcessGps(epoch_data, dst);
 			if (digital_frontend.HasSignal(Signal::GlonassCivilFdma_L1))
 				ProcessGlonass(epoch_data, dst);
+			if (digital_frontend.HasSignal(Signal::Galileo_E1b))
+				ProcessGalileo(epoch_data, dst);
 		
 			std::sort(dst.begin(), dst.end(), [](auto& lhs, auto& rhs) {
 				return lhs.sv_number < rhs.sv_number;
@@ -214,7 +273,7 @@ namespace ugsdr {
 
 			if (plot_results)
 				for (auto& acquisition_result : dst)
-					ugsdr::Add(L"Satellite " + std::to_wstring(static_cast<std::uint32_t>(acquisition_result.sv_number)), acquisition_result.output_peak);
+					ugsdr::Add(L"Satellite " + static_cast<std::wstring>(acquisition_result.sv_number), acquisition_result.output_peak);
 		
 			return dst;
 		}

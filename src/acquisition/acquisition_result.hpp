@@ -29,6 +29,8 @@ namespace ugsdr {
 				return Signal::GpsCoarseAcquisition_L1;
 			case System::Glonass: 
 				return Signal::GlonassCivilFdma_L1;
+			case System::Galileo:
+				return Signal::Galileo_E1b;
 			default:
 				throw std::runtime_error("Unexpected satellite system from acquisition");
 			}
