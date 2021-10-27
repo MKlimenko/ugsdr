@@ -17,9 +17,12 @@ namespace ugsdr {
 
 		template <typename T>
 		static void FixPhase(T& phase) {
-			phase = std::fmod(phase, 2 * std::numbers::pi_v<T>);
+			//phase = std::fmod(phase, 2 * std::numbers::pi_v<T>);
+			//if (phase < 0)
+			//	phase += 2 * std::numbers::pi_v<T>;
+			phase = std::fmod(phase, 2 * 4 * std::atan(1.0));
 			if (phase < 0)
-				phase += 2 * std::numbers::pi_v<T>;
+				phase += 2 * 4 * std::atan(1.0);
 		}
 
 	public:
@@ -56,7 +59,7 @@ namespace ugsdr {
 			auto phase_mod = std::fmod(mixer_frequency / 1000.0, 1.0);
 			if (phase_mod < 0)
 				phase_mod += 1;
-			mixer_phase += 2 * std::numbers::pi_v<double> * phase_mod;
+			mixer_phase += 2 * 4 * std::atan(1.0) * phase_mod;
 		}
 
 		auto GetFrequency() const {

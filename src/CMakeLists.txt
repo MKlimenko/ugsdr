@@ -1,6 +1,7 @@
 cmake_minimum_required (VERSION 3.16)
 
-project(ugsdr)
+project(ugsdr LANGUAGES CUDA CXX)
+set_target_properties(${PROJECT} PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
 
 add_executable (${PROJECT_NAME} 
 							main.cpp
@@ -41,6 +42,8 @@ add_executable (${PROJECT_NAME}
 							mixer/mixer.hpp 
 							mixer/nco.hpp
 							mixer/table_mixer.hpp
+							mixer/cuda_mixer.cu
+							mixer/cuda_mixer.cuh
 							prn_codes/GlonassOf.hpp 
 							prn_codes/GpsL1Ca.hpp  
 							prn_codes/codegen.hpp 
@@ -58,6 +61,10 @@ add_executable (${PROJECT_NAME}
 )
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 20)
+set_property(TARGET ${PROJECT_NAME} PROPERTY CUDA_STANDARD 20)
+set_property(TARGET ${PROJECT_NAME} PROPERTY CMAKE_CXX_STANDARD_REQUIRED true)
+set_property(TARGET ${PROJECT_NAME} PROPERTY CMAKE_CUDA_STANDARD_REQUIRED true)
+set_target_properties(${PROJECT_NAME} PROPERTIES CUDA_ARCHITECTURES "75")
 
 target_include_directories(${PROJECT_NAME} PRIVATE ${ArrayFire_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS} ${IPP_INCLUDE_DIRS})
 target_link_libraries(${PROJECT_NAME} PRIVATE OpenMP::OpenMP_CXX ArrayFire::afcuda gcem ${Boost_LIBRARIES} cereal IPP::ippcore IPP::ippcc IPP::ippch TBB::tbb)
