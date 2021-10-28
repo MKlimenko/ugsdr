@@ -21,6 +21,7 @@ namespace ugsdr {
 		Nt1065GrabberSecond,
 		Nt1065GrabberThird,
 		Nt1065GrabberFourth,
+		BbpDdc,
 	};
 
 	template <typename UnderlyingType>
@@ -31,37 +32,53 @@ namespace ugsdr {
 		double central_frequency = 1590e6;				// L1 central frequency
 		double sampling_rate = 0.0;
 		std::size_t number_of_epochs = 0;
+		std::size_t epoch_size_bytes = 0;
 
 		boost::iostreams::mapped_file_source signal_file;
 
 		using OutputVectorType = std::vector<std::complex<UnderlyingType>>;
 		
+		bool VerifyHeaders() const {
+			auto last_header = *reinterpret_cast<const std::uint64_t*>(signal_file.data()) & ((1 << 24) - 1);
+			for (std::size_t i = 1; i < number_of_epochs; ++i) {
+				auto ptr = reinterpret_cast<const std::uint64_t*>(signal_file.data() + epoch_size_bytes * i);
+				auto header = *ptr & ((1 << 24) - 1);
+				if (header - last_header != 1)
+					return false;
+				last_header = header;
+			}
+			return true;
+		}
+
 		void OpenFile() {
+			signal_file.open(signal_file_path.string());
+			if (!signal_file.is_open())
+				throw std::runtime_error("Unable to open file");
+
 			switch (file_type) {
 			case FileType::Iq_8_plus_8:
-				signal_file.open(signal_file_path.string());
-				if (!signal_file.is_open())
-					throw std::runtime_error("Unable to open file");
 				number_of_epochs = static_cast<std::size_t>(signal_file.size() / (sampling_rate / 1e3) / sizeof(std::complex<std::int8_t>));
-
 				break;
 			case FileType::Iq_16_plus_16:
-				signal_file.open(signal_file_path.string());
-				if (!signal_file.is_open())
-					throw std::runtime_error("Unable to open file");
 				number_of_epochs = static_cast<std::size_t>(signal_file.size() / (sampling_rate / 1e3) / sizeof(std::complex<std::int16_t>));
-
 				break;
 			case FileType::Real_8:
 			case FileType::Nt1065GrabberFirst:
 			case FileType::Nt1065GrabberSecond:
 			case FileType::Nt1065GrabberThird:
 			case FileType::Nt1065GrabberFourth:
-				signal_file.open(signal_file_path.string());
-				if (!signal_file.is_open())
-					throw std::runtime_error("Unable to open file");
 				number_of_epochs = static_cast<std::size_t>(signal_file.size() / (sampling_rate / 1e3));
+			case FileType::BbpDdc: {
+				auto epoch_size_words = sampling_rate / 1e3 * 4 / 64 + 1; // 2+2 samples in 64-bit words plus header
+				epoch_size_bytes = static_cast<std::size_t>(epoch_size_words / 2) * 2;
+				if (std::fmod(epoch_size_words, 2.0))
+					epoch_size_bytes += 2;
+				epoch_size_bytes *= 8;
+				number_of_epochs = signal_file.size() / epoch_size_bytes;
+				VerifyHeaders();
+
 				break;
+			}
 			default:
 				throw std::runtime_error("Unexpected file type");
 			}
@@ -155,6 +172,38 @@ namespace ugsdr {
 			case FileType::Nt1065GrabberThird:
 			case FileType::Nt1065GrabberFourth: {
 				GetPartialSignalNt1065(2 * (static_cast<int>(FileType::Nt1065GrabberFourth) - static_cast<int>(file_type)), length_samples, samples_offset, dst);
+				break;
+			}
+			case FileType::BbpDdc: {
+				CheckResize(dst, length_samples);
+				auto samples_per_ms = static_cast<std::size_t>(sampling_rate / 1e3);
+				auto epochs_offset = samples_offset / samples_per_ms;
+				auto length_epochs = length_samples / samples_per_ms;
+				auto samples = (epoch_size_bytes - 8) / sizeof(std::uint32_t);
+
+				static thread_local std::vector<std::uint32_t> raw_data;
+				CheckResize(raw_data, samples);
+
+				static thread_local std::vector<std::complex<UnderlyingType>> tmp_output;
+				CheckResize(tmp_output, samples_per_ms);
+
+				for (std::size_t i = 0; i < length_epochs; ++i) {
+					auto ptr = reinterpret_cast<const std::uint32_t*>(signal_file.data() + epoch_size_bytes * i) + 2;
+					std::copy(ptr, ptr + samples, raw_data.begin());
+
+					tmp_output.clear();
+					for (const auto& el : raw_data) {
+						for (std::size_t j = 0; j < 8; ++j) {
+							std::int32_t tmp = ((el | 0x55555555) & (0xF << (4 * j))) >> (4 * j);
+							std::int32_t tmp_im = ((tmp & (0x3)) << 30) >> 30;
+							std::int32_t tmp_re = ((tmp & (0xC)) << 28) >> 30;
+
+							tmp_output.emplace_back(static_cast<UnderlyingType>(tmp_re), static_cast<UnderlyingType>(tmp_im));
+						}
+					}
+					tmp_output.resize(samples_per_ms);
+					std::copy(tmp_output.begin(), tmp_output.end(), dst.begin() + samples_per_ms * i);
+				}
 				break;
 			}
 			default:
