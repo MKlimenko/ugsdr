@@ -207,17 +207,10 @@ namespace ugsdr {
 			auto downsampled_signal = Resampler<IppResamplerBase<true>>::Transform(translated_signal, static_cast<std::size_t>(new_sampling_rate),
 				static_cast<std::size_t>(signal_sampling_rate));
 
-			std::for_each(std::execution::par_unseq, galileo_sv.begin(), galileo_sv.end(), [&](auto sv) {
+			std::for_each(/*std::execution::par_unseq,*/ galileo_sv.begin(), galileo_sv.end(), [&](auto sv) {
 				auto samples_per_ms = static_cast<std::size_t>(new_sampling_rate / 1e3);
-				
-				const auto mem_code = PrnGenerator<System::Galileo>::Get<UnderlyingType>(sv.id);
-				std::vector<UnderlyingType> boc_code;
-				for (auto& el : mem_code) {
-					boc_code.push_back(el);
-					boc_code.push_back(-el);
-				}
-				const auto& bcm = boc_code;
-				const auto ref_code = UpsamplerType::Transform(bcm, ms_to_process * samples_per_ms);
+				const auto ref_code = UpsamplerType::Transform(PrnGenerator<System::Galileo>::Get<UnderlyingType>(sv.id),
+					ms_to_process * samples_per_ms);
 	
 				std::vector<AcquisitionResult<UnderlyingType>> temporary_dst;
 				std::array sign_permutations{
