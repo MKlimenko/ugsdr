@@ -137,7 +137,7 @@ namespace ugsdr {
 			auto first = CorrelatorType::Correlate(std::span(translated_signal.begin(), first_batch_length), std::span(full_code.begin() + first_batch_phase, first_batch_length));
 			auto second = CorrelatorType::Correlate(std::span(translated_signal.begin() + first_batch_length, second_batch_length), std::span(full_code.begin() + second_batch_phase, second_batch_length));
 						
-			code_phase_and_output.second = AddWithPhase(first, second, code_phase_and_output.first / code_period_samples);
+			code_phase_and_output.second = AddWithPhase(first, second, std::fmod(code_phase_and_output.first, samples_per_ms) / samples_per_ms);
 		}
 
 		auto GetEpl(TrackingParameters<UnderlyingType>& parameters, double spacing_chips) {
@@ -219,7 +219,7 @@ namespace ugsdr {
 		void Plot() const {
 			for (auto& el : tracking_parameters) {
 				//ugsdr::Add(L"Early tracking result", el.early);
-				ugsdr::Add(L"Prompt tracking result", el.prompt);
+				ugsdr::Add(static_cast<std::wstring>(el.sv) + L". Prompt tracking result", el.prompt);
 				//ugsdr::Add(L"Late tracking result", el.late);
 				//return;
 			}			
