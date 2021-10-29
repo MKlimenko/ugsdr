@@ -34,9 +34,9 @@ namespace ugsdr {
 		
 		template <typename T>
 		auto RepeatCodeNTimes(std::vector<T> code, std::size_t repeats) {
-			auto ms_size = code.size();
+			auto code_period = code.size();
 			for (std::size_t i = 1; i < repeats; ++i)
-				code.insert(code.end(), code.begin(), code.begin() + ms_size);
+				code.insert(code.end(), code.begin(), code.begin() + code_period);
 
 			return code;
 		}
@@ -47,18 +47,33 @@ namespace ugsdr {
 		MapType codes;
 
 		Codes(const DigitalFrontend<UnderlyingType>& digital_frontend) {
-			auto gps_sampling_rate = digital_frontend.GetSamplingRate(Signal::GpsCoarseAcquisition_L1);
-			
-			for (std::int32_t i = 0; i < gps_sv_count; ++i) {
-				auto sv = Sv{ i, System::Gps};
-				codes[sv] = UpsamplerType::Transform(RepeatCodeNTimes(PrnGenerator<System::Gps>::Get<UnderlyingType>(i), 3),
-					static_cast<std::size_t>(3 * gps_sampling_rate / 1e3));
+			if (digital_frontend.HasSignal(Signal::GpsCoarseAcquisition_L1)) {
+				auto gps_sampling_rate = digital_frontend.GetSamplingRate(Signal::GpsCoarseAcquisition_L1);
+
+				for (std::int32_t i = 0; i < gps_sv_count; ++i) {
+					auto sv = Sv{ i, System::Gps };
+					codes[sv] = UpsamplerType::Transform(RepeatCodeNTimes(PrnGenerator<System::Gps>::Get<UnderlyingType>(i), 3),
+						static_cast<std::size_t>(3 * gps_sampling_rate / 1e3));
+				}
 			}
 
-			auto gln_sampling_rate = digital_frontend.GetSamplingRate(Signal::GlonassCivilFdma_L1);
-			auto sv = glonass_sv;
-			codes[sv] = UpsamplerType::Transform(RepeatCodeNTimes(PrnGenerator<System::Glonass>::Get<UnderlyingType>(0), 3),
-				static_cast<std::size_t>(3 * gln_sampling_rate / 1e3));
+			if (digital_frontend.HasSignal(Signal::GlonassCivilFdma_L1)) {
+				auto gln_sampling_rate = digital_frontend.GetSamplingRate(Signal::GlonassCivilFdma_L1);
+
+				auto sv = glonass_sv;
+				codes[sv] = UpsamplerType::Transform(RepeatCodeNTimes(PrnGenerator<System::Glonass>::Get<UnderlyingType>(0), 3),
+					static_cast<std::size_t>(3 * gln_sampling_rate / 1e3));
+			}
+
+			if (digital_frontend.HasSignal(Signal::Galileo_E1b)) {
+				auto galileo_sampling_rate = digital_frontend.GetSamplingRate(Signal::Galileo_E1b);
+
+				for (std::int32_t i = 0; i < galileo_sv_count; ++i) {
+					auto sv = Sv{ i, System::Galileo };
+					codes[sv] = UpsamplerType::Transform(RepeatCodeNTimes(PrnGenerator<System::Galileo>::Get<UnderlyingType>(i), 3),
+						static_cast<std::size_t>(3 * 4 * galileo_sampling_rate / 1e3));
+				}
+			}
 		}
 
 		const auto& GetCode(Sv sv) const {
@@ -106,21 +121,23 @@ namespace ugsdr {
 		}
 
 		template <typename T1, typename T2>
-		auto CorrelateSplit(const T1& translated_signal, const T2& full_code, std::size_t samples_per_ms, std::pair<double, std::complex<UnderlyingType>>& code_phase_and_output) {
-			if (code_phase_and_output.first < 0)
-				code_phase_and_output.first += samples_per_ms;
+		auto CorrelateSplit(const T1& translated_signal, const T2& full_code, const TrackingParameters<UnderlyingType>& parameters, std::pair<double, std::complex<UnderlyingType>>& code_phase_and_output) {
+			auto samples_per_ms = static_cast<std::size_t>(parameters.sampling_rate / 1e3);
+			auto code_period_samples = samples_per_ms * parameters.code_period;
 
-			auto first_batch_length = static_cast<std::size_t>(std::ceil(samples_per_ms - code_phase_and_output.first));
+			if (code_phase_and_output.first < 0)
+				code_phase_and_output.first += code_period_samples;
+
+			auto first_batch_length = static_cast<std::size_t>(std::ceil(code_period_samples - code_phase_and_output.first)) % samples_per_ms;
 			auto second_batch_length = samples_per_ms - first_batch_length;
 
-			auto first_batch_phase = static_cast<std::size_t>(std::ceil(samples_per_ms + code_phase_and_output.first));
+			auto first_batch_phase = static_cast<std::size_t>(std::ceil(code_period_samples + code_phase_and_output.first));
 			auto second_batch_phase = first_batch_phase + first_batch_length;
 
 			auto first = CorrelatorType::Correlate(std::span(translated_signal.begin(), first_batch_length), std::span(full_code.begin() + first_batch_phase, first_batch_length));
 			auto second = CorrelatorType::Correlate(std::span(translated_signal.begin() + first_batch_length, second_batch_length), std::span(full_code.begin() + second_batch_phase, second_batch_length));
-			
-
-			code_phase_and_output.second = AddWithPhase(first, second, code_phase_and_output.first / samples_per_ms);
+						
+			code_phase_and_output.second = AddWithPhase(first, second, code_phase_and_output.first / code_period_samples);
 		}
 
 		auto GetEpl(TrackingParameters<UnderlyingType>& parameters, double spacing_chips) {
@@ -142,8 +159,8 @@ namespace ugsdr {
 				std::make_pair(parameters.code_phase - spacing_offset, std::complex<UnderlyingType>{}),
 			};
 
-			std::for_each(std::execution::par_unseq, output_array.begin(), output_array.end(), [&translated_signal, &full_code, samples_per_ms = static_cast<std::size_t>(parameters.sampling_rate / 1e3), this](auto& pair) {
-				CorrelateSplit(translated_signal, full_code, samples_per_ms, pair);
+			std::for_each(std::execution::par_unseq, output_array.begin(), output_array.end(), [&translated_signal, &full_code, &parameters, this](auto& pair) {
+				CorrelateSplit(translated_signal, full_code, parameters, pair);
 			});
 
 			return std::make_tuple(output_array[0].second, output_array[1].second, output_array[2].second);
@@ -164,13 +181,16 @@ namespace ugsdr {
 			auto copy_wrapper = GetCopyWrapper();
 						
 			using IppType = typename IppTypeToComplex<UnderlyingType>::Type;
+			CheckResize(parameters.translated_signal, signal.size());
 			copy_wrapper(reinterpret_cast<const IppType*>(signal.data()), reinterpret_cast<IppType*>(parameters.translated_signal.data()), static_cast<int>(signal.size()));
 
-			
 			auto [early, prompt, late] = GetEpl(parameters, 0.25);
 			parameters.early.push_back(early);
 			parameters.prompt.push_back(prompt);
 			parameters.late.push_back(late);
+
+			if (parameters.code_period > 1) 
+				parameters.code_phase += parameters.sampling_rate / 1e3;
 
 			parameters.Pll(prompt);
 			parameters.Dll(early, late);

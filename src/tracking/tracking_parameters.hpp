@@ -32,6 +32,7 @@ namespace ugsdr {
 		double code_phase = 0.0;
 		double code_frequency = 0.0;
         double base_code_frequency = 0.0;
+		double code_period = 0.0;
 
         double carrier_phase = 0.0;
         double carrier_frequency = 0.0;
@@ -69,10 +70,17 @@ namespace ugsdr {
 			case System::Gps:
 				code_frequency = 1.023e6;
 				base_code_frequency = 1.023e6;
+				code_period = 1;
 				break;
 			case System::Glonass:
 				code_frequency = 0.511e6;
 				base_code_frequency = 0.511e6;
+				code_period = 1;
+				break;
+			case System::Galileo:
+				code_frequency = 1.023e6 * 2; // BOC
+				base_code_frequency = 1.023e6 * 2;
+				code_period = 4;
 				break;
 			default:
 				break;
@@ -133,8 +141,10 @@ namespace ugsdr {
 
 			auto samples_per_ms = sampling_rate / 1000;
 
-			while (code_phase < 0)
-				code_phase += samples_per_ms;
+			if (code_phase >= code_period * samples_per_ms)
+				code_phase -= code_period * samples_per_ms;
+			else if (code_phase < 0.0)
+				code_phase = 0.0;
 
 			code_phases.push_back(code_phase);
 			code_frequencies.push_back(code_frequency);

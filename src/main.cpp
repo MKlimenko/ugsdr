@@ -15,17 +15,22 @@ void GenerateSignals(CSignalsViewer* sv) {
 #else
 int main() {
 #endif
+	auto signal_parameters = ugsdr::SignalParametersBase<float>(R"(../../../../data/nt1065_grabber.bin)", ugsdr::FileType::Nt1065GrabberFirst, 1590e6, 79.5e6);
 	//auto signal_parameters = ugsdr::SignalParametersBase<float>(R"(../../../../data/nt1065_grabber.bin)", ugsdr::FileType::Nt1065GrabberFirst, 1590e6, 79.5e6);
 	//auto signal_parameters_gln = ugsdr::SignalParametersBase<float>(R"(../../../../data/nt1065_grabber.bin)", ugsdr::FileType::Nt1065GrabberSecond, 1590e6, 79.5e6);
-	auto signal_parameters = ugsdr::SignalParametersBase<float>(R"(../../../../data/iq.bin)", ugsdr::FileType::Iq_8_plus_8, 1590e6, 79.5e6 / 2);
-	auto& signal_parameters_gln = signal_parameters;
+	//auto signal_parameters = ugsdr::SignalParametersBase<float>(R"(../../../../data/iq.bin)", ugsdr::FileType::Iq_8_plus_8, 1590e6, 79.5e6 / 2);
+	//auto& signal_parameters_gln = signal_parameters;
+	//auto signal_parameters = ugsdr::SignalParametersBase<float>(R"(../../../../data/bbp_ddc_gps_L1.dat)", ugsdr::FileType::BbpDdc, 1575.42e6, 33.25e6);
 
 	auto digital_frontend = ugsdr::DigitalFrontend(
-		MakeChannel(signal_parameters, ugsdr::Signal::GpsCoarseAcquisition_L1, signal_parameters.GetSamplingRate() / 10),
-		MakeChannel(signal_parameters_gln, ugsdr::Signal::GlonassCivilFdma_L1, signal_parameters_gln.GetSamplingRate() / 3)
+		//MakeChannel(signal_parameters, ugsdr::Signal::GpsCoarseAcquisition_L1, signal_parameters.GetSamplingRate() / 10),
+		//MakeChannel(signal_parameters_gln, ugsdr::Signal::GlonassCivilFdma_L1, signal_parameters_gln.GetSamplingRate() / 3),
+		//MakeChannel(signal_parameters, ugsdr::Signal::Galileo_E1b, signal_parameters.GetSamplingRate())
+		//MakeChannel(signal_parameters, ugsdr::Signal::GpsCoarseAcquisition_L1, signal_parameters.GetSamplingRate()),
+		MakeChannel(signal_parameters, ugsdr::Signal::Galileo_E1b, signal_parameters.GetSamplingRate())
 	);
 
-#if 0
+#if 1
 	auto fse = ugsdr::FastSearchEngineBase(digital_frontend, 5e3, 200);
 	auto acquisition_results = fse.Process(true);
 	ugsdr::Save("acquisition_results_cache", acquisition_results);
@@ -34,10 +39,11 @@ int main() {
 	ugsdr::Load("acquisition_results_cache", acquisition_results);
 #endif
 
-#if 0
+#if 1
 	auto pre = std::chrono::system_clock::now();
 	auto tracker = ugsdr::Tracker(digital_frontend, acquisition_results);
 	tracker.Track(signal_parameters.GetNumberOfEpochs());
+	tracker.Plot();
 	auto post = std::chrono::system_clock::now();
 	ugsdr::Save("tracking_results_cache", tracker.GetTrackingParameters());
 
@@ -51,7 +57,7 @@ int main() {
 		ugsdr::Add(L"Prompt tracking result", el.prompt);
 #endif
 	
-	auto measurement_engine = ugsdr::MeasurementEngine(tracking_parameters);
+	//auto measurement_engine = ugsdr::MeasurementEngine(tracker.GetTrackingParameters());
 
 	//std::exit(0);
 

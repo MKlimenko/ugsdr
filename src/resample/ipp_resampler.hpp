@@ -16,7 +16,7 @@ namespace ugsdr {
 	template <bool use_filter = false>
 	class IppResamplerBase : public Resampler<IppResamplerBase<use_filter>> {
 	private:
-		constexpr static inline int taps_len = 50;
+		constexpr static inline int taps_len = 128;
 
 		static auto GetBufferSize() {
 			int buffer_size = 0;
@@ -28,12 +28,16 @@ namespace ugsdr {
 		static auto GenerateFirCoefficients(std::size_t new_sampling_rate, std::size_t lcm) {
 			auto buffer_size = GetBufferSize();
 			auto buffer = std::make_unique<Ipp8u[]>(buffer_size);
-			auto cutoff = static_cast<double>(new_sampling_rate) / lcm;
+			auto cutoff = static_cast<double>(new_sampling_rate) / lcm / 2;
 			std::vector<double> taps(taps_len);
 			ippsFIRGenLowpass_64f(cutoff, taps.data(), taps_len, ippWinRect, IppBool::ippTrue, buffer.get());
 			ippsWinKaiser_64f_I(taps.data(), taps_len, 5);
 
-			Add(L"FIR", &taps[0], taps_len);
+			if(new_sampling_rate == lcm) {
+				taps[0] = 1;
+			}
+			
+			//Add(L"FIR", &taps[0], taps_len);
 
 			std::vector<TypeToCast> dst;
 			dst.reserve(taps_len);
@@ -116,8 +120,8 @@ namespace ugsdr {
 			FilterImpl<IppType>(src_dst, new_sampling_rate, old_sampling_rate, lcm);
 		}
 
-		using UpsamplerType = Upsampler<IppUpsampler>;
-		using DecimatorType = Decimator<IppAccumulator>;
+		using UpsamplerType = IppUpsampler;
+		using DecimatorType = IppAccumulator;
 
 	protected:
 		friend class Resampler<IppResamplerBase<use_filter>>;
@@ -128,9 +132,12 @@ namespace ugsdr {
 			auto new_samples = lcm * src_dst.size() / old_sampling_rate;
 
 			UpsamplerType::Transform(src_dst, new_samples);
-			if constexpr (use_filter)
+			if constexpr (use_filter) {
 				Filter(src_dst, new_sampling_rate, old_sampling_rate, lcm);
-			DecimatorType::Transform(src_dst, lcm / new_sampling_rate);
+				IppDecimator::Transform(src_dst, lcm / new_sampling_rate);
+			}
+			else
+				DecimatorType::Transform(src_dst, lcm / new_sampling_rate);
 		}
 
 	public:

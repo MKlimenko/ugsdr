@@ -16,6 +16,7 @@ namespace ugsdr {
 	constexpr std::size_t gps_sv_count = 32;
 	constexpr std::int32_t gln_min_frequency = -7;
 	constexpr std::int32_t gln_max_frequency = 6;
+	constexpr std::size_t galileo_sv_count = 50;
 
 	template <typename T>
 	void CheckResize(T& vec, std::size_t samples) {
@@ -26,11 +27,13 @@ namespace ugsdr {
 	enum class Signal : std::uint32_t {
 		GpsCoarseAcquisition_L1,
 		GlonassCivilFdma_L1,
+		Galileo_E1b
 	};
 
 	enum class System : std::uint32_t {
 		Gps = 0,
 		Glonass,
+		Galileo,
 	};
 
 	struct Sv {
@@ -52,6 +55,34 @@ namespace ugsdr {
 			return *reinterpret_cast<const std::uint32_t*>(this);
 		}
 
+		operator std::string() const {
+			std::string dst;
+			auto sv_number = id;
+			switch (system) {
+			case System::Gps:
+				dst += "GPS SV";
+				++sv_number;
+				break;
+			case System::Glonass:
+				dst += "Glonass litera ";
+				break;
+			case System::Galileo:
+				dst += "Galileo SV";
+				++sv_number;
+				break;
+			default:;
+			}
+			dst += std::to_string(sv_number);
+
+			return dst;
+		}
+
+		operator std::wstring() const {
+			auto str = static_cast<std::string>(*this);
+			
+			return std::wstring(str.begin(), str.end());
+		}
+		
 		bool operator<(const Sv& rhs) const {
 			if (system != rhs.system)
 				return static_cast<std::uint32_t>(system) < static_cast<std::uint32_t>(rhs.system);

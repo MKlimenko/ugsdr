@@ -40,6 +40,7 @@ namespace ugsdr {
 		static auto CentralFrequency(Signal signal) {
 			switch (signal) {
 			case Signal::GpsCoarseAcquisition_L1:
+			case Signal::Galileo_E1b:
 				return 1575.42e6;
 			case Signal::GlonassCivilFdma_L1:
 				return 1602e6;
@@ -88,7 +89,7 @@ namespace ugsdr {
 			channels.push_back(channel);
 		}
 
-		bool HasSignal(Signal signal) {
+		bool HasSignal(Signal signal) const {
 			auto it = GetChannelIt(signal);
 
 			return it != channels.end() ? true : false;
