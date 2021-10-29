@@ -249,7 +249,7 @@ namespace ugsdr {
 		auto Process(bool plot_results = false, std::size_t ms_offset = 0) {
 			std::vector<AcquisitionResult<UnderlyingType>> dst;
 			dst.reserve(gps_sv.size() + gln_sv.size());
-			auto epoch_data = digital_frontend.GetSeveralEpochs(ms_offset, ms_to_process);
+			auto& epoch_data = digital_frontend.GetSeveralEpochs(ms_offset, ms_to_process);
 
 			if (plot_results) {
 				if (digital_frontend.HasSignal(Signal::GpsCoarseAcquisition_L1))

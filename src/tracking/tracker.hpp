@@ -206,9 +206,8 @@ namespace ugsdr {
 		void Track(std::size_t epochs_to_process) {
 			auto timer = boost::timer::progress_display(static_cast<unsigned long>(epochs_to_process));
 
-			SignalEpoch<UnderlyingType> current_signal_ms;
 			for (std::size_t i = 0; i < epochs_to_process; ++i, ++timer) {
-				digital_frontend.GetEpoch(i, current_signal_ms);
+				auto& current_signal_ms = digital_frontend.GetEpoch(i);
 
 				std::for_each(std::execution::par_unseq, tracking_parameters.begin(), tracking_parameters.end(),
 					[&current_signal_ms, this](auto& current_tracking_parameters) {

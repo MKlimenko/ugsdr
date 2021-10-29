@@ -27,7 +27,8 @@ namespace ugsdr {
 	enum class Signal : std::uint32_t {
 		GpsCoarseAcquisition_L1,
 		GlonassCivilFdma_L1,
-		Galileo_E1b
+		Galileo_E1b,
+		Galileo_E1c
 	};
 
 	enum class System : std::uint32_t {

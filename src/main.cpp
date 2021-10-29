@@ -15,7 +15,8 @@ void GenerateSignals(CSignalsViewer* sv) {
 #else
 int main() {
 #endif
-	auto signal_parameters = ugsdr::SignalParametersBase<float>(R"(../../../../data/nt1065_grabber.bin)", ugsdr::FileType::Nt1065GrabberFirst, 1590e6, 79.5e6);
+	auto signal_parameters = ugsdr::SignalParametersBase<float>(R"(../../../../data/iq.bin)", ugsdr::FileType::Iq_8_plus_8, 1590e6, 79.5e6 / 2);
+	//auto signal_parameters = ugsdr::SignalParametersBase<float>(R"(../../../../data/nt1065_grabber.bin)", ugsdr::FileType::Nt1065GrabberFirst, 1590e6, 79.5e6);
 	//auto signal_parameters = ugsdr::SignalParametersBase<float>(R"(../../../../data/nt1065_grabber.bin)", ugsdr::FileType::Nt1065GrabberFirst, 1590e6, 79.5e6);
 	//auto signal_parameters_gln = ugsdr::SignalParametersBase<float>(R"(../../../../data/nt1065_grabber.bin)", ugsdr::FileType::Nt1065GrabberSecond, 1590e6, 79.5e6);
 	//auto signal_parameters = ugsdr::SignalParametersBase<float>(R"(../../../../data/iq.bin)", ugsdr::FileType::Iq_8_plus_8, 1590e6, 79.5e6 / 2);
@@ -27,13 +28,16 @@ int main() {
 		//MakeChannel(signal_parameters_gln, ugsdr::Signal::GlonassCivilFdma_L1, signal_parameters_gln.GetSamplingRate() / 3),
 		//MakeChannel(signal_parameters, ugsdr::Signal::Galileo_E1b, signal_parameters.GetSamplingRate())
 		//MakeChannel(signal_parameters, ugsdr::Signal::GpsCoarseAcquisition_L1, signal_parameters.GetSamplingRate()),
-		MakeChannel(signal_parameters, ugsdr::Signal::Galileo_E1b, signal_parameters.GetSamplingRate())
+		//MakeChannel(signal_parameters, ugsdr::Signal::Galileo_E1b, signal_parameters.GetSamplingRate())
+		MakeChannel(signal_parameters, ugsdr::Signal::GlonassCivilFdma_L1, signal_parameters.GetSamplingRate() / 3),
+		MakeChannel(signal_parameters, std::vector{ ugsdr::Signal::GpsCoarseAcquisition_L1, ugsdr::Signal::Galileo_E1b, ugsdr::Signal::Galileo_E1c }, signal_parameters.GetSamplingRate() / 5)
 	);
 
 #if 1
 	auto fse = ugsdr::FastSearchEngineBase(digital_frontend, 5e3, 200);
 	auto acquisition_results = fse.Process(true);
 	ugsdr::Save("acquisition_results_cache", acquisition_results);
+	return;
 #else
 	std::vector<ugsdr::AcquisitionResult<float>> acquisition_results;
 	ugsdr::Load("acquisition_results_cache", acquisition_results);

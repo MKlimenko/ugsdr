@@ -42,10 +42,12 @@ add_executable (${PROJECT_NAME}
 							mixer/nco.hpp
 							mixer/table_mixer.hpp
 							prn_codes/GalileoE1b.hpp  
+							prn_codes/GalileoE1c.hpp  
 							prn_codes/GlonassOf.hpp 
 							prn_codes/GpsL1Ca.hpp  
 							prn_codes/codegen.hpp 
 							prn_codes/lfsr.hpp 
+							prn_codes/MemoryCodes.hpp  
 							prn_codes/codegen_wrapper.hpp
 							resample/decimator.hpp 
 							resample/ipp_decimator.hpp 

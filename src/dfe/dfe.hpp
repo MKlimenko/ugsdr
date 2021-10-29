@@ -14,21 +14,42 @@ namespace ugsdr {
 	template <typename UnderlyingType>
 	struct SignalEpoch final {
 	private:
-		std::map<Signal, std::vector<std::complex<UnderlyingType>>> epoch_data;
+		using VectorType = std::vector<std::complex<UnderlyingType>>;
+		
+		std::map<Signal, std::size_t> signal_map;
+		std::map<std::size_t, VectorType> epoch_data;
 
 	public:
 		const auto& GetSubband(Signal signal_type) const {
-			return epoch_data.at(signal_type);
+			return epoch_data.at(signal_map.at(signal_type));
 		}
+		
 		auto& GetSubband(Signal signal_type) {
-			return epoch_data[signal_type];
+			auto it = signal_map.find(signal_type);
+			if (it == signal_map.end()) {
+				auto dst = signal_map.insert({ signal_type, signal_map.size() });
+				it = dst.first;
+			}
+			
+			return epoch_data[it->second];
+		}
+
+		void Initialize(const std::vector<Signal>& signals, std::size_t sz) {
+			auto current_size = epoch_data.size();
+			for (auto& signal_type : signals) {
+				auto it = signal_map.find(signal_type);
+				if (it == signal_map.end()) {
+					signal_map.insert({ signal_type, current_size });
+				}
+			}
+			epoch_data.insert({ current_size, VectorType(sz, 0) });
 		}
 	};
 
 	template <typename UnderlyingType>
 	struct Channel final {
 	public:
-		Signal subband;
+		std::vector<Signal> subbands;
 		double sampling_rate = 0.0;
 		double central_frequency = 0.0;
 		
@@ -41,6 +62,7 @@ namespace ugsdr {
 			switch (signal) {
 			case Signal::GpsCoarseAcquisition_L1:
 			case Signal::Galileo_E1b:
+			case Signal::Galileo_E1c:
 				return 1575.42e6;
 			case Signal::GlonassCivilFdma_L1:
 				return 1602e6;
@@ -48,22 +70,40 @@ namespace ugsdr {
 				throw std::runtime_error("Unexpected signal");
 			}
 		}
+		
+		static auto CentralFrequency(const std::vector<Signal>& signals) {
+			if (signals.empty())
+				throw std::runtime_error("Channel can\'t be empty signalwise");
+			
+			std::vector<double> central_frequencies;
+			for (auto& el : signals)
+				central_frequencies.push_back(CentralFrequency(el));
 
+			if (std::adjacent_find(central_frequencies.begin(), central_frequencies.end(), std::not_equal_to<>()) != central_frequencies.end())
+				throw std::runtime_error("Central frequencies differ for the passed signals.\nThis may be true for undersampling approaches, but I'm not going to support it for now");
+
+			return central_frequencies[0];
+		}
+		
 		static auto MixerFrequency(SignalParametersBase<UnderlyingType>& signal_params, Signal signal) {
 			return signal_params.GetCentralFrequency() - CentralFrequency(signal);
 		}
 
 	public:
 		Channel(SignalParametersBase<UnderlyingType>& signal_params, Signal signal, double new_sampling_rate) :
-			subband(signal), sampling_rate(new_sampling_rate), central_frequency(CentralFrequency(signal)),
+			subbands(1, signal), sampling_rate(new_sampling_rate), central_frequency(CentralFrequency(signal)),
 			signal_parameters(signal_params), mixer(signal_parameters.GetSamplingRate(), signal_parameters.GetCentralFrequency() - central_frequency, 0) {}
 
+		Channel(SignalParametersBase<UnderlyingType>& signal_params, const std::vector<Signal>& signals, double new_sampling_rate) :
+			subbands(signals.begin(), signals.end()), sampling_rate(new_sampling_rate), central_frequency(CentralFrequency(signals)),
+			signal_parameters(signal_params), mixer(signal_parameters.GetSamplingRate(), signal_parameters.GetCentralFrequency() - central_frequency, 0) {}
+		
 		auto GetNumberOfEpochs() const {
 			return signal_parameters.GetNumberOfEpochs();
 		}
 				
 		void GetSeveralEpochs(std::size_t epoch_offset, std::size_t epoch_cnt, SignalEpoch<UnderlyingType>& epoch_data) {
-			auto& current_vector = epoch_data.GetSubband(subband);
+			auto& current_vector = epoch_data.GetSubband(subbands[0]);
 			signal_parameters.GetSeveralMs(epoch_offset, epoch_cnt, current_vector);
 
 			mixer.Translate(current_vector);
@@ -82,11 +122,14 @@ namespace ugsdr {
 
 		DigitalFrontend(Channel<UnderlyingType> channel) {
 			channels.push_back(channel);
+			signal_epoch.Initialize(channels.back().subbands, static_cast<std::size_t>(channels.back().sampling_rate / 1e3));
+			
 		}
 
 		template <typename ... Args>
 		DigitalFrontend(Channel<UnderlyingType> channel, Args ... rem) : DigitalFrontend(rem...) {
 			channels.push_back(channel);
+			signal_epoch.Initialize(channels.back().subbands, static_cast<std::size_t>(channels.back().sampling_rate / 1e3));
 		}
 
 		bool HasSignal(Signal signal) const {
@@ -95,23 +138,15 @@ namespace ugsdr {
 			return it != channels.end() ? true : false;
 		}
 		
-		void GetSeveralEpochs(std::size_t epoch_offset, std::size_t epoch_cnt, SignalEpoch<UnderlyingType>& epoch_data) {
-			std::for_each(std::execution::par_unseq, channels.begin(), channels.end(), [epoch_offset, epoch_cnt, &epoch_data](Channel<UnderlyingType>& channel) {
-				channel.GetSeveralEpochs(epoch_offset, epoch_cnt, epoch_data);
+		auto& GetSeveralEpochs(std::size_t epoch_offset, std::size_t epoch_cnt) {
+			std::for_each(std::execution::par_unseq, channels.begin(), channels.end(), [epoch_offset, epoch_cnt, this](Channel<UnderlyingType>& channel) {
+				channel.GetSeveralEpochs(epoch_offset, epoch_cnt, signal_epoch);
 			});
+
+			return signal_epoch;
 		}
 
-		auto GetSeveralEpochs(std::size_t epoch_offset, std::size_t epoch_cnt) {
-			auto dst = SignalEpoch<UnderlyingType>();
-			GetSeveralEpochs(epoch_offset, epoch_cnt, dst);
-			return dst;
-		}
-
-		void GetEpoch(std::size_t epoch_offset, SignalEpoch<UnderlyingType>& epoch_data) {
-			GetSeveralEpochs(epoch_offset, 1, epoch_data);
-		}
-
-		auto GetEpoch(std::size_t epoch_offset) {
+		auto& GetEpoch(std::size_t epoch_offset) {
 			return GetSeveralEpochs(epoch_offset, 1);
 		}
 
@@ -132,11 +167,14 @@ namespace ugsdr {
 
 	private:
 		std::vector<Channel<UnderlyingType>> channels;
+		SignalEpoch<UnderlyingType> signal_epoch;
 		std::size_t current_epoch = 0;
 
 		auto GetChannelIt(Signal signal) const {
 			return std::find_if(channels.begin(), channels.end(), [signal](auto& el) {
-				return el.subband == signal;
+				return std::find_if(el.subbands.begin(), el.subbands.end(), [signal](auto& subband) {
+					return subband == signal;
+				}) != el.subbands.end();
 			});
 		}		
 		

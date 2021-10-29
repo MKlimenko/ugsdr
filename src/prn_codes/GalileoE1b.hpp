@@ -1,6 +1,7 @@
 #pragma once
 
 #include "codegen.hpp"
+#include "MemoryCodes.hpp"
 
 #include <array>
 #include <bitset>
@@ -8,7 +9,7 @@
 #include <string>
 
 namespace ugsdr {
-	class GalileoE1b final : public Codegen<GalileoE1b> {
+	class GalileoE1b final : public Codegen<GalileoE1b>, MemoryCodes {
 	private:
 		static constexpr std::size_t memory_code_len = 4092;
 		static inline std::array<std::string, 50> memory_codes{
@@ -64,17 +65,6 @@ namespace ugsdr {
 			"97051FC67ACA30E8AEE73D3A8CF38BB13524D4E0EBD9BE68398C7C16227CABB1D0B0A0ABE7B6384ABA02905BA0C3C7363599D059C7B4C99DB165CD14FA12FA7912449CA7DD5E346D8010C85A757382270DAD15BA3CE36A76EF55F81A1E80BF366B37FE3A88EC722028C25E234E624040450A99CD808F942568AA7133981D72E7F2928894670AD5399482DF1B90E7E64062F830B736C79C30F36281495C76699CD48404673FA334F042F9E0E67DD7F3853BF71ABEAF6A9A5546855E840CE42B224D8F6490C6CE5FC02EBAF4FFC390107058F54CD635D4A7F2878099C1EF495750E6921BE2F39AD808C4210F287319F811A254CEF8CF153FC50AB2F3D694A530949E5F578D075DB96DDCF2BB90ED3DE09D9CA8E08662FD8982741DE1CE0A6B64C3D3D5004B5C04B2B0DFD976A20FACC94D1762D41EE03B40D2CF367612812EF4CC41D1BFE9CEB51AE3A22AF1BE7B85A057D3048D0E73FA0FDAF1119EFD76F0A41BE63128B22D64A5553E9549D411483BBCA1483EF30CF6A6D317AD2C7973EFA6D4C1121F703D2F48FCDA3177AD450D75D2A28D2C244AEA13F0E60AEED8ACBAB444D400DF5E280DB799B2D9A984DF1E2567D39D1DE58EF78CA6B4D8BC172B07DCB02D156CA96EEFAC69E556CFCE0AAB617C7FBB8C34871C1D35E74B7BD307D3F2E424C7A9AD676A1A69E0FE735EA50887A1DFAE6CA2FE4460FC7EF323ADE493020",
 		};
 	
-		static auto CharToInt(char val) {
-			if (val >= '0' && val <= '9')
-				return val - '0';
-			if (val >= 'A' && val <= 'F')
-				return val - 'A' + 10;
-			if (val >= 'a' && val <= 'f')
-				return val - 'a' + 10;
-
-			throw std::runtime_error("Unexpected symbol");
-		}
-
 	protected:
 		friend class Codegen<GalileoE1b>;
 
@@ -85,12 +75,7 @@ namespace ugsdr {
 		template <typename T>
 		static void Generate(T* prn, std::size_t sv_number) {
 			auto current_memory_code = memory_codes.at(sv_number);
-			for (std::size_t i = 0; i < memory_code_len; ++i) {
-				auto bitset = std::bitset<4>(CharToInt(current_memory_code[i / 4]));
-				auto current_val = 2 * bitset[3 - i % 4] - 1;
-				prn[2 * i] = current_val;
-				prn[2 * i + 1] = -current_val;
-			}
+			DecodeBoc(current_memory_code, prn, memory_code_len);
 		}
 	};
 }
