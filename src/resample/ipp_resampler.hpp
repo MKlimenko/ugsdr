@@ -30,9 +30,13 @@ namespace ugsdr {
 			auto buffer = std::make_unique<Ipp8u[]>(buffer_size);
 			auto cutoff = static_cast<double>(new_sampling_rate) / lcm / 2;
 			std::vector<double> taps(taps_len);
-			auto status = ippsFIRGenLowpass_64f(cutoff, taps.data(), taps_len, ippWinRect, IppBool::ippTrue, buffer.get());
+			ippsFIRGenLowpass_64f(cutoff, taps.data(), taps_len, ippWinRect, IppBool::ippTrue, buffer.get());
 			ippsWinKaiser_64f_I(taps.data(), taps_len, 5);
 
+			if(new_sampling_rate == lcm) {
+				taps[0] = 1;
+			}
+			
 			//Add(L"FIR", &taps[0], taps_len);
 
 			std::vector<TypeToCast> dst;

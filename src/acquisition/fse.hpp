@@ -204,10 +204,10 @@ namespace ugsdr {
 
 			const auto translated_signal = MixerType::Translate(signal, signal_sampling_rate, -intermediate_frequency);
 			auto new_sampling_rate = AdjustSamplingRate(signal_sampling_rate);
-			auto downsampled_signal = Resampler<IppResamplerBase<true>>::Transform(translated_signal, static_cast<std::size_t>(new_sampling_rate),
+			auto downsampled_signal = Resampler<IppResamplerBase<false>>::Transform(translated_signal, static_cast<std::size_t>(new_sampling_rate),
 				static_cast<std::size_t>(signal_sampling_rate));
 
-			std::for_each(/*std::execution::par_unseq,*/ galileo_sv.begin(), galileo_sv.end(), [&](auto sv) {
+			std::for_each(std::execution::par_unseq, galileo_sv.begin(), galileo_sv.end(), [&](auto sv) {
 				auto samples_per_ms = static_cast<std::size_t>(new_sampling_rate / 1e3);
 				const auto ref_code = UpsamplerType::Transform(PrnGenerator<System::Galileo>::Get<UnderlyingType>(sv.id),
 					ms_to_process * samples_per_ms);

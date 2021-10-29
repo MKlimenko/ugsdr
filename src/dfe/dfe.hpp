@@ -89,7 +89,7 @@ namespace ugsdr {
 			channels.push_back(channel);
 		}
 
-		bool HasSignal(Signal signal) {
+		bool HasSignal(Signal signal) const {
 			auto it = GetChannelIt(signal);
 
 			return it != channels.end() ? true : false;
