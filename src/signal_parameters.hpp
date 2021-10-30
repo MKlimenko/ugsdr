@@ -38,16 +38,15 @@ namespace ugsdr {
 
 		using OutputVectorType = std::vector<std::complex<UnderlyingType>>;
 		
-		bool VerifyHeaders() const {
+		void VerifyHeaders() const {
 			auto last_header = *reinterpret_cast<const std::uint64_t*>(signal_file.data()) & ((1 << 24) - 1);
 			for (std::size_t i = 1; i < number_of_epochs; ++i) {
 				auto ptr = reinterpret_cast<const std::uint64_t*>(signal_file.data() + epoch_size_bytes * i);
 				auto header = *ptr & ((1 << 24) - 1);
 				if (header - last_header != 1)
-					return false;
+					throw std::runtime_error("Header ms count mismatch");
 				last_header = header;
 			}
-			return true;
 		}
 
 		void OpenFile() {
@@ -68,6 +67,7 @@ namespace ugsdr {
 			case FileType::Nt1065GrabberThird:
 			case FileType::Nt1065GrabberFourth:
 				number_of_epochs = static_cast<std::size_t>(signal_file.size() / (sampling_rate / 1e3));
+				break;
 			case FileType::BbpDdc: {
 				auto epoch_size_words = sampling_rate / 1e3 * 4 / 64 + 1; // 2+2 samples in 64-bit words plus header
 				epoch_size_bytes = static_cast<std::size_t>(epoch_size_words / 2) * 2;
