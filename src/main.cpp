@@ -37,7 +37,6 @@ int main() {
 	auto fse = ugsdr::FastSearchEngineBase(digital_frontend, 5e3, 200);
 	auto acquisition_results = fse.Process(true);
 	ugsdr::Save("acquisition_results_cache", acquisition_results);
-	return;
 #else
 	std::vector<ugsdr::AcquisitionResult<float>> acquisition_results;
 	ugsdr::Load("acquisition_results_cache", acquisition_results);

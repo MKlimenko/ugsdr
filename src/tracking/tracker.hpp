@@ -125,9 +125,13 @@ namespace ugsdr {
 			auto samples_per_ms = static_cast<std::size_t>(parameters.sampling_rate / 1e3);
 			auto code_period_samples = samples_per_ms * parameters.code_period;
 
-			if (code_phase_and_output.first < 0)
-				code_phase_and_output.first += code_period_samples;
+			auto& current_code_phase = code_phase_and_output.first;
 
+			while (current_code_phase < 0)
+				current_code_phase += code_period_samples;
+			if (current_code_phase > code_period_samples)
+				current_code_phase = std::fmod(current_code_phase, code_period_samples);
+			
 			auto first_batch_length = static_cast<std::size_t>(std::ceil(code_period_samples - code_phase_and_output.first)) % samples_per_ms;
 			auto second_batch_length = samples_per_ms - first_batch_length;
 
@@ -152,7 +156,7 @@ namespace ugsdr {
 			const auto& full_code = codes.GetCode(parameters.sv);
 
 			auto spacing_offset = parameters.GetSamplesPerChip() * spacing_chips;
-
+						
 			auto output_array = std::array{
 				std::make_pair(parameters.code_phase + spacing_offset, std::complex<UnderlyingType>{}),
 				std::make_pair(parameters.code_phase, std::complex<UnderlyingType>{}),
@@ -221,7 +225,6 @@ namespace ugsdr {
 				//ugsdr::Add(L"Early tracking result", el.early);
 				ugsdr::Add(static_cast<std::wstring>(el.sv) + L". Prompt tracking result", el.prompt);
 				//ugsdr::Add(L"Late tracking result", el.late);
-				//return;
 			}			
 		}
 

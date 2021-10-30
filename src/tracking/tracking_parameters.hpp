@@ -139,12 +139,13 @@ namespace ugsdr {
 			code_frequency = base_code_frequency - code_nco;
 			code_phase -= sampling_rate / 1000 / 2 * (code_frequency / base_code_frequency - 1);
 
-			auto samples_per_ms = sampling_rate / 1000;
-
-			if (code_phase >= code_period * samples_per_ms)
-				code_phase -= code_period * samples_per_ms;
-			else if (code_phase < 0.0)
-				code_phase = 0.0;
+			// // It's possible to reckon the rollover milliseconds in the tracker, or during the correlation. Let's do it the second way
+			//auto samples_per_ms = sampling_rate / 1000;
+			//
+			//if (code_phase >= code_period * samples_per_ms)
+			//	code_phase -= code_period * samples_per_ms;
+			//else if (code_phase < 0.0)
+			//	code_phase = 0.0;
 
 			code_phases.push_back(code_phase);
 			code_frequencies.push_back(code_frequency);
