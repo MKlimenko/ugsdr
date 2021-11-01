@@ -28,7 +28,9 @@ namespace ugsdr {
 		GpsCoarseAcquisition_L1,
 		GlonassCivilFdma_L1,
 		Galileo_E1b,
-		Galileo_E1c
+		Galileo_E1c,
+		Galileo_E5aI,
+		Galileo_E5aQ
 	};
 
 	enum class System : std::uint32_t {
@@ -39,11 +41,16 @@ namespace ugsdr {
 
 	struct Sv {
 		std::int32_t id : 8;
-		System system : 24;
-			
-		constexpr Sv(std::int32_t id_val, System system_val) : id(id_val), system(system_val) {}
-		constexpr Sv() : Sv(0, System::Gps) {}
+		System system : 8;
+		Signal signal : 16;
 
+		constexpr Sv() : Sv(0, System::Gps, Signal::GpsCoarseAcquisition_L1) {}
+		constexpr Sv(std::int32_t id_val, System system_val, Signal signal_val) : id(id_val), system(system_val), signal(signal_val) {}
+
+		operator Signal() const {
+			return signal;
+		}
+		
 		operator System() const {
 			return system;
 		}
@@ -71,9 +78,32 @@ namespace ugsdr {
 				dst += "Galileo SV";
 				++sv_number;
 				break;
-			default:;
+			default:
+				break;
 			}
-			dst += std::to_string(sv_number);
+			dst += std::to_string(sv_number) + ". ";
+			switch (signal) {
+			case Signal::GpsCoarseAcquisition_L1:
+				dst += "C/A L1";
+				break;
+			case Signal::GlonassCivilFdma_L1:
+				dst += "L1OF";
+				break;
+			case Signal::Galileo_E1b:
+				dst += "E1B";
+				break;
+			case Signal::Galileo_E1c:
+				dst += "E1C";
+				break;
+			case Signal::Galileo_E5aI:
+				dst += "E5aI";
+				break;
+			case Signal::Galileo_E5aQ:
+				dst += "E5aQ";
+				break;
+			default:
+				break;
+			}
 
 			return dst;
 		}
@@ -87,6 +117,8 @@ namespace ugsdr {
 		bool operator<(const Sv& rhs) const {
 			if (system != rhs.system)
 				return static_cast<std::uint32_t>(system) < static_cast<std::uint32_t>(rhs.system);
+			if (signal != rhs.signal)
+				return static_cast<std::uint32_t>(signal) < static_cast<std::uint32_t>(rhs.signal);
 			return id < rhs.id;
 		}
 

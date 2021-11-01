@@ -27,7 +27,6 @@ namespace ugsdr {
 
 	public:
 		Sv sv;
-		Signal signal_type;
 		
 		double code_phase = 0.0;
 		double code_frequency = 0.0;
@@ -58,37 +57,20 @@ namespace ugsdr {
 		double code_error = 0.0;
 
 		TrackingParameters() = default;
-		TrackingParameters(const AcquisitionResult<T>& acquisition, DigitalFrontend<T>& digital_frontend) :
+		TrackingParameters(const AcquisitionResult<T>& acquisition, DigitalFrontend<T>& digital_frontend) : TrackingParameters(acquisition, digital_frontend, acquisition.GetAcquiredSignalType()) {}
+		TrackingParameters(const AcquisitionResult<T>& acquisition, DigitalFrontend<T>& digital_frontend, Signal signal) :
 			sv(acquisition.sv_number),
-			signal_type(acquisition.GetAcquiredSignalType()),
 			code_phase(acquisition.code_offset),
 			carrier_frequency(acquisition.doppler),
 			intermediate_frequency(acquisition.intermediate_frequency),
-			sampling_rate(digital_frontend.GetSamplingRate(signal_type)) {
-			
-			switch (sv.system) {
-			case System::Gps:
-				code_frequency = 1.023e6;
-				base_code_frequency = 1.023e6;
-				code_period = 1;
-				break;
-			case System::Glonass:
-				code_frequency = 0.511e6;
-				base_code_frequency = 0.511e6;
-				code_period = 1;
-				break;
-			case System::Galileo:
-				code_frequency = 1.023e6 * 2; // BOC
-				base_code_frequency = 1.023e6 * 2;
-				code_period = 4;
-				break;
-			default:
-				break;
-			}
+			sampling_rate(digital_frontend.GetSamplingRate(signal)) {
+
+			sv.signal = signal;
+			AdaptAcquisitionData(acquisition, digital_frontend);
 
 			translated_signal.resize(static_cast<std::size_t>(sampling_rate / 1e3));
 
-			auto epochs_to_process = digital_frontend.GetNumberOfEpochs(signal_type);
+			auto epochs_to_process = digital_frontend.GetNumberOfEpochs(sv.signal);
 			
 			phases.reserve(epochs_to_process);
 			frequencies.reserve(epochs_to_process);
@@ -100,6 +82,90 @@ namespace ugsdr {
 			early.reserve(epochs_to_process);
 			prompt.reserve(epochs_to_process);
 			late.reserve(epochs_to_process);
+		}
+
+		void AdaptAcquisitionData(const AcquisitionResult<T>& acquisition, DigitalFrontend<T>& digital_frontend) {
+			switch (sv.signal) {
+			case Signal::GpsCoarseAcquisition_L1:
+				code_frequency = 1.023e6;
+				base_code_frequency = 1.023e6;
+				code_period = 1;
+				break;
+			case Signal::GlonassCivilFdma_L1:
+				code_frequency = 0.511e6;
+				base_code_frequency = 0.511e6;
+				code_period = 1;
+				break;
+			case Signal::Galileo_E1b:
+				code_frequency = 1.023e6 * 2; // BOC
+				base_code_frequency = 1.023e6 * 2;
+				code_period = 4;
+				break;
+			case Signal::Galileo_E1c:
+				code_frequency = 1.023e6 * 2; // BOC
+				base_code_frequency = 1.023e6 * 2;
+				code_period = 4;
+				break;
+			case Signal::Galileo_E5aI:
+			case Signal::Galileo_E5aQ:
+				code_frequency = 10.23e6;
+				base_code_frequency = 10.23e6;
+				code_period = 1;
+				code_phase = std::fmod(code_phase * sampling_rate / digital_frontend.GetSamplingRate(acquisition.GetAcquiredSignalType()),
+					code_period * sampling_rate / 1e3);
+				carrier_frequency *= 1176.45e6 / 1575.42e6;
+				break;
+			default:
+				break;
+			}
+		}
+
+		static void AddGps(const AcquisitionResult<T>& acquisition, DigitalFrontend<T>& digital_frontend, std::vector<TrackingParameters<T>>& dst) {
+			dst.emplace_back(acquisition, digital_frontend);
+		}
+
+		static void AddGlonass(const AcquisitionResult<T>& acquisition, DigitalFrontend<T>& digital_frontend, std::vector<TrackingParameters<T>>& dst) {
+			dst.emplace_back(acquisition, digital_frontend);
+		}
+
+		static void AddGalileo(const AcquisitionResult<T>& acquisition, DigitalFrontend<T>& digital_frontend, std::vector<TrackingParameters<T>>& dst) {
+			dst.emplace_back(acquisition, digital_frontend);
+			if (digital_frontend.HasSignal(Signal::Galileo_E1c))
+				dst.emplace_back(acquisition, digital_frontend, Signal::Galileo_E1c);
+			if (digital_frontend.HasSignal(Signal::Galileo_E5aI))
+				dst.emplace_back(acquisition, digital_frontend, Signal::Galileo_E5aI);
+			if (digital_frontend.HasSignal(Signal::Galileo_E5aQ))
+				dst.emplace_back(acquisition, digital_frontend, Signal::Galileo_E5aQ);
+
+			//auto& latest_params = dst.back();
+			//const auto& epoch = digital_frontend.GetEpoch(0).GetSubband(Signal::Galileo_E5aQ);
+
+			//const auto translated = IppMixer::Translate(epoch, latest_params.sampling_rate, -latest_params.carrier_frequency);
+			//ugsdr::Add(translated);
+			//auto code = SequentialUpsampler::Transform(PrnGenerator<Signal::Galileo_E5aQ>::Get<T>(acquisition.sv_number.id),
+			//	static_cast<std::size_t>(digital_frontend.GetSamplingRate(Signal::Galileo_E5aQ) / 1e3));
+			//std::rotate(code.begin(), code.begin() + static_cast<std::size_t>(latest_params.code_phase), code.end());
+			////ugsdr::Add(PrnGenerator<Signal::Galileo_E5aQ>::Get<T>(acquisition.sv_number.id));
+			////ugsdr::Add(code);
+
+			//auto matched_output = IppMatchedFilter::Filter(translated, code);
+			//ugsdr::Add(matched_output);
+		}
+
+		static void FillTrackingParameters(const AcquisitionResult<T>& acquisition, DigitalFrontend<T>& digital_frontend, std::vector<TrackingParameters<T>>& dst) {
+			switch (acquisition.sv_number.system) {
+			case(System::Gps):
+				AddGps(acquisition, digital_frontend, dst);
+				break;
+			case(System::Glonass):
+				AddGlonass(acquisition, digital_frontend, dst);
+				break;
+			case(System::Galileo):
+				AddGalileo(acquisition, digital_frontend, dst);
+				break;
+			default:
+				throw std::runtime_error("Not implemented yet");
+			}
 		}
 
 		auto GetSamplesPerChip() const {
@@ -134,18 +200,10 @@ namespace ugsdr {
 				new_code_error = (early - late) / (early + late);
 
 			code_residuals.push_back(new_code_error);
-			code_nco += K1_DLL * (new_code_error - code_error) + K2_DLL * new_code_error;
+			code_nco += (K1_DLL * (new_code_error - code_error) + K2_DLL * new_code_error)* (base_code_frequency / 1.023e6);
 			code_error = new_code_error;
 			code_frequency = base_code_frequency - code_nco;
 			code_phase -= sampling_rate / 1000 / 2 * (code_frequency / base_code_frequency - 1);
-
-			// // It's possible to reckon the rollover milliseconds in the tracker, or during the correlation. Let's do it the second way
-			//auto samples_per_ms = sampling_rate / 1000;
-			//
-			//if (code_phase >= code_period * samples_per_ms)
-			//	code_phase -= code_period * samples_per_ms;
-			//else if (code_phase < 0.0)
-			//	code_phase = 0.0;
 
 			code_phases.push_back(code_phase);
 			code_frequencies.push_back(code_frequency);
@@ -155,7 +213,6 @@ namespace ugsdr {
 		void save(Archive& ar) const {
 			ar(
 				CEREAL_NVP(sv),
-				CEREAL_NVP(signal_type),
 				CEREAL_NVP(code_phase),
 				CEREAL_NVP(code_frequency),
 				CEREAL_NVP(base_code_frequency),
@@ -184,7 +241,6 @@ namespace ugsdr {
 		void load(Archive& ar) {
 			ar(
 				sv,
-				signal_type,
 				code_phase,
 				code_frequency,
 				base_code_frequency,

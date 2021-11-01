@@ -22,7 +22,11 @@ namespace ugsdr {
 
 		template <typename T>
 		static void Decode(const std::string& memory_code, T* prn, std::size_t memory_code_len) {
-			
+			for (std::size_t i = 0; i < memory_code_len; ++i) {
+				auto bitset = std::bitset<4>(CharToInt(memory_code[i / 4]));
+				auto current_val = 2 * bitset[3 - i % 4] - 1;
+				prn[i] = current_val;
+			}
 		}
 
 		template <typename T>

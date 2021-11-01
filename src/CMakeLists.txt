@@ -43,6 +43,8 @@ add_executable (${PROJECT_NAME}
 							mixer/table_mixer.hpp
 							prn_codes/GalileoE1b.hpp  
 							prn_codes/GalileoE1c.hpp  
+							prn_codes/GalileoE5aI.hpp
+							prn_codes/GalileoE5aQ.hpp
 							prn_codes/GlonassOf.hpp 
 							prn_codes/GpsL1Ca.hpp  
 							prn_codes/codegen.hpp 

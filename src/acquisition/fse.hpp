@@ -37,7 +37,7 @@ namespace ugsdr {
 		std::vector<Sv> gln_sv;
 		std::vector<Sv> galileo_sv;
 		constexpr static inline double peak_threshold = 3.5;
-		constexpr static inline double acquisition_sampling_rate = 4.096e6;
+		constexpr static inline double acquisition_sampling_rate = 8.192e6;
 
 		std::mutex m;
 
@@ -54,16 +54,19 @@ namespace ugsdr {
 			for(std::size_t i = 0; i < gps_sv.size(); ++i) {
 				gps_sv[i].system = System::Gps;
 				gps_sv[i].id = static_cast<std::int32_t>(i);
+				gps_sv[i].signal = Signal::GpsCoarseAcquisition_L1;
 			}
 			gln_sv.resize(ugsdr::gln_max_frequency - ugsdr::gln_min_frequency);
 			for (std::size_t i = 0; i < gln_sv.size(); ++i) {
 				gln_sv[i].system = System::Glonass;
 				gln_sv[i].id = ugsdr::gln_min_frequency + static_cast<std::int32_t>(i);
+				gln_sv[i].signal = Signal::GlonassCivilFdma_L1;
 			}
 			galileo_sv.resize(galileo_sv_count);
 			for (std::size_t i = 0; i < galileo_sv.size(); ++i) {
 				galileo_sv[i].system = System::Galileo;
 				galileo_sv[i].id = static_cast<std::int32_t>(i);
+				galileo_sv[i].signal = Signal::Galileo_E1b;
 			}
 		}
 
@@ -168,7 +171,7 @@ namespace ugsdr {
 				static_cast<std::size_t>(signal_sampling_rate));
 
 			std::for_each(std::execution::par_unseq, gps_sv.begin(), gps_sv.end(), [&](auto sv) {
-				const auto code = UpsamplerType::Transform(RepeatCodeNTimes(PrnGenerator<System::Gps>::Get<UnderlyingType>(sv.id), ms_to_process),
+				const auto code = UpsamplerType::Transform(RepeatCodeNTimes(PrnGenerator<Signal::GpsCoarseAcquisition_L1>::Get<UnderlyingType>(sv.id), ms_to_process),
 					static_cast<std::size_t>(ms_to_process * new_sampling_rate / 1e3));
 
 				ProcessBpsk(downsampled_signal, code, sv, signal_sampling_rate, new_sampling_rate, intermediate_frequency, dst);
@@ -182,7 +185,7 @@ namespace ugsdr {
 			auto central_frequency = digital_frontend.GetCentralFrequency(Signal::GlonassCivilFdma_L1);
 			auto new_sampling_rate = AdjustSamplingRate(signal_sampling_rate);
 
-			const auto code = UpsamplerType::Transform(RepeatCodeNTimes(PrnGenerator<System::Glonass>::Get<UnderlyingType>(0), ms_to_process),
+			const auto code = UpsamplerType::Transform(RepeatCodeNTimes(PrnGenerator<Signal::GlonassCivilFdma_L1>::Get<UnderlyingType>(0), ms_to_process),
 				static_cast<std::size_t>(ms_to_process * new_sampling_rate / 1e3));
 
 			std::for_each(std::execution::par_unseq, gln_sv.begin(), gln_sv.end(), [&](Sv litera_number) {
@@ -204,12 +207,12 @@ namespace ugsdr {
 
 			const auto translated_signal = MixerType::Translate(signal, signal_sampling_rate, -intermediate_frequency);
 			auto new_sampling_rate = AdjustSamplingRate(signal_sampling_rate);
-			auto downsampled_signal = Resampler<IppResamplerBase<false>>::Transform(translated_signal, static_cast<std::size_t>(new_sampling_rate),
+			auto downsampled_signal = Resampler<IppResampler>::Transform(translated_signal, static_cast<std::size_t>(new_sampling_rate),
 				static_cast<std::size_t>(signal_sampling_rate));
 
 			std::for_each(std::execution::par_unseq, galileo_sv.begin(), galileo_sv.end(), [&](auto sv) {
 				auto samples_per_ms = static_cast<std::size_t>(new_sampling_rate / 1e3);
-				const auto ref_code = UpsamplerType::Transform(PrnGenerator<System::Galileo>::Get<UnderlyingType>(sv.id),
+				const auto ref_code = UpsamplerType::Transform(PrnGenerator<Signal::Galileo_E1b>::Get<UnderlyingType>(sv.id),
 					ms_to_process * samples_per_ms);
 	
 				std::vector<AcquisitionResult<UnderlyingType>> temporary_dst;

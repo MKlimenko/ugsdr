@@ -66,6 +66,9 @@ namespace ugsdr {
 				return 1575.42e6;
 			case Signal::GlonassCivilFdma_L1:
 				return 1602e6;
+			case Signal::Galileo_E5aI:
+			case Signal::Galileo_E5aQ:
+				return 1176.45e6;
 			default:
 				throw std::runtime_error("Unexpected signal");
 			}

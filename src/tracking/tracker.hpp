@@ -30,7 +30,7 @@ namespace ugsdr {
 	private:
 		using UpsamplerType = Upsampler<SequentialUpsampler>;
 
-		constexpr static inline Sv glonass_sv = Sv{ 0, System::Glonass };
+		constexpr static inline Sv glonass_sv = Sv{ 0, System::Glonass, Signal::GlonassCivilFdma_L1 };
 		
 		template <typename T>
 		auto RepeatCodeNTimes(std::vector<T> code, std::size_t repeats) {
@@ -51,8 +51,8 @@ namespace ugsdr {
 				auto gps_sampling_rate = digital_frontend.GetSamplingRate(Signal::GpsCoarseAcquisition_L1);
 
 				for (std::int32_t i = 0; i < gps_sv_count; ++i) {
-					auto sv = Sv{ i, System::Gps };
-					codes[sv] = UpsamplerType::Transform(RepeatCodeNTimes(PrnGenerator<System::Gps>::Get<UnderlyingType>(i), 3),
+					auto sv = Sv{ i, System::Gps, Signal::GpsCoarseAcquisition_L1 };
+					codes[sv] = UpsamplerType::Transform(RepeatCodeNTimes(PrnGenerator<Signal::GpsCoarseAcquisition_L1>::Get<UnderlyingType>(i), 3),
 						static_cast<std::size_t>(3 * gps_sampling_rate / 1e3));
 				}
 			}
@@ -61,7 +61,7 @@ namespace ugsdr {
 				auto gln_sampling_rate = digital_frontend.GetSamplingRate(Signal::GlonassCivilFdma_L1);
 
 				auto sv = glonass_sv;
-				codes[sv] = UpsamplerType::Transform(RepeatCodeNTimes(PrnGenerator<System::Glonass>::Get<UnderlyingType>(0), 3),
+				codes[sv] = UpsamplerType::Transform(RepeatCodeNTimes(PrnGenerator<Signal::GlonassCivilFdma_L1>::Get<UnderlyingType>(0), 3),
 					static_cast<std::size_t>(3 * gln_sampling_rate / 1e3));
 			}
 
@@ -69,9 +69,39 @@ namespace ugsdr {
 				auto galileo_sampling_rate = digital_frontend.GetSamplingRate(Signal::Galileo_E1b);
 
 				for (std::int32_t i = 0; i < galileo_sv_count; ++i) {
-					auto sv = Sv{ i, System::Galileo };
-					codes[sv] = UpsamplerType::Transform(RepeatCodeNTimes(PrnGenerator<System::Galileo>::Get<UnderlyingType>(i), 3),
+					auto sv = Sv{ i, System::Galileo, Signal::Galileo_E1b };
+					codes[sv] = UpsamplerType::Transform(RepeatCodeNTimes(PrnGenerator<Signal::Galileo_E1b>::Get<UnderlyingType>(i), 3),
 						static_cast<std::size_t>(3 * 4 * galileo_sampling_rate / 1e3));
+				}
+			}
+
+			if (digital_frontend.HasSignal(Signal::Galileo_E1c)) {
+				auto galileo_sampling_rate = digital_frontend.GetSamplingRate(Signal::Galileo_E1c);
+
+				for (std::int32_t i = 0; i < galileo_sv_count; ++i) {
+					auto sv = Sv{ i, System::Galileo, Signal::Galileo_E1c };
+					codes[sv] = UpsamplerType::Transform(RepeatCodeNTimes(PrnGenerator<Signal::Galileo_E1c>::Get<UnderlyingType>(i), 3),
+						static_cast<std::size_t>(3 * 4 * galileo_sampling_rate / 1e3));
+				}
+			}
+
+			if (digital_frontend.HasSignal(Signal::Galileo_E5aI)) {
+				auto galileo_sampling_rate = digital_frontend.GetSamplingRate(Signal::Galileo_E5aI);
+
+				for (std::int32_t i = 0; i < galileo_sv_count; ++i) {
+					auto sv = Sv{ i, System::Galileo, Signal::Galileo_E5aI };
+					codes[sv] = UpsamplerType::Transform(RepeatCodeNTimes(PrnGenerator<Signal::Galileo_E5aI>::Get<UnderlyingType>(i), 3),
+						static_cast<std::size_t>(3 * galileo_sampling_rate / 1e3));
+				}
+			}
+
+			if (digital_frontend.HasSignal(Signal::Galileo_E5aQ)) {
+				auto galileo_sampling_rate = digital_frontend.GetSamplingRate(Signal::Galileo_E5aQ);
+
+				for (std::int32_t i = 0; i < galileo_sv_count; ++i) {
+					auto sv = Sv{ i, System::Galileo, Signal::Galileo_E5aQ };
+					codes[sv] = UpsamplerType::Transform(RepeatCodeNTimes(PrnGenerator<Signal::Galileo_E5aQ>::Get<UnderlyingType>(i), 3),
+						static_cast<std::size_t>(3 * galileo_sampling_rate / 1e3));
 				}
 			}
 		}
@@ -98,7 +128,7 @@ namespace ugsdr {
 		
 		void InitTrackingParameters() {
 			for (const auto& el : acquisition_results)
-				tracking_parameters.emplace_back(el, digital_frontend);
+				TrackingParameters<UnderlyingType>::FillTrackingParameters(el, digital_frontend, tracking_parameters);
 		}
 
 		template <typename T>
@@ -180,7 +210,7 @@ namespace ugsdr {
 		}
 
 		void TrackSingleSatellite(TrackingParameters<UnderlyingType>& parameters, const SignalEpoch<UnderlyingType>& signal_epoch) {
-			const auto& signal = signal_epoch.GetSubband(parameters.signal_type);
+			const auto& signal = signal_epoch.GetSubband(parameters.sv.signal);
 
 			auto copy_wrapper = GetCopyWrapper();
 						
