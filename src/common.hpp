@@ -27,6 +27,7 @@ namespace ugsdr {
 	enum class Signal : std::uint32_t {
 		GpsCoarseAcquisition_L1,
 		GlonassCivilFdma_L1,
+		GlonassCivilFdma_L2,
 		Galileo_E1b,
 		Galileo_E1c,
 		Galileo_E5aI,
@@ -88,6 +89,9 @@ namespace ugsdr {
 				break;
 			case Signal::GlonassCivilFdma_L1:
 				dst += "L1OF";
+				break;
+			case Signal::GlonassCivilFdma_L2:
+				dst += "L2OF";
 				break;
 			case Signal::Galileo_E1b:
 				dst += "E1B";

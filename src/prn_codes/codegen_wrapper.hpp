@@ -14,6 +14,7 @@ namespace ugsdr {
 	using CodegenImplMap = mk::TypeMap<
 		mk::ValueTypePair<Signal::GpsCoarseAcquisition_L1, GpsL1Ca>,
 		mk::ValueTypePair<Signal::GlonassCivilFdma_L1, GlonassOf>,
+		mk::ValueTypePair<Signal::GlonassCivilFdma_L2, GlonassOf>,
 		mk::ValueTypePair<Signal::Galileo_E1b, GalileoE1b>,
 		mk::ValueTypePair<Signal::Galileo_E1c, GalileoE1c>,
 		mk::ValueTypePair<Signal::Galileo_E5aI, GalileoE5aI>,

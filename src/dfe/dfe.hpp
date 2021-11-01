@@ -66,6 +66,8 @@ namespace ugsdr {
 				return 1575.42e6;
 			case Signal::GlonassCivilFdma_L1:
 				return 1602e6;
+			case Signal::GlonassCivilFdma_L2:
+				return 1602e6 * 7 / 9;
 			case Signal::Galileo_E5aI:
 			case Signal::Galileo_E5aQ:
 				return 1176.45e6;

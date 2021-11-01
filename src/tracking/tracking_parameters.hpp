@@ -96,11 +96,15 @@ namespace ugsdr {
 				base_code_frequency = 0.511e6;
 				code_period = 1;
 				break;
-			case Signal::Galileo_E1b:
-				code_frequency = 1.023e6 * 2; // BOC
-				base_code_frequency = 1.023e6 * 2;
-				code_period = 4;
+			case Signal::GlonassCivilFdma_L2:
+				code_frequency = 0.511e6;
+				base_code_frequency = 0.511e6;
+				code_period = 1;
+				code_phase = std::fmod(code_phase * sampling_rate / digital_frontend.GetSamplingRate(acquisition.GetAcquiredSignalType()),
+					code_period * sampling_rate / 1e3);
+				carrier_frequency *= 7.0 / 9;
 				break;
+			case Signal::Galileo_E1b:
 			case Signal::Galileo_E1c:
 				code_frequency = 1.023e6 * 2; // BOC
 				base_code_frequency = 1.023e6 * 2;
@@ -120,14 +124,29 @@ namespace ugsdr {
 			}
 		}
 
+		template <Signal signal>
+		static bool VerifySignalPresence(DigitalFrontend<T>& digital_frontend, TrackingParameters<T>& parameters) {
+			const auto& epoch = digital_frontend.GetEpoch(0).GetSubband(signal);
+			const auto translated = IppMixer::Translate(epoch, parameters.sampling_rate, -parameters.carrier_frequency);
+			auto code = SequentialUpsampler::Transform(PrnGenerator<signal>::template Get<T>(parameters.sv.id),
+				static_cast<std::size_t>(digital_frontend.GetSamplingRate(signal) / 1e3));
+			std::rotate(code.begin(), code.begin() + static_cast<std::size_t>(parameters.code_phase), code.end());
+
+			ugsdr::Add(L"Matched output " + std::to_wstring(parameters.sv), IppAbs::Transform(IppMatchedFilter::Filter(translated, code)));
+			
+			return true;
+		}
+
 		static void AddGps(const AcquisitionResult<T>& acquisition, DigitalFrontend<T>& digital_frontend, std::vector<TrackingParameters<T>>& dst) {
 			dst.emplace_back(acquisition, digital_frontend);
 		}
 
 		static void AddGlonass(const AcquisitionResult<T>& acquisition, DigitalFrontend<T>& digital_frontend, std::vector<TrackingParameters<T>>& dst) {
 			dst.emplace_back(acquisition, digital_frontend);
+			if (digital_frontend.HasSignal(Signal::GlonassCivilFdma_L2))
+				dst.emplace_back(acquisition, digital_frontend, Signal::GlonassCivilFdma_L2);
 		}
-
+		
 		static void AddGalileo(const AcquisitionResult<T>& acquisition, DigitalFrontend<T>& digital_frontend, std::vector<TrackingParameters<T>>& dst) {
 			dst.emplace_back(acquisition, digital_frontend);
 			if (digital_frontend.HasSignal(Signal::Galileo_E1c))
@@ -136,20 +155,6 @@ namespace ugsdr {
 				dst.emplace_back(acquisition, digital_frontend, Signal::Galileo_E5aI);
 			if (digital_frontend.HasSignal(Signal::Galileo_E5aQ))
 				dst.emplace_back(acquisition, digital_frontend, Signal::Galileo_E5aQ);
-
-			//auto& latest_params = dst.back();
-			//const auto& epoch = digital_frontend.GetEpoch(0).GetSubband(Signal::Galileo_E5aQ);
-
-			//const auto translated = IppMixer::Translate(epoch, latest_params.sampling_rate, -latest_params.carrier_frequency);
-			//ugsdr::Add(translated);
-			//auto code = SequentialUpsampler::Transform(PrnGenerator<Signal::Galileo_E5aQ>::Get<T>(acquisition.sv_number.id),
-			//	static_cast<std::size_t>(digital_frontend.GetSamplingRate(Signal::Galileo_E5aQ) / 1e3));
-			//std::rotate(code.begin(), code.begin() + static_cast<std::size_t>(latest_params.code_phase), code.end());
-			////ugsdr::Add(PrnGenerator<Signal::Galileo_E5aQ>::Get<T>(acquisition.sv_number.id));
-			////ugsdr::Add(code);
-
-			//auto matched_output = IppMatchedFilter::Filter(translated, code);
-			//ugsdr::Add(matched_output);
 		}
 
 		static void FillTrackingParameters(const AcquisitionResult<T>& acquisition, DigitalFrontend<T>& digital_frontend, std::vector<TrackingParameters<T>>& dst) {
