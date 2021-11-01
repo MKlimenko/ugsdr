@@ -16,22 +16,22 @@ add_executable (${PROJECT_NAME}
 							helpers/ipp_complex_type_converter.hpp
 							helpers/is_complex.hpp
 							helpers/visualizer.hpp 
-							matched_filter/matched_filter.hpp 
 							matched_filter/af_matched_filter.hpp
 							matched_filter/ipp_matched_filter.hpp
+							matched_filter/matched_filter.hpp 
 							math/abs.hpp
-							math/ipp_abs.hpp
-							math/conj.hpp
-							math/ipp_conj.hpp
-							math/dft.hpp
 							math/af_dft.hpp
+							math/conj.hpp
+							math/dft.hpp
+							math/ipp_abs.hpp
+							math/ipp_conj.hpp
 							math/ipp_dft.hpp
-							math/max_index.hpp
 							math/ipp_max_index.hpp
-							math/reshape_and_sum.hpp
-							math/ipp_reshape_and_sum.hpp
-							math/mean_stddev.hpp
 							math/ipp_mean_stddev.hpp
+							math/ipp_reshape_and_sum.hpp
+							math/max_index.hpp
+							math/mean_stddev.hpp
+							math/reshape_and_sum.hpp
 							measurements/measurement_engine.hpp
 							measurements/observable.hpp
 							measurements/timescale.hpp
@@ -41,23 +41,25 @@ add_executable (${PROJECT_NAME}
 							mixer/mixer.hpp 
 							mixer/nco.hpp
 							mixer/table_mixer.hpp
+							prn_codes/codegen.hpp 
+							prn_codes/codegen_wrapper.hpp
 							prn_codes/GalileoE1b.hpp  
 							prn_codes/GalileoE1c.hpp  
-							prn_codes/GalileoE5a.hpp
+							prn_codes/GalileoE5.hpp 
 							prn_codes/GalileoE5aI.hpp
 							prn_codes/GalileoE5aQ.hpp
+							prn_codes/GalileoE5bI.hpp
+							prn_codes/GalileoE5bQ.hpp
 							prn_codes/GlonassOf.hpp 
 							prn_codes/GpsL1Ca.hpp  
-							prn_codes/codegen.hpp 
 							prn_codes/lfsr.hpp 
 							prn_codes/MemoryCodes.hpp  
-							prn_codes/codegen_wrapper.hpp
 							resample/decimator.hpp 
 							resample/ipp_decimator.hpp 
-							resample/resampler.hpp 
 							resample/ipp_resampler.hpp 
-							resample/upsampler.hpp 
 							resample/ipp_upsampler.hpp 
+							resample/resampler.hpp 
+							resample/upsampler.hpp 
 							serialization/serialization.hpp
 							tracking/tracker.hpp
 							tracking/tracking_parameters.hpp

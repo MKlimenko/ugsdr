@@ -1,13 +1,13 @@
 #pragma once
 
 #include "codegen.hpp"
-#include "GalileoE5a.hpp"
+#include "GalileoE5.hpp"
 
 #include <array>
 #include <string>
 
 namespace ugsdr {
-	class GalileoE5aI final : public Codegen<GalileoE5aI>, public GalileoE5a {
+	class GalileoE5aI final : public Codegen<GalileoE5aI>, public GalileoE5< (040503 >> 1), (050661 >> 1)> {
 	private:
 		static constexpr std::size_t code_len = 10230;
 
@@ -38,7 +38,7 @@ namespace ugsdr {
 
 		template <typename T>
 		static void Generate(T* prn, std::size_t sv_number) {
-			GalileoE5a::Generate(prn, sv_number, SecondLfsrPhase);
+			GalileoE5::Generate(prn, sv_number, SecondLfsrPhase);
 		}
 	};
 }

@@ -6,11 +6,12 @@
 #include <stdexcept>
 
 namespace ugsdr {
-	class GalileoE5a {
+	template <std::uint32_t lfsr_val_1, std::uint32_t lfsr_val_2>
+	class GalileoE5 {
 	private:
 		static constexpr std::size_t code_len = 10230;
 		static constexpr std::size_t initial_value = 0xFFFFFFFF;
-		static constexpr std::array<std::uint32_t, 2> lfsr_poly = {040503 >> 1, 050661 >> 1 };
+		static constexpr std::array<std::uint32_t, 2> lfsr_poly = { lfsr_val_1, lfsr_val_2 };
 		static constexpr std::size_t lfsr_output_pin = 13;
 		
 	protected:

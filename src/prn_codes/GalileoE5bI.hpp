@@ -7,26 +7,26 @@
 #include <string>
 
 namespace ugsdr {
-	class GalileoE5aQ final : public Codegen<GalileoE5aQ>, public GalileoE5< (040503 >> 1), (050661 >> 1)> {
+	class GalileoE5bI final : public Codegen<GalileoE5bI>, public GalileoE5< (064021 >> 1), (051445 >> 1)> {
 	private:
 		static constexpr std::size_t code_len = 10230;
 
 		static std::size_t SecondLfsrPhase(std::size_t sv_number) {
 			constexpr static auto delay_table = std::array{
-				9429,	7251,	11349,	5127,	10136,	6507,	13047,	10543,	16258,	11684,	10019,	14529,
-				5499,	9822,	5382,	8283,	10936,	10741,	3372,	4469,	11078,	7249,	14380,	1348,
-				8116,	6124,	2287,	99,	16023,	1471,	5340,	16324,	12693,	11908,	9371,	4782,	8762,
-				8084,	15792,	4162,	5988,	15478,	7013,	1776,	13009,	2343,	13561,	4993,	11991,	2426
+				1885,	15693,	11828,	12777,	6107,	4456,	11498,	11259,	1386,	3047,	11008,	8649,
+				11983,	8855,	11527,	4778,	14687,	12597,	11871,	7960,	1883,	4943,	2305,	4813,
+				10621,	9544,	1378,	12025,	4306,	5555,	5262,	5402,	5044,	9329,	14670,	3360,
+				14974,	69,	3100,	2703,	8928,	5333,	7860,	5517,	10551,	4117,	1041,	3082,	11618,	9005,
 			};
 
 			if (sv_number >= delay_table.size())
 				throw std::runtime_error("SV number for the Galileo E5aI code exceed available values");
 
 			return delay_table[sv_number];
-		}
-
+		}		
+		
 	protected:
-		friend class Codegen<GalileoE5aQ>;
+		friend class Codegen<GalileoE5bI>;
 
 		static auto NumberOfMilliseconds() {
 			return 1;
