@@ -68,6 +68,10 @@ namespace ugsdr {
 	protected:
 		friend class Codegen<GalileoE1b>;
 
+		static auto NumberOfMilliseconds() {
+			return 4;
+		}
+		
 		static auto GetCodeLength() {
 			return memory_code_len * 2;
 		}

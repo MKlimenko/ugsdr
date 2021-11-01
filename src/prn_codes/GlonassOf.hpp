@@ -13,6 +13,10 @@ namespace ugsdr {
 	protected:
 		friend class Codegen<GlonassOf>;
 
+		static auto NumberOfMilliseconds() {
+			return 1;
+		}
+
 		static auto GetCodeLength() {
 			return code_len;
 		}

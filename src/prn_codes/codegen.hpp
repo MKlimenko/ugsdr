@@ -14,6 +14,10 @@ namespace ugsdr {
 		}
 		
 	public:
+		static auto GetNumberOfMilliseconds() {
+			return CodegenImpl::NumberOfMilliseconds();
+		}
+		
 		template <typename T>
 		static void Get(T* prn, std::size_t sv_number) {
 			CodegenImpl::Generate(prn, sv_number);

@@ -20,13 +20,17 @@ namespace ugsdr {
 				861, 862, 863, 950, 947, 948, 950
 			};
 
-			if (sv_number > delay_table.size())
+			if (sv_number >= delay_table.size())
 				throw std::runtime_error("SV number for the GPS C/A code exceed available values");
 
 			return 1023 - delay_table[sv_number];
 		}
 	protected:
 		friend class Codegen<GpsL1Ca>;
+
+		static auto NumberOfMilliseconds() {
+			return 1;
+		}
 
 		static auto GetCodeLength() {
 			return code_len;
