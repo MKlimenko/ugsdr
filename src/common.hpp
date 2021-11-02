@@ -6,6 +6,7 @@
 #include <cereal/archives/binary.hpp>
 #include <cereal/archives/json.hpp>
 #include <cereal/archives/xml.hpp>
+#include <vector>
 
 #ifdef HAS_SIGNAL_PLOT
 #define NOMINMAX
@@ -26,12 +27,15 @@ namespace ugsdr {
 	
 	enum class Signal : std::uint32_t {
 		GpsCoarseAcquisition_L1,
+		Gps_L2CM,
 		GlonassCivilFdma_L1,
 		GlonassCivilFdma_L2,
 		Galileo_E1b,
 		Galileo_E1c,
 		Galileo_E5aI,
-		Galileo_E5aQ
+		Galileo_E5aQ,
+		Galileo_E5bI,
+		Galileo_E5bQ
 	};
 
 	enum class System : std::uint32_t {
@@ -40,6 +44,48 @@ namespace ugsdr {
 		Galileo,
 	};
 
+	template <typename T>
+	auto RepeatCodeNTimes(std::vector<T> code, std::size_t repeats) {
+		auto code_period = code.size();
+		for (std::size_t i = 1; i < repeats; ++i)
+			code.insert(code.end(), code.begin(), code.begin() + code_period);
+
+		return code;
+	}
+
+	constexpr auto GetSystemBySignal(Signal signal) {
+		switch (signal) {
+		case Signal::GpsCoarseAcquisition_L1:
+		case Signal::Gps_L2CM:
+			return System::Gps;
+		case Signal::GlonassCivilFdma_L1:
+		case Signal::GlonassCivilFdma_L2:
+			return System::Glonass;
+		case Signal::Galileo_E1b:
+		case Signal::Galileo_E1c:
+		case Signal::Galileo_E5aI:
+		case Signal::Galileo_E5aQ:
+		case Signal::Galileo_E5bI:
+		case Signal::Galileo_E5bQ:
+			return System::Galileo;
+		default:
+			throw std::runtime_error("Unexpected signal");
+		}
+	}
+
+	constexpr std::size_t GetCodesCount(System system) {
+		switch (system) {
+		case System::Gps:
+			return gps_sv_count;
+		case System::Glonass:
+			return 1;
+		case System::Galileo:
+			return galileo_sv_count;
+		default:
+			throw std::runtime_error("Unexpected system");
+		}
+	}
+
 	struct Sv {
 		std::int32_t id : 8;
 		System system : 8;
@@ -47,6 +93,7 @@ namespace ugsdr {
 
 		constexpr Sv() : Sv(0, System::Gps, Signal::GpsCoarseAcquisition_L1) {}
 		constexpr Sv(std::int32_t id_val, System system_val, Signal signal_val) : id(id_val), system(system_val), signal(signal_val) {}
+		constexpr Sv(std::int32_t id_val, Signal signal_val) : id(id_val), system(GetSystemBySignal(signal_val)), signal(signal_val) {}
 
 		operator Signal() const {
 			return signal;
@@ -87,6 +134,9 @@ namespace ugsdr {
 			case Signal::GpsCoarseAcquisition_L1:
 				dst += "C/A L1";
 				break;
+			case Signal::Gps_L2CM:
+				dst += "L2CM";
+				break;
 			case Signal::GlonassCivilFdma_L1:
 				dst += "L1OF";
 				break;
@@ -104,6 +154,12 @@ namespace ugsdr {
 				break;
 			case Signal::Galileo_E5aQ:
 				dst += "E5aQ";
+				break;
+			case Signal::Galileo_E5bI:
+				dst += "E5bI";
+				break;
+			case Signal::Galileo_E5bQ:
+				dst += "E5bQ";
 				break;
 			default:
 				break;

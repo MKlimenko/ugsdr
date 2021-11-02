@@ -2,7 +2,12 @@
 
 #include "../common.hpp"
 #include "../acquisition/acquisition_result.hpp"
+#include "../correlator/ipp_correlator.hpp"
 #include "../dfe/dfe.hpp"
+#include "../mixer/ipp_mixer.hpp"
+
+#include <complex>
+#include <span>
 
 namespace ugsdr {
 	template <typename T>
@@ -24,6 +29,19 @@ namespace ugsdr {
 		constexpr static inline double SUMMATION_INTERVAL_DLL = 0.001;
 		constexpr static inline double K1_DLL = TAU2CODE / TAU1CODE;
 		constexpr static inline double K2_DLL = SUMMATION_INTERVAL_DLL / TAU1CODE;
+
+		static auto AddWithPhase(std::complex<T> lhs, std::complex<T> rhs, double relative_phase) {
+			if (relative_phase > 0.5)
+				std::swap(lhs, rhs);
+
+			const auto weighted_lhs = lhs.real() / relative_phase;
+			const auto weighted_rhs = rhs.real() / (1.0 - relative_phase);
+			if (std::abs(weighted_lhs + weighted_rhs) > std::abs(weighted_lhs))
+				return lhs + rhs;
+			return lhs - rhs;
+		}
+
+		using CorrelatorType = IppCorrelator;
 
 	public:
 		Sv sv;
@@ -84,22 +102,47 @@ namespace ugsdr {
 			late.reserve(epochs_to_process);
 		}
 
+		static auto GetCodePeriod(Signal signal) {
+			switch (signal) {
+			case Signal::GpsCoarseAcquisition_L1:
+			case Signal::GlonassCivilFdma_L1:
+			case Signal::GlonassCivilFdma_L2:
+			case Signal::Galileo_E5aI:
+			case Signal::Galileo_E5aQ:
+			case Signal::Galileo_E5bI:
+			case Signal::Galileo_E5bQ:
+				return 1;
+			case Signal::Gps_L2CM:
+				return 20;
+			case Signal::Galileo_E1b:
+			case Signal::Galileo_E1c:
+				return 4;
+			default:
+				throw std::runtime_error("Unexpected signal");
+			}
+
+		}
+
 		void AdaptAcquisitionData(const AcquisitionResult<T>& acquisition, DigitalFrontend<T>& digital_frontend) {
+			code_period = GetCodePeriod(sv.signal);
+
 			switch (sv.signal) {
 			case Signal::GpsCoarseAcquisition_L1:
 				code_frequency = 1.023e6;
 				base_code_frequency = 1.023e6;
-				code_period = 1;
+				break;
+			case Signal::Gps_L2CM:
+				code_frequency = 1.023e6 / 2;
+				base_code_frequency = 1.023e6 / 2;
+				carrier_frequency *= 1227.6e6 / 1575.42e6;
 				break;
 			case Signal::GlonassCivilFdma_L1:
 				code_frequency = 0.511e6;
 				base_code_frequency = 0.511e6;
-				code_period = 1;
 				break;
 			case Signal::GlonassCivilFdma_L2:
 				code_frequency = 0.511e6;
 				base_code_frequency = 0.511e6;
-				code_period = 1;
 				code_phase = std::fmod(code_phase * sampling_rate / digital_frontend.GetSamplingRate(acquisition.GetAcquiredSignalType()),
 					code_period * sampling_rate / 1e3);
 				carrier_frequency *= 7.0 / 9;
@@ -108,53 +151,90 @@ namespace ugsdr {
 			case Signal::Galileo_E1c:
 				code_frequency = 1.023e6 * 2; // BOC
 				base_code_frequency = 1.023e6 * 2;
-				code_period = 4;
 				break;
 			case Signal::Galileo_E5aI:
 			case Signal::Galileo_E5aQ:
 				code_frequency = 10.23e6;
 				base_code_frequency = 10.23e6;
-				code_period = 1;
 				code_phase = std::fmod(code_phase * sampling_rate / digital_frontend.GetSamplingRate(acquisition.GetAcquiredSignalType()),
 					code_period * sampling_rate / 1e3);
 				carrier_frequency *= 1176.45e6 / 1575.42e6;
 				break;
-			default:
+			case Signal::Galileo_E5bI:
+			case Signal::Galileo_E5bQ:
+				code_frequency = 10.23e6;
+				base_code_frequency = 10.23e6;
+				code_phase = std::fmod(code_phase * sampling_rate / digital_frontend.GetSamplingRate(acquisition.GetAcquiredSignalType()),
+					code_period * sampling_rate / 1e3);
+				carrier_frequency *= 1207.14e6 / 1575.42e6;
 				break;
+			default:
+				throw std::runtime_error("Unexpected signal");
 			}
 		}
 
-		template <Signal signal>
-		static bool VerifySignalPresence(DigitalFrontend<T>& digital_frontend, TrackingParameters<T>& parameters) {
-			const auto& epoch = digital_frontend.GetEpoch(0).GetSubband(signal);
-			const auto translated = IppMixer::Translate(epoch, parameters.sampling_rate, -parameters.carrier_frequency);
-			auto code = SequentialUpsampler::Transform(PrnGenerator<signal>::template Get<T>(parameters.sv.id),
-				static_cast<std::size_t>(digital_frontend.GetSamplingRate(signal) / 1e3));
-			std::rotate(code.begin(), code.begin() + static_cast<std::size_t>(parameters.code_phase), code.end());
+		template <typename Tc>
+		static auto CorrelateTranslated(const std::vector<std::complex<T>>& epoch, const TrackingParameters<T>& parameters, const Tc& code, double frequency_offset = 0.0) {
+			const auto translated = IppMixer::Translate(epoch, parameters.sampling_rate, -parameters.carrier_frequency + frequency_offset);
+			return parameters.CorrelateSplit(translated, code, parameters.code_phase);
+		}
 
-			ugsdr::Add(L"Matched output " + std::to_wstring(parameters.sv), IppAbs::Transform(IppMatchedFilter::Filter(translated, code)));
-			
-			return true;
+		template <Signal signal>
+		static void AddSignalImpl(const AcquisitionResult<T>& acquisition, DigitalFrontend<T>& digital_frontend, std::vector<TrackingParameters<T>>& dst) {
+			if (!digital_frontend.HasSignal(signal))
+				return;
+
+			auto parameters = TrackingParameters<T>(acquisition, digital_frontend, signal);
+			auto samples_per_ms = digital_frontend.GetSamplingRate(signal) / 1e3;
+			const auto& epoch = digital_frontend.GetSeveralEpochs(0, 60).GetSubband(signal);
+			auto code = SequentialUpsampler::Transform(RepeatCodeNTimes(PrnGenerator<signal>::template Get<T>(parameters.sv.id), 3),
+				static_cast<std::size_t>(3 * PrnGenerator<signal>::GetNumberOfMilliseconds() * samples_per_ms));
+
+			auto iterations = std::max(1, GetCodePeriod(signal) / GetCodePeriod(acquisition.GetAcquiredSignalType()));
+
+			for (std::size_t i = 0; i < iterations; ++i) {
+				auto correlator_value = std::abs(CorrelateTranslated(epoch, parameters, code));
+				auto correlator_value_offset = std::abs(CorrelateTranslated(epoch, parameters, code, 1e6));
+				// will work for now, but this should be executed after L1 lock
+				if (correlator_value / correlator_value_offset >= 1.5) {
+					parameters.code_phase += samples_per_ms * i;
+					dst.push_back(std::move(parameters));
+					return;
+				}
+			}
+		}
+
+		template <Signal signal, Signal ... signals>
+		static void AddSignal(const AcquisitionResult<T>& acquisition, DigitalFrontend<T>& digital_frontend, std::vector<TrackingParameters<T>>& dst) {
+			AddSignalImpl<signal>(acquisition, digital_frontend, dst);
+			if constexpr (sizeof...(signals) != 0)
+				AddSignal<signals...>(acquisition, digital_frontend, dst);
 		}
 
 		static void AddGps(const AcquisitionResult<T>& acquisition, DigitalFrontend<T>& digital_frontend, std::vector<TrackingParameters<T>>& dst) {
-			dst.emplace_back(acquisition, digital_frontend);
+			AddSignal<
+				Signal::GpsCoarseAcquisition_L1
+				//Signal::Gps_L2CM // todo: fix l2cm tracking
+			>(acquisition, digital_frontend, dst);
 		}
 
 		static void AddGlonass(const AcquisitionResult<T>& acquisition, DigitalFrontend<T>& digital_frontend, std::vector<TrackingParameters<T>>& dst) {
-			dst.emplace_back(acquisition, digital_frontend);
-			if (digital_frontend.HasSignal(Signal::GlonassCivilFdma_L2))
-				dst.emplace_back(acquisition, digital_frontend, Signal::GlonassCivilFdma_L2);
+			AddSignal<
+				Signal::GlonassCivilFdma_L1, 
+				Signal::GlonassCivilFdma_L2
+			>(acquisition, digital_frontend, dst);
 		}
 		
 		static void AddGalileo(const AcquisitionResult<T>& acquisition, DigitalFrontend<T>& digital_frontend, std::vector<TrackingParameters<T>>& dst) {
 			dst.emplace_back(acquisition, digital_frontend);
-			if (digital_frontend.HasSignal(Signal::Galileo_E1c))
-				dst.emplace_back(acquisition, digital_frontend, Signal::Galileo_E1c);
-			if (digital_frontend.HasSignal(Signal::Galileo_E5aI))
-				dst.emplace_back(acquisition, digital_frontend, Signal::Galileo_E5aI);
-			if (digital_frontend.HasSignal(Signal::Galileo_E5aQ))
-				dst.emplace_back(acquisition, digital_frontend, Signal::Galileo_E5aQ);
+			AddSignal<
+				Signal::Galileo_E1b,
+				Signal::Galileo_E1c, 
+				Signal::Galileo_E5aI,
+				Signal::Galileo_E5aQ,
+				Signal::Galileo_E5bI,
+				Signal::Galileo_E5bQ
+			>(acquisition, digital_frontend, dst);
 		}
 
 		static void FillTrackingParameters(const AcquisitionResult<T>& acquisition, DigitalFrontend<T>& digital_frontend, std::vector<TrackingParameters<T>>& dst) {
@@ -175,6 +255,28 @@ namespace ugsdr {
 
 		auto GetSamplesPerChip() const {
 			return sampling_rate / base_code_frequency;
+		}
+
+		template <typename T1, typename T2>
+		auto CorrelateSplit(const T1& translated_signal, const T2& full_code, double current_code_phase) const {
+			auto samples_per_ms = static_cast<std::size_t>(sampling_rate / 1e3);
+			auto code_period_samples = samples_per_ms * code_period;
+
+			while (current_code_phase < 0)
+				current_code_phase += code_period_samples;
+			if (current_code_phase > code_period_samples)
+				current_code_phase = std::fmod(current_code_phase, code_period_samples);
+
+			auto first_batch_length = static_cast<std::size_t>(std::ceil(code_period_samples - current_code_phase)) % samples_per_ms;
+			auto second_batch_length = samples_per_ms - first_batch_length;
+
+			auto first_batch_phase = static_cast<std::size_t>(std::ceil(code_period_samples + current_code_phase));
+			auto second_batch_phase = first_batch_phase + first_batch_length;
+
+			auto first = CorrelatorType::Correlate(std::span(translated_signal.begin(), first_batch_length), std::span(full_code.begin() + first_batch_phase, first_batch_length));
+			auto second = CorrelatorType::Correlate(std::span(translated_signal.begin() + first_batch_length, second_batch_length), std::span(full_code.begin() + second_batch_phase, second_batch_length));
+
+			return AddWithPhase(first, second, std::fmod(current_code_phase, samples_per_ms) / samples_per_ms);
 		}
 
 		void Pll(const std::complex<T>& current_prompt) {

@@ -51,7 +51,10 @@ add_executable (${PROJECT_NAME}
 							prn_codes/GalileoE5bI.hpp
 							prn_codes/GalileoE5bQ.hpp
 							prn_codes/GlonassOf.hpp 
-							prn_codes/GpsL1Ca.hpp  
+							prn_codes/GoldCodes.hpp  
+							prn_codes/GpsL1Ca.hpp 
+							prn_codes/GpsL2CM.hpp 
+							prn_codes/L2CM.hpp  
 							prn_codes/lfsr.hpp 
 							prn_codes/MemoryCodes.hpp  
 							resample/decimator.hpp 

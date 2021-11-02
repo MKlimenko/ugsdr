@@ -21,10 +21,8 @@ int main() {
 	auto signal_parameters_L2 =  ugsdr::SignalParametersBase<float>(R"(../../../../data/nt1065_grabber.bin)", ugsdr::FileType::Nt1065GrabberFourth, 1200e6, 79.5e6);
 
 	auto digital_frontend = ugsdr::DigitalFrontend(
-		MakeChannel(signal_parameters, std::vector{ ugsdr::Signal::Galileo_E1b, ugsdr::Signal::Galileo_E1c }, signal_parameters.GetSamplingRate() / 5),
-		MakeChannel(signal_parameters_L5, std::vector{ ugsdr::Signal::Galileo_E5aI, ugsdr::Signal::Galileo_E5aQ }, signal_parameters_L5.GetSamplingRate())
-		//MakeChannel(signal_parameters_gln, ugsdr::Signal::GlonassCivilFdma_L1, signal_parameters_gln.GetSamplingRate() / 6),
-		//MakeChannel(signal_parameters_L2, ugsdr::Signal::GlonassCivilFdma_L2, signal_parameters_L2.GetSamplingRate() / 6)
+		MakeChannel(signal_parameters, std::vector{ ugsdr::Signal::GpsCoarseAcquisition_L1 }, signal_parameters.GetSamplingRate()),
+		MakeChannel(signal_parameters_L2, std::vector{ ugsdr::Signal::Gps_L2CM }, signal_parameters.GetSamplingRate())
 	);
 
 #if 1

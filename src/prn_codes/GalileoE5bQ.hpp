@@ -38,7 +38,7 @@ namespace ugsdr {
 
 		template <typename T>
 		static void Generate(T* prn, std::size_t sv_number) {
-			GalileoE5a::Generate(prn, sv_number, SecondLfsrPhase);
+			GalileoE5::Generate(prn, sv_number, SecondLfsrPhase);
 		}
 	};
 }

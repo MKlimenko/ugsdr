@@ -29,81 +29,36 @@ namespace ugsdr {
 	struct Codes final {
 	private:
 		using UpsamplerType = Upsampler<SequentialUpsampler>;
+		using MapType = std::map<Sv, std::vector<UnderlyingType>>;
 
 		constexpr static inline Sv glonass_sv = Sv{ 0, System::Glonass, Signal::GlonassCivilFdma_L1 };
-		
-		template <typename T>
-		auto RepeatCodeNTimes(std::vector<T> code, std::size_t repeats) {
-			auto code_period = code.size();
-			for (std::size_t i = 1; i < repeats; ++i)
-				code.insert(code.end(), code.begin(), code.begin() + code_period);
-
-			return code;
-		}
-
-		using MapType = std::map<Sv, std::vector<UnderlyingType>>;
 
 	public:
 		MapType codes;
 
+		template <Signal signal>
+		void FillCodes(const DigitalFrontend<UnderlyingType>& digital_frontend) {
+			if (!digital_frontend.HasSignal(signal))
+				return;
+
+			auto sampling_rate = digital_frontend.GetSamplingRate(signal);
+			for (std::int32_t i = 0; i < GetCodesCount(GetSystemBySignal(signal)); ++i) {
+				auto sv = Sv{ i, GetSystemBySignal(signal), signal };
+				codes[sv] = UpsamplerType::Transform(RepeatCodeNTimes(PrnGenerator<signal>::template Get<UnderlyingType>(i), 3),
+					static_cast<std::size_t>(3 * PrnGenerator<signal>::GetNumberOfMilliseconds() * sampling_rate / 1e3));
+			}
+		}
+
 		Codes(const DigitalFrontend<UnderlyingType>& digital_frontend) {
-			if (digital_frontend.HasSignal(Signal::GpsCoarseAcquisition_L1)) {
-				auto gps_sampling_rate = digital_frontend.GetSamplingRate(Signal::GpsCoarseAcquisition_L1);
-
-				for (std::int32_t i = 0; i < gps_sv_count; ++i) {
-					auto sv = Sv{ i, System::Gps, Signal::GpsCoarseAcquisition_L1 };
-					codes[sv] = UpsamplerType::Transform(RepeatCodeNTimes(PrnGenerator<Signal::GpsCoarseAcquisition_L1>::Get<UnderlyingType>(i), 3),
-						static_cast<std::size_t>(3 * gps_sampling_rate / 1e3));
-				}
-			}
-
-			if (digital_frontend.HasSignal(Signal::GlonassCivilFdma_L1)) {
-				auto gln_sampling_rate = digital_frontend.GetSamplingRate(Signal::GlonassCivilFdma_L1);
-
-				auto sv = glonass_sv;
-				codes[sv] = UpsamplerType::Transform(RepeatCodeNTimes(PrnGenerator<Signal::GlonassCivilFdma_L1>::Get<UnderlyingType>(0), 3),
-					static_cast<std::size_t>(3 * gln_sampling_rate / 1e3));
-			}
-
-			if (digital_frontend.HasSignal(Signal::Galileo_E1b)) {
-				auto galileo_sampling_rate = digital_frontend.GetSamplingRate(Signal::Galileo_E1b);
-
-				for (std::int32_t i = 0; i < galileo_sv_count; ++i) {
-					auto sv = Sv{ i, System::Galileo, Signal::Galileo_E1b };
-					codes[sv] = UpsamplerType::Transform(RepeatCodeNTimes(PrnGenerator<Signal::Galileo_E1b>::Get<UnderlyingType>(i), 3),
-						static_cast<std::size_t>(3 * 4 * galileo_sampling_rate / 1e3));
-				}
-			}
-
-			if (digital_frontend.HasSignal(Signal::Galileo_E1c)) {
-				auto galileo_sampling_rate = digital_frontend.GetSamplingRate(Signal::Galileo_E1c);
-
-				for (std::int32_t i = 0; i < galileo_sv_count; ++i) {
-					auto sv = Sv{ i, System::Galileo, Signal::Galileo_E1c };
-					codes[sv] = UpsamplerType::Transform(RepeatCodeNTimes(PrnGenerator<Signal::Galileo_E1c>::Get<UnderlyingType>(i), 3),
-						static_cast<std::size_t>(3 * 4 * galileo_sampling_rate / 1e3));
-				}
-			}
-
-			if (digital_frontend.HasSignal(Signal::Galileo_E5aI)) {
-				auto galileo_sampling_rate = digital_frontend.GetSamplingRate(Signal::Galileo_E5aI);
-
-				for (std::int32_t i = 0; i < galileo_sv_count; ++i) {
-					auto sv = Sv{ i, System::Galileo, Signal::Galileo_E5aI };
-					codes[sv] = UpsamplerType::Transform(RepeatCodeNTimes(PrnGenerator<Signal::Galileo_E5aI>::Get<UnderlyingType>(i), 3),
-						static_cast<std::size_t>(3 * galileo_sampling_rate / 1e3));
-				}
-			}
-
-			if (digital_frontend.HasSignal(Signal::Galileo_E5aQ)) {
-				auto galileo_sampling_rate = digital_frontend.GetSamplingRate(Signal::Galileo_E5aQ);
-
-				for (std::int32_t i = 0; i < galileo_sv_count; ++i) {
-					auto sv = Sv{ i, System::Galileo, Signal::Galileo_E5aQ };
-					codes[sv] = UpsamplerType::Transform(RepeatCodeNTimes(PrnGenerator<Signal::Galileo_E5aQ>::Get<UnderlyingType>(i), 3),
-						static_cast<std::size_t>(3 * galileo_sampling_rate / 1e3));
-				}
-			}
+			FillCodes<Signal::GpsCoarseAcquisition_L1>(digital_frontend);
+			FillCodes<Signal::Gps_L2CM>(digital_frontend);
+			FillCodes<Signal::GlonassCivilFdma_L1>(digital_frontend);
+			FillCodes<Signal::Galileo_E1b>(digital_frontend);
+			FillCodes<Signal::Galileo_E1c>(digital_frontend);
+			FillCodes<Signal::Galileo_E5aI>(digital_frontend);
+			FillCodes<Signal::Galileo_E5aQ>(digital_frontend);
+			FillCodes<Signal::Galileo_E5bI>(digital_frontend);
+			FillCodes<Signal::Galileo_E5bQ>(digital_frontend);
 		}
 
 		const auto& GetCode(Sv sv) const {
@@ -122,56 +77,12 @@ namespace ugsdr {
 		Codes<UnderlyingType> codes;
 		std::vector<TrackingParameters<UnderlyingType>> tracking_parameters;
 
-		using CorrelatorType = IppCorrelator;
 		using MatchedFilterType = IppMatchedFilter;
-		using MixerType = Mixer<IppMixer>;
+		using MixerType = IppMixer;
 		
 		void InitTrackingParameters() {
 			for (const auto& el : acquisition_results)
 				TrackingParameters<UnderlyingType>::FillTrackingParameters(el, digital_frontend, tracking_parameters);
-		}
-
-		template <typename T>
-		auto AddWithPhase(std::complex<T> lhs, std::complex<T> rhs, double relative_phase) {
-			if (relative_phase > 0.5)
-				std::swap(lhs, rhs);
-
-			const auto weighted_lhs = lhs.real() / relative_phase;
-			const auto weighted_rhs = rhs.real() / (1.0 - relative_phase);
-			if (std::abs(weighted_lhs + weighted_rhs) > std::abs(weighted_lhs))
-				return lhs + rhs;
-			return lhs - rhs;
-		}
-
-		template <typename T1, typename T2>
-		auto Correlate(const T1& translated_signal, const T2& full_code, std::size_t samples_per_ms, std::pair<double, std::complex<UnderlyingType>>& code_phase_and_output) {
-			auto full_phase = static_cast<std::size_t>(std::ceil(samples_per_ms + code_phase_and_output.first));
-			const auto current_code = std::span(full_code.begin() + full_phase, samples_per_ms);
-			code_phase_and_output.second = CorrelatorType::Correlate(std::span(translated_signal), current_code);
-		}
-
-		template <typename T1, typename T2>
-		auto CorrelateSplit(const T1& translated_signal, const T2& full_code, const TrackingParameters<UnderlyingType>& parameters, std::pair<double, std::complex<UnderlyingType>>& code_phase_and_output) {
-			auto samples_per_ms = static_cast<std::size_t>(parameters.sampling_rate / 1e3);
-			auto code_period_samples = samples_per_ms * parameters.code_period;
-
-			auto& current_code_phase = code_phase_and_output.first;
-
-			while (current_code_phase < 0)
-				current_code_phase += code_period_samples;
-			if (current_code_phase > code_period_samples)
-				current_code_phase = std::fmod(current_code_phase, code_period_samples);
-			
-			auto first_batch_length = static_cast<std::size_t>(std::ceil(code_period_samples - code_phase_and_output.first)) % samples_per_ms;
-			auto second_batch_length = samples_per_ms - first_batch_length;
-
-			auto first_batch_phase = static_cast<std::size_t>(std::ceil(code_period_samples + code_phase_and_output.first));
-			auto second_batch_phase = first_batch_phase + first_batch_length;
-
-			auto first = CorrelatorType::Correlate(std::span(translated_signal.begin(), first_batch_length), std::span(full_code.begin() + first_batch_phase, first_batch_length));
-			auto second = CorrelatorType::Correlate(std::span(translated_signal.begin() + first_batch_length, second_batch_length), std::span(full_code.begin() + second_batch_phase, second_batch_length));
-						
-			code_phase_and_output.second = AddWithPhase(first, second, std::fmod(code_phase_and_output.first, samples_per_ms) / samples_per_ms);
 		}
 
 		auto GetEpl(TrackingParameters<UnderlyingType>& parameters, double spacing_chips) {
@@ -194,7 +105,7 @@ namespace ugsdr {
 			};
 
 			std::for_each(std::execution::par_unseq, output_array.begin(), output_array.end(), [&translated_signal, &full_code, &parameters, this](auto& pair) {
-				CorrelateSplit(translated_signal, full_code, parameters, pair);
+				pair.second = parameters.CorrelateSplit(translated_signal, full_code, pair.first);
 			});
 
 			return std::make_tuple(output_array[0].second, output_array[1].second, output_array[2].second);

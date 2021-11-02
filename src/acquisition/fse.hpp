@@ -70,15 +70,6 @@ namespace ugsdr {
 			}
 		}
 
-		template <typename T>
-		auto RepeatCodeNTimes(std::vector<T> code, std::size_t repeats) {
-			auto ms_size = code.size();
-			for (std::size_t i = 1; i < repeats; ++i)
-				code.insert(code.end(), code.begin(), code.begin() + ms_size);
-			
-			return code;
-		}
-
 		template <bool reshape = true, bool coherent = true, typename T = int>
 		auto GetOneMsPeak(const std::vector<std::complex<T>>& signal, double new_sampling_rate) {
 			const auto samples_per_ms = static_cast<std::size_t>(new_sampling_rate / 1e3);

@@ -68,9 +68,14 @@ namespace ugsdr {
 				return 1602e6;
 			case Signal::GlonassCivilFdma_L2:
 				return 1602e6 * 7 / 9;
+			case Signal::Gps_L2CM:
+				return 1227.6e6;
 			case Signal::Galileo_E5aI:
 			case Signal::Galileo_E5aQ:
 				return 1176.45e6;
+			case Signal::Galileo_E5bI:
+			case Signal::Galileo_E5bQ:
+				return 1207.14e6;
 			default:
 				throw std::runtime_error("Unexpected signal");
 			}
