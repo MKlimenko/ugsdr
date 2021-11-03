@@ -176,7 +176,16 @@ namespace ugsdr {
 		template <typename Tc>
 		static auto CorrelateTranslated(const std::vector<std::complex<T>>& epoch, const TrackingParameters<T>& parameters, const Tc& code, double frequency_offset = 0.0) {
 			const auto translated = IppMixer::Translate(epoch, parameters.sampling_rate, -parameters.carrier_frequency + frequency_offset);
-			return parameters.CorrelateSplit(translated, code, parameters.code_phase);
+
+			auto local_code = std::vector(code.begin(), code.begin() + translated.size());
+			auto matched_output = IppMatchedFilter::Filter(translated, local_code);
+
+			auto it = std::max_element(matched_output.begin(), matched_output.end(), [](auto& lhs, auto& rhs) {
+				return std::abs(lhs) < std::abs(rhs);
+			});
+					
+			return *it;
+			//return parameters.CorrelateSplit(translated, code, parameters.code_phase*0);
 		}
 
 		template <Signal signal>
@@ -186,21 +195,36 @@ namespace ugsdr {
 
 			auto parameters = TrackingParameters<T>(acquisition, digital_frontend, signal);
 			auto samples_per_ms = digital_frontend.GetSamplingRate(signal) / 1e3;
-			const auto& epoch = digital_frontend.GetSeveralEpochs(0, 60).GetSubband(signal);
+			const auto& epoch = digital_frontend.GetEpoch(0).GetSubband(signal);
 			auto code = SequentialUpsampler::Transform(RepeatCodeNTimes(PrnGenerator<signal>::template Get<T>(parameters.sv.id), 3),
 				static_cast<std::size_t>(3 * PrnGenerator<signal>::GetNumberOfMilliseconds() * samples_per_ms));
 
+			std::rotate(code.begin(), code.begin() + parameters.code_phase, code.end());
+
 			auto iterations = std::max(1, GetCodePeriod(signal) / GetCodePeriod(acquisition.GetAcquiredSignalType()));
+
+			std::vector<std::pair<double, double>> corr_vals;
 
 			for (std::size_t i = 0; i < iterations; ++i) {
 				auto correlator_value = std::abs(CorrelateTranslated(epoch, parameters, code));
-				auto correlator_value_offset = std::abs(CorrelateTranslated(epoch, parameters, code, 1e6));
-				// will work for now, but this should be executed after L1 lock
-				if (correlator_value / correlator_value_offset >= 1.5) {
-					parameters.code_phase += samples_per_ms * i;
-					dst.push_back(std::move(parameters));
-					return;
-				}
+				auto correlator_value_offset = std::abs(CorrelateTranslated(epoch, parameters, code, 4e6));
+				corr_vals.emplace_back(correlator_value, correlator_value_offset);
+				std::rotate(code.begin(), code.begin() + samples_per_ms, code.end());
+			}
+
+			auto max_el = std::max_element(corr_vals.begin(), corr_vals.end(), [](auto& lhs, auto& rhs) {
+				return lhs.first < rhs.first;
+			});
+
+			// will work for now, but this should be executed after L1 lock
+			if (max_el->first / max_el->second >= 0) {
+				if (iterations > 1)
+					std::cout << "SV: " << std::to_string(parameters.sv) << ". Offset: " << std::distance(corr_vals.begin(), max_el) << ". Value: " << max_el->first
+					<< ". Ratio: " << max_el->first / max_el->second << std::endl;
+			
+				parameters.code_phase += samples_per_ms * std::distance(corr_vals.begin(), max_el);
+				dst.push_back(std::move(parameters));
+				return;
 			}
 		}
 
@@ -214,7 +238,7 @@ namespace ugsdr {
 		static void AddGps(const AcquisitionResult<T>& acquisition, DigitalFrontend<T>& digital_frontend, std::vector<TrackingParameters<T>>& dst) {
 			AddSignal<
 				Signal::GpsCoarseAcquisition_L1
-				//Signal::Gps_L2CM // todo: fix l2cm tracking
+				//Signal::Gps_L2CM					//	todo: fix L2CM tracking initailization
 			>(acquisition, digital_frontend, dst);
 		}
 

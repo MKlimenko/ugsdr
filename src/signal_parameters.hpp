@@ -187,7 +187,8 @@ namespace ugsdr {
 				static thread_local std::vector<std::complex<UnderlyingType>> tmp_output;
 				CheckResize(tmp_output, samples_per_ms);
 
-				for (std::size_t i = 0; i < length_epochs; ++i) {
+				for (std::size_t i = epochs_offset; i < epochs_offset + length_epochs; ++i) {
+					auto start_data = reinterpret_cast<const std::uint32_t*>(signal_file.data());
 					auto ptr = reinterpret_cast<const std::uint32_t*>(signal_file.data() + epoch_size_bytes * i) + 2;
 					std::copy(ptr, ptr + samples, raw_data.begin());
 
@@ -202,7 +203,7 @@ namespace ugsdr {
 						}
 					}
 					tmp_output.resize(samples_per_ms);
-					std::copy(tmp_output.begin(), tmp_output.end(), dst.begin() + samples_per_ms * i);
+					std::copy(tmp_output.begin(), tmp_output.end(), dst.begin() + samples_per_ms * (i - epochs_offset));
 				}
 				break;
 			}

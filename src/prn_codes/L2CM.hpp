@@ -15,7 +15,7 @@ namespace ugsdr {
 		}
 
 		static auto GetCodeLength() {
-			return code_len;
+			return code_len * 2;
 		}
 
 		template <typename T>
@@ -28,6 +28,7 @@ namespace ugsdr {
 
 			for (std::size_t i = 0; i < lfsr.CountSequenceLen(); ++i) {
 				*prn++ = static_cast<T>(1 - 2 * lfsr.Get());
+				*prn++ = 0;
 				lfsr.Shift();
 			}
 		}
