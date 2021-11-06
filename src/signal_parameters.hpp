@@ -9,6 +9,7 @@
 #include "ipp.h"
 
 #include "common.hpp"
+#include "helpers/BbpPackedSpan.hpp"
 #include "helpers/ipp_complex_type_converter.hpp"
 #include "../external/plusifier/Plusifier.hpp"
 
@@ -21,7 +22,7 @@ namespace ugsdr {
 		Nt1065GrabberSecond,
 		Nt1065GrabberThird,
 		Nt1065GrabberFourth,
-		BbpDdc,
+		BbpDdc
 	};
 
 	template <typename UnderlyingType>
@@ -179,31 +180,14 @@ namespace ugsdr {
 				auto samples_per_ms = static_cast<std::size_t>(sampling_rate / 1e3);
 				auto epochs_offset = samples_offset / samples_per_ms;
 				auto length_epochs = length_samples / samples_per_ms;
-				auto samples = (epoch_size_bytes - 8) / sizeof(std::uint32_t);
-
-				static thread_local std::vector<std::uint32_t> raw_data;
-				CheckResize(raw_data, samples);
-
-				static thread_local std::vector<std::complex<UnderlyingType>> tmp_output;
-				CheckResize(tmp_output, samples_per_ms);
+				auto samples_raw = epoch_size_bytes - 8;
+				auto samples_unpacked = epoch_size_bytes * 4;
 
 				for (std::size_t i = epochs_offset; i < epochs_offset + length_epochs; ++i) {
-					auto start_data = reinterpret_cast<const std::uint32_t*>(signal_file.data());
-					auto ptr = reinterpret_cast<const std::uint32_t*>(signal_file.data() + epoch_size_bytes * i) + 2;
-					std::copy(ptr, ptr + samples, raw_data.begin());
+					auto ptr = reinterpret_cast<const std::byte*>(signal_file.data() + epoch_size_bytes * i + 8);
 
-					tmp_output.clear();
-					for (const auto& el : raw_data) {
-						for (std::size_t j = 0; j < 8; ++j) {
-							std::int32_t tmp = ((el | 0x55555555) & (0xF << (4 * j))) >> (4 * j);
-							std::int32_t tmp_im = ((tmp & (0x3)) << 30) >> 30;
-							std::int32_t tmp_re = ((tmp & (0xC)) << 28) >> 30;
-
-							tmp_output.emplace_back(static_cast<UnderlyingType>(tmp_re), static_cast<UnderlyingType>(tmp_im));
-						}
-					}
-					tmp_output.resize(samples_per_ms);
-					std::copy(tmp_output.begin(), tmp_output.end(), dst.begin() + samples_per_ms * (i - epochs_offset));
+					auto packed_span = PackedSpan<UnderlyingType>(ptr, samples_per_ms);
+					std::copy(std::execution::par_unseq, packed_span.begin(), packed_span.end(), dst.begin() + samples_per_ms * (i - epochs_offset));
 				}
 				break;
 			}

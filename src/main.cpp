@@ -29,7 +29,7 @@ int main() {
 
 #if 1
 	auto fse = ugsdr::FastSearchEngineBase(digital_frontend, 5e3, 200);
-	auto acquisition_results = fse.Process(false);
+	auto acquisition_results = fse.Process(true);
 	ugsdr::Save("acquisition_results_cache", acquisition_results);
 #else
 	std::vector<ugsdr::AcquisitionResult<float>> acquisition_results;

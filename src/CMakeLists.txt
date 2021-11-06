@@ -13,6 +13,7 @@ add_executable (${PROJECT_NAME}
 							correlator/ipp_correlator.hpp
 							dfe/dfe.hpp
 							helpers/af_array_proxy.hpp
+							helpers/BbpPackedSpan.hpp
 							helpers/ipp_complex_type_converter.hpp
 							helpers/is_complex.hpp
 							helpers/visualizer.hpp 
@@ -70,8 +71,22 @@ add_executable (${PROJECT_NAME}
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 20)
 
-target_include_directories(${PROJECT_NAME} PRIVATE ${ArrayFire_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS} ${IPP_INCLUDE_DIRS})
-target_link_libraries(${PROJECT_NAME} PRIVATE OpenMP::OpenMP_CXX ArrayFire::afcuda gcem ${Boost_LIBRARIES} cereal IPP::ippcore IPP::ippcc IPP::ippch TBB::tbb)
+target_include_directories(${PROJECT_NAME} PRIVATE 
+												${ArrayFire_INCLUDE_DIRS} 
+												${Boost_INCLUDE_DIRS} 
+												${IPP_INCLUDE_DIRS}
+)
+target_link_libraries(${PROJECT_NAME} PRIVATE 
+												${Boost_LIBRARIES} 
+												ArrayFire::afcuda 
+												cereal
+												gcem 
+												IPP::ippcc 
+												IPP::ippch 
+												IPP::ippcore 
+												OpenMP::OpenMP_CXX
+												TBB::tbb
+)
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
 	target_compile_options(${PROJECT_NAME} PUBLIC -ftime-trace)
