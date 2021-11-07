@@ -55,7 +55,10 @@ add_executable (${PROJECT_NAME}
 							prn_codes/GoldCodes.hpp  
 							prn_codes/GpsL1Ca.hpp 
 							prn_codes/GpsL2CM.hpp 
+							prn_codes/GpsL5I.hpp
+							prn_codes/GpsL5Q.hpp
 							prn_codes/L2CM.hpp  
+							prn_codes/L5.hpp
 							prn_codes/lfsr.hpp 
 							prn_codes/MemoryCodes.hpp  
 							resample/decimator.hpp 

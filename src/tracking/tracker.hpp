@@ -52,6 +52,9 @@ namespace ugsdr {
 		Codes(const DigitalFrontend<UnderlyingType>& digital_frontend) {
 			FillCodes<Signal::GpsCoarseAcquisition_L1>(digital_frontend);
 			FillCodes<Signal::Gps_L2CM>(digital_frontend);
+			FillCodes<Signal::Gps_L5I>(digital_frontend);
+			FillCodes<Signal::Gps_L5Q>(digital_frontend);
+			FillCodes<Signal::GpsCoarseAcquisition_L1>(digital_frontend);
 			FillCodes<Signal::GlonassCivilFdma_L1>(digital_frontend);
 			FillCodes<Signal::Galileo_E1b>(digital_frontend);
 			FillCodes<Signal::Galileo_E1c>(digital_frontend);

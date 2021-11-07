@@ -28,6 +28,8 @@ namespace ugsdr {
 	enum class Signal : std::uint32_t {
 		GpsCoarseAcquisition_L1,
 		Gps_L2CM,
+		Gps_L5I,
+		Gps_L5Q,
 		GlonassCivilFdma_L1,
 		GlonassCivilFdma_L2,
 		Galileo_E1b,
@@ -57,6 +59,8 @@ namespace ugsdr {
 		switch (signal) {
 		case Signal::GpsCoarseAcquisition_L1:
 		case Signal::Gps_L2CM:
+		case Signal::Gps_L5I:
+		case Signal::Gps_L5Q:
 			return System::Gps;
 		case Signal::GlonassCivilFdma_L1:
 		case Signal::GlonassCivilFdma_L2:
@@ -136,6 +140,12 @@ namespace ugsdr {
 				break;
 			case Signal::Gps_L2CM:
 				dst += "L2CM";
+				break;
+			case Signal::Gps_L5I:
+				dst += "L5I";
+				break;
+			case Signal::Gps_L5Q:
+				dst += "L5Q";
 				break;
 			case Signal::GlonassCivilFdma_L1:
 				dst += "L1OF";

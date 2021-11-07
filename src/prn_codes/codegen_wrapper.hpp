@@ -10,6 +10,8 @@
 #include "GalileoE5bQ.hpp"
 #include "GpsL1Ca.hpp"
 #include "GpsL2CM.hpp"
+#include "GpsL5I.hpp"
+#include "GpsL5Q.hpp"
 #include "GlonassOf.hpp"
 #include "../../external/type_map/include/type_map.hpp"
 
@@ -17,6 +19,8 @@ namespace ugsdr {
 	using CodegenImplMap = mk::TypeMap<
 		mk::ValueTypePair<Signal::GpsCoarseAcquisition_L1, GpsL1Ca>,
 		mk::ValueTypePair<Signal::Gps_L2CM, GpsL2CM>,
+		mk::ValueTypePair<Signal::Gps_L5I, GpsL5I>,
+		mk::ValueTypePair<Signal::Gps_L5Q, GpsL5Q>,
 		mk::ValueTypePair<Signal::GlonassCivilFdma_L1, GlonassOf>,
 		mk::ValueTypePair<Signal::GlonassCivilFdma_L2, GlonassOf>,
 		mk::ValueTypePair<Signal::Galileo_E1b, GalileoE1b>,

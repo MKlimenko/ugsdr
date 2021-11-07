@@ -105,6 +105,8 @@ namespace ugsdr {
 		static auto GetCodePeriod(Signal signal) {
 			switch (signal) {
 			case Signal::GpsCoarseAcquisition_L1:
+			case Signal::Gps_L5I:
+			case Signal::Gps_L5Q:
 			case Signal::GlonassCivilFdma_L1:
 			case Signal::GlonassCivilFdma_L2:
 			case Signal::Galileo_E5aI:
@@ -152,6 +154,8 @@ namespace ugsdr {
 				code_frequency = 1.023e6 * 2; // BOC
 				base_code_frequency = 1.023e6 * 2;
 				break;
+			case Signal::Gps_L5I:
+			case Signal::Gps_L5Q:
 			case Signal::Galileo_E5aI:
 			case Signal::Galileo_E5aQ:
 				code_frequency = 10.23e6;
@@ -178,14 +182,22 @@ namespace ugsdr {
 			const auto translated = IppMixer::Translate(epoch, parameters.sampling_rate, -parameters.carrier_frequency + frequency_offset);
 
 			auto local_code = std::vector(code.begin(), code.begin() + translated.size());
-			auto matched_output = IppMatchedFilter::Filter(translated, local_code);
+			auto batch_size = static_cast<std::size_t>(parameters.code_period * parameters.sampling_rate / 1e3);
+			auto matched_output = IppReshapeAndSum::Transform(IppAbs::Transform(IppMatchedFilter::Filter(translated, local_code)), batch_size);
+
+#if 0
+			if (frequency_offset == 0.0)
+				ugsdr::Add(L"Sv: " + static_cast<std::wstring>(parameters.sv), matched_output);
+#endif
 
 			auto it = std::max_element(matched_output.begin(), matched_output.end(), [](auto& lhs, auto& rhs) {
 				return std::abs(lhs) < std::abs(rhs);
 			});
 					
-			return *it;
-			//return parameters.CorrelateSplit(translated, code, parameters.code_phase*0);
+			auto code_offset = static_cast<std::ptrdiff_t>(std::distance(matched_output.begin(), it));
+			if (code_offset > batch_size / 2)
+				code_offset = code_offset - batch_size;
+			return std::make_pair(*it, code_offset);
 		}
 
 		template <Signal signal>
@@ -194,37 +206,27 @@ namespace ugsdr {
 				return;
 
 			auto parameters = TrackingParameters<T>(acquisition, digital_frontend, signal);
-			auto samples_per_ms = digital_frontend.GetSamplingRate(signal) / 1e3;
-			const auto& epoch = digital_frontend.GetEpoch(0).GetSubband(signal);
-			auto code = SequentialUpsampler::Transform(RepeatCodeNTimes(PrnGenerator<signal>::template Get<T>(parameters.sv.id), 3),
-				static_cast<std::size_t>(3 * PrnGenerator<signal>::GetNumberOfMilliseconds() * samples_per_ms));
+			auto samples_per_ms = static_cast<std::size_t>(digital_frontend.GetSamplingRate(signal) / 1e3);
 
+			auto ms_cnt = 3 * PrnGenerator<signal>::GetNumberOfMilliseconds();
+
+			const auto& epoch = digital_frontend.GetSeveralEpochs(0, ms_cnt).GetSubband(signal);
+			auto code = SequentialUpsampler::Transform(PrnGenerator<signal>::template Get<T>(parameters.sv.id), samples_per_ms * GetCodePeriod(signal));
+			code.resize(epoch.size());
 			std::rotate(code.begin(), code.begin() + parameters.code_phase, code.end());
 
-			auto iterations = std::max(1, GetCodePeriod(signal) / GetCodePeriod(acquisition.GetAcquiredSignalType()));
-
-			std::vector<std::pair<double, double>> corr_vals;
-
-			for (std::size_t i = 0; i < iterations; ++i) {
-				auto correlator_value = std::abs(CorrelateTranslated(epoch, parameters, code));
-				auto correlator_value_offset = std::abs(CorrelateTranslated(epoch, parameters, code, 4e6));
-				corr_vals.emplace_back(correlator_value, correlator_value_offset);
-				std::rotate(code.begin(), code.begin() + samples_per_ms, code.end());
-			}
-
-			auto max_el = std::max_element(corr_vals.begin(), corr_vals.end(), [](auto& lhs, auto& rhs) {
-				return lhs.first < rhs.first;
-			});
+			auto [correlator_value, code_offset] = CorrelateTranslated(epoch, parameters, code);
+			auto [correlator_value_offset, tmp] = CorrelateTranslated(epoch, parameters, code, 4e6);
 
 			// will work for now, but this should be executed after L1 lock
-			if (max_el->first / max_el->second >= 0) {
-				if (iterations > 1)
-					std::cout << "SV: " << std::to_string(parameters.sv) << ". Offset: " << std::distance(corr_vals.begin(), max_el) << ". Value: " << max_el->first
-					<< ". Ratio: " << max_el->first / max_el->second << std::endl;
-			
-				parameters.code_phase += samples_per_ms * std::distance(corr_vals.begin(), max_el);
+			if (std::abs(correlator_value) / std::abs(correlator_value_offset) >= 1.3) {
+#if 0
+				std::cout << static_cast<std::string>(parameters.sv) << ". Offset: " << code_offset % samples_per_ms << ". Value: " << correlator_value
+					<< ". Ratio: " << correlator_value / correlator_value_offset << std::endl;
+#endif
+
+				parameters.code_phase -= code_offset;
 				dst.push_back(std::move(parameters));
-				return;
 			}
 		}
 
@@ -237,8 +239,10 @@ namespace ugsdr {
 
 		static void AddGps(const AcquisitionResult<T>& acquisition, DigitalFrontend<T>& digital_frontend, std::vector<TrackingParameters<T>>& dst) {
 			AddSignal<
-				Signal::GpsCoarseAcquisition_L1
-				//Signal::Gps_L2CM					//	todo: fix L2CM tracking initailization
+				Signal::GpsCoarseAcquisition_L1,
+				Signal::Gps_L2CM,
+				Signal::Gps_L5I,
+				Signal::Gps_L5Q
 			>(acquisition, digital_frontend, dst);
 		}
 
