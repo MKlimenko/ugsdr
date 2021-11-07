@@ -42,6 +42,7 @@ add_executable (${PROJECT_NAME}
 							mixer/mixer.hpp 
 							mixer/nco.hpp
 							mixer/table_mixer.hpp
+							prn_codes/BeiDouB1I.hpp
 							prn_codes/codegen.hpp 
 							prn_codes/codegen_wrapper.hpp
 							prn_codes/GalileoE1b.hpp  

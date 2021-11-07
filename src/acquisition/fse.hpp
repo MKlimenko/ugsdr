@@ -36,6 +36,7 @@ namespace ugsdr {
 		std::vector<Sv> gps_sv;
 		std::vector<Sv> gln_sv;
 		std::vector<Sv> galileo_sv;
+		std::vector<Sv> beidou_sv;
 		constexpr static inline double peak_threshold = 3.5;
 		constexpr static inline double acquisition_sampling_rate = 8.192e6;
 
@@ -67,6 +68,12 @@ namespace ugsdr {
 				galileo_sv[i].system = System::Galileo;
 				galileo_sv[i].id = static_cast<std::int32_t>(i);
 				galileo_sv[i].signal = Signal::Galileo_E1b;
+			}
+			beidou_sv.resize(ugsdr::beidou_sv_count);
+			for (std::size_t i = 0; i < beidou_sv.size(); ++i) {
+				beidou_sv[i].system = System::BeiDou;
+				beidou_sv[i].id = static_cast<std::int32_t>(i);
+				beidou_sv[i].signal = Signal::BeiDou_B1I;
 			}
 		}
 
@@ -111,7 +118,7 @@ namespace ugsdr {
 			return signal_sampling_rate;
 		}
 
-		template <bool reshape = true>
+		template <bool reshape = true, bool coherent = true>
 		void ProcessBpsk(const std::vector<std::complex<UnderlyingType>>& signal, const std::vector<UnderlyingType>& code,
 			Sv sv, double signal_sampling_rate, double new_sampling_rate, double intermediate_frequency, 
 			std::vector<AcquisitionResult<UnderlyingType>>& dst) {
@@ -125,7 +132,7 @@ namespace ugsdr {
 						doppler_frequency += doppler_step) {
 				const auto translated_signal = MixerType::Translate(signal, new_sampling_rate, -doppler_frequency);
 				auto matched_output = MatchedFilterType::FilterOptimized(translated_signal, code_spectrum);
-				auto peak_one_ms = GetOneMsPeak<reshape>(matched_output, new_sampling_rate);
+				auto peak_one_ms = GetOneMsPeak<reshape, coherent>(matched_output, new_sampling_rate);
 
 				std::reverse(std::execution::par_unseq, peak_one_ms.begin(), peak_one_ms.end());
 				
@@ -167,7 +174,6 @@ namespace ugsdr {
 
 				ProcessBpsk(downsampled_signal, code, sv, signal_sampling_rate, new_sampling_rate, intermediate_frequency, dst);
 			});
-			
 		}
 
 		void ProcessGlonass(const SignalEpoch<UnderlyingType>& epoch, std::vector<AcquisitionResult<UnderlyingType>>& dst) {
@@ -229,7 +235,26 @@ namespace ugsdr {
 					dst.push_back(std::move(*it));
 				}
 			});
+		}
 
+		void ProcessBeiDou(const SignalEpoch<UnderlyingType>& epoch, std::vector<AcquisitionResult<UnderlyingType>>& dst) {
+			const auto& signal = epoch.GetSubband(Signal::BeiDou_B1I);
+			auto signal_sampling_rate = digital_frontend.GetSamplingRate(Signal::BeiDou_B1I);
+			auto central_frequency = digital_frontend.GetCentralFrequency(Signal::BeiDou_B1I);
+
+			auto intermediate_frequency = -(central_frequency - 1561.098e6);
+
+			const auto translated_signal = MixerType::Translate(signal, signal_sampling_rate, -intermediate_frequency);
+			auto new_sampling_rate = AdjustSamplingRate(signal_sampling_rate);
+			auto downsampled_signal = Resampler<IppResampler>::Transform(translated_signal, static_cast<std::size_t>(new_sampling_rate),
+				static_cast<std::size_t>(signal_sampling_rate));
+
+			std::for_each(std::execution::par_unseq, beidou_sv.begin(), beidou_sv.end(), [&](auto sv) {
+				const auto code = UpsamplerType::Transform(RepeatCodeNTimes(PrnGenerator<Signal::BeiDou_B1I>::Get<UnderlyingType>(sv.id), ms_to_process),
+					static_cast<std::size_t>(ms_to_process * new_sampling_rate / 1e3));
+
+				ProcessBpsk(downsampled_signal, code, sv, signal_sampling_rate, new_sampling_rate, intermediate_frequency, dst);
+			});
 		}
 		
 	public:
@@ -252,6 +277,8 @@ namespace ugsdr {
 					ugsdr::Add(L"Glonass acquisition input signal", epoch_data.GetSubband(Signal::GlonassCivilFdma_L1), digital_frontend.GetSamplingRate(Signal::GlonassCivilFdma_L1));
 				if (digital_frontend.HasSignal(Signal::Galileo_E1b))
 					ugsdr::Add(L"Galileo acquisition input signal", epoch_data.GetSubband(Signal::Galileo_E1b), digital_frontend.GetSamplingRate(Signal::Galileo_E1b));
+				if (digital_frontend.HasSignal(Signal::BeiDou_B1I))
+					ugsdr::Add(L"BeiDou acquisition input signal", epoch_data.GetSubband(Signal::BeiDou_B1I), digital_frontend.GetSamplingRate(Signal::BeiDou_B1I));
 			}
 				
 			if (digital_frontend.HasSignal(Signal::GpsCoarseAcquisition_L1))
@@ -260,6 +287,8 @@ namespace ugsdr {
 				ProcessGlonass(epoch_data, dst);
 			if (digital_frontend.HasSignal(Signal::Galileo_E1b))
 				ProcessGalileo(epoch_data, dst);
+			if (digital_frontend.HasSignal(Signal::BeiDou_B1I))
+				ProcessBeiDou(epoch_data, dst);
 		
 			std::sort(dst.begin(), dst.end(), [](auto& lhs, auto& rhs) {
 				return lhs.sv_number < rhs.sv_number;

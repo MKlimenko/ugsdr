@@ -18,6 +18,7 @@ namespace ugsdr {
 	constexpr std::int32_t gln_min_frequency = -7;
 	constexpr std::int32_t gln_max_frequency = 6;
 	constexpr std::size_t galileo_sv_count = 50;
+	constexpr std::size_t beidou_sv_count = 63;
 
 	template <typename T>
 	void CheckResize(T& vec, std::size_t samples) {
@@ -37,13 +38,15 @@ namespace ugsdr {
 		Galileo_E5aI,
 		Galileo_E5aQ,
 		Galileo_E5bI,
-		Galileo_E5bQ
+		Galileo_E5bQ,
+		BeiDou_B1I,
 	};
 
 	enum class System : std::uint32_t {
 		Gps = 0,
 		Glonass,
 		Galileo,
+		BeiDou,
 	};
 
 	template <typename T>
@@ -72,6 +75,8 @@ namespace ugsdr {
 		case Signal::Galileo_E5bI:
 		case Signal::Galileo_E5bQ:
 			return System::Galileo;
+		case Signal::BeiDou_B1I:
+			return System::BeiDou;
 		default:
 			throw std::runtime_error("Unexpected signal");
 		}
@@ -85,6 +90,8 @@ namespace ugsdr {
 			return 1;
 		case System::Galileo:
 			return galileo_sv_count;
+		case System::BeiDou:
+			return beidou_sv_count;
 		default:
 			throw std::runtime_error("Unexpected system");
 		}
@@ -130,6 +137,10 @@ namespace ugsdr {
 				dst += "Galileo SV";
 				++sv_number;
 				break;
+			case System::BeiDou:
+				dst += "BeiDou SV";
+				++sv_number;
+				break;
 			default:
 				break;
 			}
@@ -170,6 +181,9 @@ namespace ugsdr {
 				break;
 			case Signal::Galileo_E5bQ:
 				dst += "E5bQ";
+				break;
+			case Signal::BeiDou_B1I:
+				dst += "B1I";
 				break;
 			default:
 				break;

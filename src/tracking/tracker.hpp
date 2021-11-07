@@ -62,6 +62,7 @@ namespace ugsdr {
 			FillCodes<Signal::Galileo_E5aQ>(digital_frontend);
 			FillCodes<Signal::Galileo_E5bI>(digital_frontend);
 			FillCodes<Signal::Galileo_E5bQ>(digital_frontend);
+			FillCodes<Signal::BeiDou_B1I>(digital_frontend);
 		}
 
 		const auto& GetCode(Sv sv) const {

@@ -68,6 +68,8 @@ namespace ugsdr {
 				return 1602e6;
 			case Signal::GlonassCivilFdma_L2:
 				return 1602e6 * 7 / 9;
+			case Signal::BeiDou_B1I:
+				return 1561.098e6;
 			case Signal::Gps_L2CM:
 				return 1227.6e6;
 			case Signal::Gps_L5I:

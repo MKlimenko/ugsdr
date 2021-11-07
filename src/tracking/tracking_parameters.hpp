@@ -113,6 +113,7 @@ namespace ugsdr {
 			case Signal::Galileo_E5aQ:
 			case Signal::Galileo_E5bI:
 			case Signal::Galileo_E5bQ:
+			case Signal::BeiDou_B1I:
 				return 1;
 			case Signal::Gps_L2CM:
 				return 20;
@@ -171,6 +172,10 @@ namespace ugsdr {
 				code_phase = std::fmod(code_phase * sampling_rate / digital_frontend.GetSamplingRate(acquisition.GetAcquiredSignalType()),
 					code_period * sampling_rate / 1e3);
 				carrier_frequency *= 1207.14e6 / 1575.42e6;
+				break;
+			case Signal::BeiDou_B1I:
+				code_frequency = 2.046e6;
+				base_code_frequency = 2.046e6;
 				break;
 			default:
 				throw std::runtime_error("Unexpected signal");
@@ -265,6 +270,13 @@ namespace ugsdr {
 			>(acquisition, digital_frontend, dst);
 		}
 
+		static void AddBeiDou(const AcquisitionResult<T>& acquisition, DigitalFrontend<T>& digital_frontend, std::vector<TrackingParameters<T>>& dst) {
+			dst.emplace_back(acquisition, digital_frontend);
+			//AddSignal<
+			//	Signal::BeiDou_B2I
+			//>(acquisition, digital_frontend, dst);
+		}
+
 		static void FillTrackingParameters(const AcquisitionResult<T>& acquisition, DigitalFrontend<T>& digital_frontend, std::vector<TrackingParameters<T>>& dst) {
 			switch (acquisition.sv_number.system) {
 			case(System::Gps):
@@ -275,6 +287,9 @@ namespace ugsdr {
 				break;
 			case(System::Galileo):
 				AddGalileo(acquisition, digital_frontend, dst);
+				break;
+			case(System::BeiDou):
+				AddBeiDou(acquisition, digital_frontend, dst);
 				break;
 			default:
 				throw std::runtime_error("Not implemented yet");
