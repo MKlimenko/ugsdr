@@ -42,6 +42,7 @@ add_executable (${PROJECT_NAME}
 							mixer/mixer.hpp 
 							mixer/nco.hpp
 							mixer/table_mixer.hpp
+							prn_codes/BeiDouB1C.hpp
 							prn_codes/BeiDouB1I.hpp
 							prn_codes/codegen.hpp 
 							prn_codes/codegen_wrapper.hpp
@@ -62,6 +63,8 @@ add_executable (${PROJECT_NAME}
 							prn_codes/L5.hpp
 							prn_codes/lfsr.hpp 
 							prn_codes/MemoryCodes.hpp  
+							prn_codes/NavICL5Ca.hpp
+							prn_codes/Weil.hpp
 							resample/decimator.hpp 
 							resample/ipp_decimator.hpp 
 							resample/ipp_resampler.hpp 

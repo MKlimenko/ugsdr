@@ -114,12 +114,15 @@ namespace ugsdr {
 			case Signal::Galileo_E5bI:
 			case Signal::Galileo_E5bQ:
 			case Signal::BeiDou_B1I:
+			case Signal::NavIC_L5:
 				return 1;
 			case Signal::Gps_L2CM:
 				return 20;
 			case Signal::Galileo_E1b:
 			case Signal::Galileo_E1c:
 				return 4;
+			case Signal::BeiDou_B1C:
+				return 10;
 			default:
 				throw std::runtime_error("Unexpected signal");
 			}
@@ -131,6 +134,7 @@ namespace ugsdr {
 
 			switch (sv.signal) {
 			case Signal::GpsCoarseAcquisition_L1:
+			case Signal::NavIC_L5:
 				code_frequency = 1.023e6;
 				base_code_frequency = 1.023e6;
 				break;
@@ -174,6 +178,10 @@ namespace ugsdr {
 				carrier_frequency *= 1207.14e6 / 1575.42e6;
 				break;
 			case Signal::BeiDou_B1I:
+				code_frequency = 2.046e6;
+				base_code_frequency = 2.046e6;
+				break;
+			case Signal::BeiDou_B1C:
 				code_frequency = 2.046e6;
 				base_code_frequency = 2.046e6;
 				break;
@@ -277,6 +285,13 @@ namespace ugsdr {
 			//>(acquisition, digital_frontend, dst);
 		}
 
+		static void AddNavIC(const AcquisitionResult<T>& acquisition, DigitalFrontend<T>& digital_frontend, std::vector<TrackingParameters<T>>& dst) {
+			dst.emplace_back(acquisition, digital_frontend);
+			//AddSignal<
+			//	Signal::NavIC_S			// wish me luck finding the S-band dataset
+			//>(acquisition, digital_frontend, dst);
+		}
+
 		static void FillTrackingParameters(const AcquisitionResult<T>& acquisition, DigitalFrontend<T>& digital_frontend, std::vector<TrackingParameters<T>>& dst) {
 			switch (acquisition.sv_number.system) {
 			case(System::Gps):
@@ -290,6 +305,9 @@ namespace ugsdr {
 				break;
 			case(System::BeiDou):
 				AddBeiDou(acquisition, digital_frontend, dst);
+				break;
+			case(System::NavIC):
+				AddNavIC(acquisition, digital_frontend, dst);
 				break;
 			default:
 				throw std::runtime_error("Not implemented yet");
