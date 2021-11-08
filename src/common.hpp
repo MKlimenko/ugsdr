@@ -20,6 +20,8 @@ namespace ugsdr {
 	constexpr std::size_t galileo_sv_count = 50;
 	constexpr std::size_t beidou_sv_count = 63;
 	constexpr std::size_t navic_sv_count = 14;
+	constexpr std::size_t sbas_sv_count = 22;
+	constexpr std::size_t sbas_sv_offset = 120;
 
 	template <typename T>
 	void CheckResize(T& vec, std::size_t samples) {
@@ -43,6 +45,7 @@ namespace ugsdr {
 		BeiDou_B1I,
 		BeiDou_B1C,
 		NavIC_L5,
+		SbasCoarseAcquisition_L1,
 	};
 
 	enum class System : std::uint32_t {
@@ -51,6 +54,7 @@ namespace ugsdr {
 		Galileo,
 		BeiDou,
 		NavIC,
+		Sbas,		// add specializations (WAAS, EGNOS, SDCM etc) if required 
 	};
 
 	template <typename T>
@@ -84,6 +88,8 @@ namespace ugsdr {
 			return System::BeiDou;
 		case Signal::NavIC_L5:
 			return System::NavIC;
+		case Signal::SbasCoarseAcquisition_L1:
+			return System::Sbas;
 		default:
 			throw std::runtime_error("Unexpected signal");
 		}
@@ -101,15 +107,17 @@ namespace ugsdr {
 			return beidou_sv_count;
 		case System::NavIC:
 			return navic_sv_count;
+		case System::Sbas:
+			return sbas_sv_count;
 		default:
 			throw std::runtime_error("Unexpected system");
 		}
 	}
 
 	struct Sv {
-		std::int32_t id : 8;
+		std::int32_t id : 16;
 		System system : 8;
-		Signal signal : 16;
+		Signal signal : 8;
 
 		constexpr Sv() : Sv(0, System::Gps, Signal::GpsCoarseAcquisition_L1) {}
 		constexpr Sv(std::int32_t id_val, System system_val, Signal signal_val) : id(id_val), system(system_val), signal(signal_val) {}
@@ -152,6 +160,10 @@ namespace ugsdr {
 				break;
 			case System::NavIC:
 				dst += "NavIC SV";
+				++sv_number;
+				break;
+			case System::Sbas:
+				dst += "SBAS SV";
 				++sv_number;
 				break;
 			default:
@@ -203,6 +215,9 @@ namespace ugsdr {
 				break;
 			case Signal::NavIC_L5:
 				dst += "L5 C/A";
+				break;
+			case Signal::SbasCoarseAcquisition_L1:
+				dst += "L1 C/A";
 				break;
 			default:
 				break;

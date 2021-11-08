@@ -37,34 +37,45 @@ namespace ugsdr {
 		MapType codes;
 
 		template <Signal signal>
-		void FillCodes(const DigitalFrontend<UnderlyingType>& digital_frontend) {
+		void FillCodesImpl(const DigitalFrontend<UnderlyingType>& digital_frontend) {
 			if (!digital_frontend.HasSignal(signal))
 				return;
 
 			auto sampling_rate = digital_frontend.GetSamplingRate(signal);
-			for (std::int32_t i = 0; i < GetCodesCount(GetSystemBySignal(signal)); ++i) {
+			auto offset = ugsdr::GetSystemBySignal(signal) == System::Sbas ? ugsdr::sbas_sv_offset :0;
+			for (std::int32_t i = offset; i < offset + GetCodesCount(GetSystemBySignal(signal)); ++i) {
 				auto sv = Sv{ i, GetSystemBySignal(signal), signal };
 				codes[sv] = UpsamplerType::Transform(RepeatCodeNTimes(PrnGenerator<signal>::template Get<UnderlyingType>(i), 3),
 					static_cast<std::size_t>(3 * PrnGenerator<signal>::GetNumberOfMilliseconds() * sampling_rate / 1e3));
 			}
 		}
 
+		template <Signal signal, Signal ... signals>
+		void FillCodes(const DigitalFrontend<UnderlyingType>& digital_frontend) {
+			FillCodesImpl<signal>(digital_frontend);
+			if constexpr(sizeof...(signals) != 0)
+				FillCodes<signals...>(digital_frontend);
+		}
+
 		Codes(const DigitalFrontend<UnderlyingType>& digital_frontend) {
-			FillCodes<Signal::GpsCoarseAcquisition_L1>(digital_frontend);
-			FillCodes<Signal::Gps_L2CM>(digital_frontend);
-			FillCodes<Signal::Gps_L5I>(digital_frontend);
-			FillCodes<Signal::Gps_L5Q>(digital_frontend);
-			FillCodes<Signal::GpsCoarseAcquisition_L1>(digital_frontend);
-			FillCodes<Signal::GlonassCivilFdma_L1>(digital_frontend);
-			FillCodes<Signal::Galileo_E1b>(digital_frontend);
-			FillCodes<Signal::Galileo_E1c>(digital_frontend);
-			FillCodes<Signal::Galileo_E5aI>(digital_frontend);
-			FillCodes<Signal::Galileo_E5aQ>(digital_frontend);
-			FillCodes<Signal::Galileo_E5bI>(digital_frontend);
-			FillCodes<Signal::Galileo_E5bQ>(digital_frontend);
-			FillCodes<Signal::BeiDou_B1I>(digital_frontend);
-			FillCodes<Signal::BeiDou_B1C>(digital_frontend);
-			FillCodes<Signal::NavIC_L5>(digital_frontend);
+			FillCodes<
+				Signal::GpsCoarseAcquisition_L1,
+				Signal::Gps_L2CM,
+				Signal::Gps_L5I,
+				Signal::Gps_L5Q,
+				Signal::GpsCoarseAcquisition_L1,
+				Signal::GlonassCivilFdma_L1,
+				Signal::Galileo_E1b,
+				Signal::Galileo_E1c,
+				Signal::Galileo_E5aI,
+				Signal::Galileo_E5aQ,
+				Signal::Galileo_E5bI,
+				Signal::Galileo_E5bQ,
+				Signal::BeiDou_B1I,
+				Signal::BeiDou_B1C,
+				Signal::NavIC_L5,
+				Signal::SbasCoarseAcquisition_L1
+			>(digital_frontend);
 		}
 
 		const auto& GetCode(Sv sv) const {

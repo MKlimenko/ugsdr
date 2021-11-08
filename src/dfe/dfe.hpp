@@ -64,6 +64,7 @@ namespace ugsdr {
 			case Signal::Galileo_E1b:
 			case Signal::Galileo_E1c:
 			case Signal::BeiDou_B1C:
+			case Signal::SbasCoarseAcquisition_L1:
 				return 1575.42e6;
 			case Signal::GlonassCivilFdma_L1:
 				return 1602e6;

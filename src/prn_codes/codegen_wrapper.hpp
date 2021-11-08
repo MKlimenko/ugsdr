@@ -16,6 +16,7 @@
 #include "GpsL5I.hpp"
 #include "GpsL5Q.hpp"
 #include "NavICL5Ca.hpp"
+#include "SbasL1Ca.hpp"
 #include "../../external/type_map/include/type_map.hpp"
 
 namespace ugsdr {
@@ -34,7 +35,8 @@ namespace ugsdr {
 		mk::ValueTypePair<Signal::Galileo_E5bQ, GalileoE5bQ>,
 		mk::ValueTypePair<Signal::BeiDou_B1I, BeiDouB1I>,
 		mk::ValueTypePair<Signal::BeiDou_B1C, BeiDouB1C>,
-		mk::ValueTypePair<Signal::NavIC_L5, NavICL5Ca>
+		mk::ValueTypePair<Signal::NavIC_L5, NavICL5Ca>,
+		mk::ValueTypePair<Signal::SbasCoarseAcquisition_L1, SbasL1Ca>
 	>;
 	
 	template <Signal sig>
