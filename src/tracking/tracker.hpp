@@ -78,7 +78,10 @@ namespace ugsdr {
 				Signal::Sbas_L5I,
 				Signal::Sbas_L5Q,
 				Signal::QzssCoarseAcquisition_L1,
-				Signal::Qzss_L1S
+				Signal::Qzss_L1S,
+				Signal::Qzss_L2CM,
+				Signal::Qzss_L5I,
+				Signal::Qzss_L5Q
 			>(digital_frontend);
 		}
 

@@ -51,6 +51,9 @@ namespace ugsdr {
 		Sbas_L5Q,
 		QzssCoarseAcquisition_L1,
 		Qzss_L1S,
+		Qzss_L2CM,
+		Qzss_L5I,
+		Qzss_L5Q,
 	};
 
 	enum class System : std::uint32_t {
@@ -100,6 +103,9 @@ namespace ugsdr {
 			return System::Sbas;
 		case Signal::QzssCoarseAcquisition_L1:
 		case Signal::Qzss_L1S:
+		case Signal::Qzss_L2CM:
+		case Signal::Qzss_L5I:
+		case Signal::Qzss_L5Q:
 			return System::Qzss;
 		default:
 			throw std::runtime_error("Unexpected signal");
@@ -241,6 +247,15 @@ namespace ugsdr {
 				break;
 			case Signal::Qzss_L1S:
 				dst += "L1 SAIF";
+				break;
+			case Signal::Qzss_L2CM:
+				dst += "L2CM";
+				break;
+			case Signal::Qzss_L5I:
+				dst += "L5I";
+				break;
+			case Signal::Qzss_L5Q:
+				dst += "L5Q";
 				break;
 			default:
 				break;

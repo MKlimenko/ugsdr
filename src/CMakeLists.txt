@@ -66,6 +66,9 @@ add_executable (${PROJECT_NAME}
 							prn_codes/NavICL5Ca.hpp
 							prn_codes/QzssL1Ca.hpp
 							prn_codes/QzssL1Saif.hpp
+							prn_codes/QzssL2CM.hpp 
+							prn_codes/QzssL5I.hpp
+							prn_codes/QzssL5Q.hpp
 							prn_codes/SbasL1Ca.hpp
 							prn_codes/SbasL5I.hpp
 							prn_codes/SbasL5Q.hpp

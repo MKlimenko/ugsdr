@@ -21,6 +21,9 @@
 #include "SbasL5Q.hpp"
 #include "QzssL1Ca.hpp"
 #include "QzssL1Saif.hpp"
+#include "QzssL2CM.hpp"
+#include "QzssL5I.hpp"
+#include "QzssL5Q.hpp"
 #include "../../external/type_map/include/type_map.hpp"
 
 namespace ugsdr {
@@ -44,7 +47,10 @@ namespace ugsdr {
 		mk::ValueTypePair<Signal::Sbas_L5I, SbasL5I>,
 		mk::ValueTypePair<Signal::Sbas_L5Q, SbasL5Q>,
 		mk::ValueTypePair<Signal::QzssCoarseAcquisition_L1, QzssL1Ca>,
-		mk::ValueTypePair<Signal::Qzss_L1S, QzssL1Saif>
+		mk::ValueTypePair<Signal::Qzss_L1S, QzssL1Saif>,
+		mk::ValueTypePair<Signal::Qzss_L2CM, QzssL2CM>,
+		mk::ValueTypePair<Signal::Qzss_L5I, QzssL5I>,
+		mk::ValueTypePair<Signal::Qzss_L5Q, QzssL5Q>
 	>;
 	
 	template <Signal sig>

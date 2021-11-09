@@ -75,6 +75,7 @@ namespace ugsdr {
 			case Signal::BeiDou_B1I:
 				return 1561.098e6;
 			case Signal::Gps_L2CM:
+			case Signal::Qzss_L2CM:
 				return 1227.6e6;
 			case Signal::Gps_L5I:
 			case Signal::Gps_L5Q:
@@ -83,6 +84,8 @@ namespace ugsdr {
 			case Signal::NavIC_L5:
 			case Signal::Sbas_L5I:
 			case Signal::Sbas_L5Q:
+			case Signal::Qzss_L5I:
+			case Signal::Qzss_L5Q:
 				return 1176.45e6;
 			case Signal::Galileo_E5bI:
 			case Signal::Galileo_E5bQ:

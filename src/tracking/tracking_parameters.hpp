@@ -120,8 +120,11 @@ namespace ugsdr {
 			case Signal::Sbas_L5Q:
 			case Signal::QzssCoarseAcquisition_L1:
 			case Signal::Qzss_L1S:
+			case Signal::Qzss_L5I:
+			case Signal::Qzss_L5Q:
 				return 1;
 			case Signal::Gps_L2CM:
+			case Signal::Qzss_L2CM:
 				return 20;
 			case Signal::Galileo_E1b:
 			case Signal::Galileo_E1c:
@@ -146,6 +149,7 @@ namespace ugsdr {
 				base_code_frequency = 1.023e6;
 				break;
 			case Signal::Gps_L2CM:
+			case Signal::Qzss_L2CM:
 				code_frequency = 1.023e6 / 2;
 				base_code_frequency = 1.023e6 / 2;
 				carrier_frequency *= 1227.6e6 / 1575.42e6;
@@ -170,6 +174,8 @@ namespace ugsdr {
 			case Signal::Gps_L5Q:
 			case Signal::Galileo_E5aI:
 			case Signal::Galileo_E5aQ:
+			case Signal::Qzss_L5I:
+			case Signal::Qzss_L5Q:
 				code_frequency = 10.23e6;
 				base_code_frequency = 10.23e6;
 				code_phase = std::fmod(code_phase * sampling_rate / digital_frontend.GetSamplingRate(acquisition.GetAcquiredSignalType()),
@@ -323,7 +329,10 @@ namespace ugsdr {
 		static void AddQzss(const AcquisitionResult<T>& acquisition, DigitalFrontend<T>& digital_frontend, std::vector<TrackingParameters<T>>& dst) {
 			dst.emplace_back(acquisition, digital_frontend); 
 			AddSignal<
-				Signal::Qzss_L1S
+				Signal::Qzss_L1S,
+				Signal::Qzss_L2CM,
+				Signal::Qzss_L5I,
+				Signal::Qzss_L5Q
 			>(acquisition, digital_frontend, dst);
 		}
 
