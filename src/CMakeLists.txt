@@ -64,7 +64,11 @@ add_executable (${PROJECT_NAME}
 							prn_codes/lfsr.hpp 
 							prn_codes/MemoryCodes.hpp  
 							prn_codes/NavICL5Ca.hpp
+							prn_codes/QzssL1Ca.hpp
+							prn_codes/QzssL1Saif.hpp
 							prn_codes/SbasL1Ca.hpp
+							prn_codes/SbasL5I.hpp
+							prn_codes/SbasL5Q.hpp
 							prn_codes/Weil.hpp
 							resample/decimator.hpp 
 							resample/ipp_decimator.hpp 

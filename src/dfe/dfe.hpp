@@ -65,6 +65,8 @@ namespace ugsdr {
 			case Signal::Galileo_E1c:
 			case Signal::BeiDou_B1C:
 			case Signal::SbasCoarseAcquisition_L1:
+			case Signal::QzssCoarseAcquisition_L1:
+			case Signal::Qzss_L1S:
 				return 1575.42e6;
 			case Signal::GlonassCivilFdma_L1:
 				return 1602e6;
@@ -79,6 +81,8 @@ namespace ugsdr {
 			case Signal::Galileo_E5aI:
 			case Signal::Galileo_E5aQ:
 			case Signal::NavIC_L5:
+			case Signal::Sbas_L5I:
+			case Signal::Sbas_L5Q:
 				return 1176.45e6;
 			case Signal::Galileo_E5bI:
 			case Signal::Galileo_E5bQ:

@@ -39,8 +39,10 @@ namespace ugsdr {
 		std::vector<Sv> beidou_sv;
 		std::vector<Sv> navic_sv;
 		std::vector<Sv> sbas_sv;
-		constexpr static inline double peak_threshold = 3.5;
+		std::vector<Sv> qzss_sv;
+		constexpr static inline double peak_threshold = 3;
 		constexpr static inline double acquisition_sampling_rate = 8.192e6;
+		constexpr static inline double acquisition_sampling_rate_L5 = 20.46e6;
 
 		std::mutex m;
 
@@ -87,7 +89,13 @@ namespace ugsdr {
 			for (std::size_t i = 0; i < sbas_sv.size(); ++i) {
 				sbas_sv[i].system = System::Sbas;
 				sbas_sv[i].id = static_cast<std::int32_t>(i + ugsdr::sbas_sv_offset);
-				sbas_sv[i].signal = Signal::SbasCoarseAcquisition_L1;
+				sbas_sv[i].signal = Signal::Sbas_L5Q;
+			}
+			qzss_sv.resize(ugsdr::qzss_sv_count);
+			for (std::size_t i = 0; i < qzss_sv.size(); ++i) {
+				qzss_sv[i].system = System::Qzss;
+				qzss_sv[i].id = static_cast<std::int32_t>(i);
+				qzss_sv[i].signal = Signal::QzssCoarseAcquisition_L1;
 			}
 		}
 
@@ -112,18 +120,18 @@ namespace ugsdr {
 			}
 		}
 
-		auto AdjustSamplingRate(double signal_sampling_rate) const {
+		auto AdjustSamplingRate(double signal_sampling_rate, double target_sampling_rate = acquisition_sampling_rate) const {
 			auto new_sampling_rate = signal_sampling_rate;
 			auto delta = [](auto lhs, auto rhs) {
 				return std::abs(lhs - rhs);
 			};
 
-			for (std::size_t i = 1; i < static_cast<std::size_t>(2 * signal_sampling_rate / acquisition_sampling_rate); ++i) {
+			for (std::size_t i = 1; i < static_cast<std::size_t>(2 * signal_sampling_rate / target_sampling_rate); ++i) {
 				auto fs_candidate = signal_sampling_rate / i;
 				if (std::fmod(fs_candidate / 1e3, 1) != 0.0)
 					continue;
 				
-				if (delta(acquisition_sampling_rate, fs_candidate) > delta(acquisition_sampling_rate, new_sampling_rate))
+				if (delta(target_sampling_rate, fs_candidate) > delta(target_sampling_rate, new_sampling_rate))
 					return new_sampling_rate;
 
 				new_sampling_rate = fs_candidate;
@@ -292,9 +300,32 @@ namespace ugsdr {
 		}
 
 		void ProcessSbas(const SignalEpoch<UnderlyingType>& epoch, std::vector<AcquisitionResult<UnderlyingType>>& dst) {
-			const auto& signal = epoch.GetSubband(Signal::SbasCoarseAcquisition_L1);
-			auto signal_sampling_rate = digital_frontend.GetSamplingRate(Signal::SbasCoarseAcquisition_L1);
-			auto central_frequency = digital_frontend.GetCentralFrequency(Signal::SbasCoarseAcquisition_L1);
+			const auto& signal = epoch.GetSubband(Signal::Sbas_L5Q);
+			auto signal_sampling_rate = digital_frontend.GetSamplingRate(Signal::Sbas_L5Q);
+			auto central_frequency = digital_frontend.GetCentralFrequency(Signal::Sbas_L5Q);
+
+			auto intermediate_frequency = -(central_frequency - 1176.45e6);
+
+			const auto translated_signal = MixerType::Translate(signal, signal_sampling_rate, -intermediate_frequency);
+			auto new_sampling_rate = AdjustSamplingRate(signal_sampling_rate, acquisition_sampling_rate_L5);
+			auto downsampled_signal = Resampler<IppResampler>::Transform(translated_signal, static_cast<std::size_t>(new_sampling_rate),
+				static_cast<std::size_t>(signal_sampling_rate));
+
+			auto sbas_doppler_step = 10.0;
+			std::swap(sbas_doppler_step, doppler_step);
+			std::for_each(std::execution::par_unseq, sbas_sv.begin(), sbas_sv.end(), [&](auto sv) {
+				const auto code = UpsamplerType::Transform(RepeatCodeNTimes(PrnGenerator<Signal::Sbas_L5Q>::Get<UnderlyingType>(sv.id), ms_to_process),
+					static_cast<std::size_t>(ms_to_process * new_sampling_rate / 1e3));
+
+				ProcessBpsk<true, false>(downsampled_signal, code, sv, signal_sampling_rate, new_sampling_rate, intermediate_frequency, dst);
+			});
+			std::swap(sbas_doppler_step, doppler_step);
+		}
+
+		void ProcessQzss(const SignalEpoch<UnderlyingType>& epoch, std::vector<AcquisitionResult<UnderlyingType>>& dst) {
+			const auto& signal = epoch.GetSubband(Signal::QzssCoarseAcquisition_L1);
+			auto signal_sampling_rate = digital_frontend.GetSamplingRate(Signal::QzssCoarseAcquisition_L1);
+			auto central_frequency = digital_frontend.GetCentralFrequency(Signal::QzssCoarseAcquisition_L1);
 
 			auto intermediate_frequency = -(central_frequency - 1575.42e6);
 
@@ -302,12 +333,12 @@ namespace ugsdr {
 			auto new_sampling_rate = AdjustSamplingRate(signal_sampling_rate);
 			auto downsampled_signal = Resampler<IppResampler>::Transform(translated_signal, static_cast<std::size_t>(new_sampling_rate),
 				static_cast<std::size_t>(signal_sampling_rate));
-
-			std::for_each(std::execution::par_unseq, sbas_sv.begin(), sbas_sv.end(), [&](auto sv) {
-				const auto code = UpsamplerType::Transform(RepeatCodeNTimes(PrnGenerator<Signal::SbasCoarseAcquisition_L1>::Get<UnderlyingType>(sv.id), ms_to_process),
+			
+			std::for_each(std::execution::par_unseq, qzss_sv.begin(), qzss_sv.end(), [&](auto sv) {
+				const auto code = UpsamplerType::Transform(RepeatCodeNTimes(PrnGenerator<Signal::QzssCoarseAcquisition_L1>::Get<UnderlyingType>(sv.id), ms_to_process),
 					static_cast<std::size_t>(ms_to_process * new_sampling_rate / 1e3));
 
-				ProcessBpsk<true, false>(downsampled_signal, code, sv, signal_sampling_rate, new_sampling_rate, intermediate_frequency, dst);
+				ProcessBpsk(downsampled_signal, code, sv, signal_sampling_rate, new_sampling_rate, intermediate_frequency, dst);
 			});
 		}
 		
@@ -335,8 +366,10 @@ namespace ugsdr {
 					ugsdr::Add(L"BeiDou acquisition input signal", epoch_data.GetSubband(Signal::BeiDou_B1I), digital_frontend.GetSamplingRate(Signal::BeiDou_B1I));
 				if (digital_frontend.HasSignal(Signal::NavIC_L5))
 					ugsdr::Add(L"NavIC acquisition input signal", epoch_data.GetSubband(Signal::NavIC_L5), digital_frontend.GetSamplingRate(Signal::NavIC_L5));
-				if (digital_frontend.HasSignal(Signal::SbasCoarseAcquisition_L1))
-					ugsdr::Add(L"SBAS acquisition input signal", epoch_data.GetSubband(Signal::SbasCoarseAcquisition_L1), digital_frontend.GetSamplingRate(Signal::SbasCoarseAcquisition_L1));
+				if (digital_frontend.HasSignal(Signal::Sbas_L5Q))
+					ugsdr::Add(L"SBAS acquisition input signal", epoch_data.GetSubband(Signal::Sbas_L5Q), digital_frontend.GetSamplingRate(Signal::Sbas_L5Q));
+				if (digital_frontend.HasSignal(Signal::QzssCoarseAcquisition_L1))
+					ugsdr::Add(L"QZSS acquisition input signal", epoch_data.GetSubband(Signal::QzssCoarseAcquisition_L1), digital_frontend.GetSamplingRate(Signal::QzssCoarseAcquisition_L1));
 			}
 				
 			if (digital_frontend.HasSignal(Signal::GpsCoarseAcquisition_L1))
@@ -349,8 +382,10 @@ namespace ugsdr {
 				ProcessBeiDou(epoch_data, dst);
 			if (digital_frontend.HasSignal(Signal::NavIC_L5))
 				ProcessNavIC(epoch_data, dst);
-			if (digital_frontend.HasSignal(Signal::SbasCoarseAcquisition_L1))
+			if (digital_frontend.HasSignal(Signal::Sbas_L5Q))
 				ProcessSbas(epoch_data, dst);
+			if (digital_frontend.HasSignal(Signal::QzssCoarseAcquisition_L1))
+				ProcessQzss(epoch_data, dst);
 		
 			std::sort(dst.begin(), dst.end(), [](auto& lhs, auto& rhs) {
 				return lhs.sv_number < rhs.sv_number;

@@ -74,7 +74,11 @@ namespace ugsdr {
 				Signal::BeiDou_B1I,
 				Signal::BeiDou_B1C,
 				Signal::NavIC_L5,
-				Signal::SbasCoarseAcquisition_L1
+				Signal::SbasCoarseAcquisition_L1,
+				Signal::Sbas_L5I,
+				Signal::Sbas_L5Q,
+				Signal::QzssCoarseAcquisition_L1,
+				Signal::Qzss_L1S
 			>(digital_frontend);
 		}
 

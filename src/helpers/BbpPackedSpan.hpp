@@ -9,10 +9,10 @@ namespace ugsdr {
 	template <typename T>
 	class PackedSpan {
 		struct Packed {
-			std::int8_t re_0 : 2 = 0;
 			std::int8_t im_0 : 2 = 0;
-			std::int8_t re_1 : 2 = 0;
+			std::int8_t re_0 : 2 = 0;
 			std::int8_t im_1 : 2 = 0;
+			std::int8_t re_1 : 2 = 0;
 
 			auto GetVal(bool second) const {
 				return std::complex<T>{static_cast<T>((second ? re_1 : re_0) | 0x1), static_cast<T>((second ? im_1 : im_0) | 0x1)};

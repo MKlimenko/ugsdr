@@ -22,6 +22,7 @@ namespace ugsdr {
 	constexpr std::size_t navic_sv_count = 14;
 	constexpr std::size_t sbas_sv_count = 22;
 	constexpr std::size_t sbas_sv_offset = 120;
+	constexpr std::size_t qzss_sv_count = 10;
 
 	template <typename T>
 	void CheckResize(T& vec, std::size_t samples) {
@@ -46,6 +47,10 @@ namespace ugsdr {
 		BeiDou_B1C,
 		NavIC_L5,
 		SbasCoarseAcquisition_L1,
+		Sbas_L5I,
+		Sbas_L5Q,
+		QzssCoarseAcquisition_L1,
+		Qzss_L1S,
 	};
 
 	enum class System : std::uint32_t {
@@ -55,6 +60,7 @@ namespace ugsdr {
 		BeiDou,
 		NavIC,
 		Sbas,		// add specializations (WAAS, EGNOS, SDCM etc) if required 
+		Qzss,
 	};
 
 	template <typename T>
@@ -89,7 +95,12 @@ namespace ugsdr {
 		case Signal::NavIC_L5:
 			return System::NavIC;
 		case Signal::SbasCoarseAcquisition_L1:
+		case Signal::Sbas_L5I:
+		case Signal::Sbas_L5Q:
 			return System::Sbas;
+		case Signal::QzssCoarseAcquisition_L1:
+		case Signal::Qzss_L1S:
+			return System::Qzss;
 		default:
 			throw std::runtime_error("Unexpected signal");
 		}
@@ -109,6 +120,8 @@ namespace ugsdr {
 			return navic_sv_count;
 		case System::Sbas:
 			return sbas_sv_count;
+		case System::Qzss:
+			return qzss_sv_count;
 		default:
 			throw std::runtime_error("Unexpected system");
 		}
@@ -166,6 +179,10 @@ namespace ugsdr {
 				dst += "SBAS SV";
 				++sv_number;
 				break;
+			case System::Qzss:
+				dst += "QZSS SV";
+				++sv_number;
+				break;
 			default:
 				throw std::runtime_error("Unexpected system");
 			}
@@ -218,6 +235,12 @@ namespace ugsdr {
 				break;
 			case Signal::SbasCoarseAcquisition_L1:
 				dst += "L1 C/A";
+				break;
+			case Signal::QzssCoarseAcquisition_L1:
+				dst += "L1 C/A";
+				break;
+			case Signal::Qzss_L1S:
+				dst += "L1 SAIF";
 				break;
 			default:
 				break;

@@ -15,20 +15,22 @@ void GenerateSignals(CSignalsViewer* sv) {
 #else
 int main() {
 #endif
-	auto signal_parameters =     ugsdr::SignalParametersBase<float>(R"(../../../../data/nt1065_grabber.bin)", ugsdr::FileType::Nt1065GrabberFirst, 1590e6, 79.5e6);
+	//auto signal_parameters =     ugsdr::SignalParametersBase<float>(R"(../../../../data/nt1065_grabber.bin)", ugsdr::FileType::Nt1065GrabberFirst, 1590e6, 79.5e6);
 	//auto signal_parameters_gln = ugsdr::SignalParametersBase<float>(R"(../../../../data/nt1065_grabber.bin)", ugsdr::FileType::Nt1065GrabberSecond, 1590e6, 79.5e6);
 	//auto signal_parameters_L5 =  ugsdr::SignalParametersBase<float>(R"(../../../../data/nt1065_grabber.bin)", ugsdr::FileType::Nt1065GrabberThird, 1200e6, 79.5e6);
 	//auto signal_parameters_L2 =  ugsdr::SignalParametersBase<float>(R"(../../../../data/nt1065_grabber.bin)", ugsdr::FileType::Nt1065GrabberFourth, 1200e6, 79.5e6);
-	//auto signal_parameters =     ugsdr::SignalParametersBase<float>(R"(../../../../data/bbp_ddc_gps_L1.dat)", ugsdr::FileType::BbpDdc, 1575.42e6, 33.25e6);
+	auto signal_parameters =     ugsdr::SignalParametersBase<float>(R"(../../../../data/bbp_ddc_gps_L1.dat)", ugsdr::FileType::BbpDdc, 1575.42e6, 33.25e6);
 	//auto signal_parameters_L5 =     ugsdr::SignalParametersBase<float>(R"(../../../../data/bbp_ddc_gps_L5.dat)", ugsdr::FileType::BbpDdc, 1176.45e6, 66.5e6);
 
 	auto digital_frontend = ugsdr::DigitalFrontend(
-		MakeChannel(signal_parameters, std::vector{ ugsdr::Signal::SbasCoarseAcquisition_L1 }, signal_parameters.GetSamplingRate())
+		MakeChannel(signal_parameters, std::vector{ ugsdr::Signal::QzssCoarseAcquisition_L1, ugsdr::Signal::Qzss_L1S }, signal_parameters.GetSamplingRate())
 	);
 
 #if 1
 	auto fse = ugsdr::FastSearchEngineBase(digital_frontend, 5e3, 200);
 	auto acquisition_results = fse.Process(true);
+	if (acquisition_results.empty())
+		return;
 	ugsdr::Save("acquisition_results_cache", acquisition_results);
 #else
 	std::vector<ugsdr::AcquisitionResult<float>> acquisition_results;

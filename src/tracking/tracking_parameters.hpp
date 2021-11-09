@@ -116,6 +116,10 @@ namespace ugsdr {
 			case Signal::BeiDou_B1I:
 			case Signal::NavIC_L5:
 			case Signal::SbasCoarseAcquisition_L1:
+			case Signal::Sbas_L5I:
+			case Signal::Sbas_L5Q:
+			case Signal::QzssCoarseAcquisition_L1:
+			case Signal::Qzss_L1S:
 				return 1;
 			case Signal::Gps_L2CM:
 				return 20;
@@ -136,7 +140,8 @@ namespace ugsdr {
 			switch (sv.signal) {
 			case Signal::GpsCoarseAcquisition_L1:
 			case Signal::NavIC_L5:
-			case Signal::SbasCoarseAcquisition_L1:
+			case Signal::QzssCoarseAcquisition_L1:
+			case Signal::Qzss_L1S:
 				code_frequency = 1.023e6;
 				base_code_frequency = 1.023e6;
 				break;
@@ -186,6 +191,19 @@ namespace ugsdr {
 			case Signal::BeiDou_B1C:
 				code_frequency = 2.046e6;
 				base_code_frequency = 2.046e6;
+				break;
+
+			case Signal::SbasCoarseAcquisition_L1:
+				code_frequency = 1.023e6;
+				base_code_frequency = 1.023e6;
+				code_phase = std::fmod(code_phase * sampling_rate / digital_frontend.GetSamplingRate(acquisition.GetAcquiredSignalType()),
+					code_period * sampling_rate / 1e3);
+				carrier_frequency *= 1575.42e6 / 1176.45e6;
+				break;
+			case Signal::Sbas_L5I:
+			case Signal::Sbas_L5Q:
+				code_frequency = 10.23e6;
+				base_code_frequency = 10.23e6;
 				break;
 			default:
 				throw std::runtime_error("Unexpected signal");
@@ -295,10 +313,18 @@ namespace ugsdr {
 		}
 
 		static void AddSbas(const AcquisitionResult<T>& acquisition, DigitalFrontend<T>& digital_frontend, std::vector<TrackingParameters<T>>& dst) {
+			AddSignal<
+				Signal::SbasCoarseAcquisition_L1,
+				Signal::Sbas_L5I
+			>(acquisition, digital_frontend, dst);
 			dst.emplace_back(acquisition, digital_frontend);
-			//AddSignal<
-			//	Signal::Sbas_L5
-			//>(acquisition, digital_frontend, dst);
+		}
+
+		static void AddQzss(const AcquisitionResult<T>& acquisition, DigitalFrontend<T>& digital_frontend, std::vector<TrackingParameters<T>>& dst) {
+			dst.emplace_back(acquisition, digital_frontend); 
+			AddSignal<
+				Signal::Qzss_L1S
+			>(acquisition, digital_frontend, dst);
 		}
 
 		static void FillTrackingParameters(const AcquisitionResult<T>& acquisition, DigitalFrontend<T>& digital_frontend, std::vector<TrackingParameters<T>>& dst) {
@@ -320,6 +346,9 @@ namespace ugsdr {
 				break;
 			case(System::Sbas):
 				AddSbas(acquisition, digital_frontend, dst);
+				break;
+			case(System::Qzss):
+				AddQzss(acquisition, digital_frontend, dst);
 				break;
 			default:
 				throw std::runtime_error("Not implemented yet");
