@@ -114,11 +114,7 @@ namespace ugsdr {
 		auto GetEpl(TrackingParameters<UnderlyingType>& parameters, double spacing_chips) {
 			auto& translated_signal = parameters.translated_signal;
 			MixerType::Translate(translated_signal, parameters.sampling_rate, -parameters.carrier_frequency, -parameters.carrier_phase);
-		
-			auto phase_mod = std::fmod(parameters.carrier_frequency / 1000.0, 1.0);
-			if (phase_mod < 0)
-				phase_mod += 1;
-			parameters.carrier_phase += 2 * std::numbers::pi_v<double> * phase_mod;
+			parameters.UpdatePhase();
 			
 			const auto& full_code = codes.GetCode(parameters.sv);
 

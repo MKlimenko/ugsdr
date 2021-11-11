@@ -102,6 +102,13 @@ namespace ugsdr {
 			late.reserve(epochs_to_process);
 		}
 
+		void UpdatePhase() {
+			auto phase_mod = std::fmod(carrier_frequency / 1000.0, 1.0);
+			if (phase_mod < 0)
+				phase_mod += 1;
+			carrier_phase += 2 * std::numbers::pi_v<double> * phase_mod;
+		}
+
 		static auto GetCodePeriod(Signal signal) {
 			switch (signal) {
 			case Signal::GpsCoarseAcquisition_L1:
@@ -226,7 +233,7 @@ namespace ugsdr {
 		}
 
 		template <typename Tc>
-		static auto CorrelateTranslated(const std::vector<std::complex<T>>& epoch, const TrackingParameters<T>& parameters, const Tc& code, double frequency_offset = 0.0) {
+		static auto MatchedFilterTranslated(const std::vector<std::complex<T>>& epoch, const TrackingParameters<T>& parameters, const Tc& code, double frequency_offset = 0.0) {
 			const auto translated = IppMixer::Translate(epoch, parameters.sampling_rate, -parameters.carrier_frequency + frequency_offset);
 
 			auto local_code = std::vector(code.begin(), code.begin() + translated.size());
@@ -263,8 +270,8 @@ namespace ugsdr {
 			code.resize(epoch.size());
 			std::rotate(code.begin(), code.begin() + parameters.code_phase, code.end());
 
-			auto [correlator_value, code_offset] = CorrelateTranslated(epoch, parameters, code);
-			auto [correlator_value_offset, tmp] = CorrelateTranslated(epoch, parameters, code, 4e6);
+			auto [correlator_value, code_offset] = MatchedFilterTranslated(epoch, parameters, code);
+			auto [correlator_value_offset, tmp] = MatchedFilterTranslated(epoch, parameters, code, 4e6);
 
 			// will work for now, but this should be executed after L1 lock
 			if (std::abs(correlator_value) / std::abs(correlator_value_offset) >= 1.3) {
@@ -272,7 +279,6 @@ namespace ugsdr {
 				std::cout << static_cast<std::string>(parameters.sv) << ". Offset: " << code_offset % samples_per_ms << ". Value: " << correlator_value
 					<< ". Ratio: " << correlator_value / correlator_value_offset << std::endl;
 #endif
-
 				parameters.code_phase -= code_offset;
 				dst.push_back(std::move(parameters));
 			}
@@ -302,8 +308,8 @@ namespace ugsdr {
 		}
 		
 		static void AddGalileo(const AcquisitionResult<T>& acquisition, DigitalFrontend<T>& digital_frontend, std::vector<TrackingParameters<T>>& dst) {
-			dst.emplace_back(acquisition, digital_frontend);
 			AddSignal<
+				Signal::Galileo_E1b,
 				Signal::Galileo_E1c, 
 				Signal::Galileo_E5aI,
 				Signal::Galileo_E5aQ,
