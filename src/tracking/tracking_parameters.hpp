@@ -113,6 +113,8 @@ namespace ugsdr {
 			case Signal::Galileo_E5aQ:
 			case Signal::Galileo_E5bI:
 			case Signal::Galileo_E5bQ:
+			case Signal::Galileo_E6b:
+			case Signal::Galileo_E6c:
 			case Signal::BeiDou_B1I:
 			case Signal::NavIC_L5:
 			case Signal::SbasCoarseAcquisition_L1:
@@ -189,6 +191,13 @@ namespace ugsdr {
 				code_phase = std::fmod(code_phase * sampling_rate / digital_frontend.GetSamplingRate(acquisition.GetAcquiredSignalType()),
 					code_period * sampling_rate / 1e3);
 				carrier_frequency *= 1207.14e6 / 1575.42e6;
+			case Signal::Galileo_E6b:
+			case Signal::Galileo_E6c:
+				code_frequency = 5.115e6;
+				base_code_frequency = 5.115e6;
+				code_phase = std::fmod(code_phase * sampling_rate / digital_frontend.GetSamplingRate(acquisition.GetAcquiredSignalType()),
+					code_period * sampling_rate / 1e3);
+				carrier_frequency *= 1278.75e6 / 1575.42e6;
 				break;
 			case Signal::BeiDou_B1I:
 				code_frequency = 2.046e6;
@@ -295,12 +304,13 @@ namespace ugsdr {
 		static void AddGalileo(const AcquisitionResult<T>& acquisition, DigitalFrontend<T>& digital_frontend, std::vector<TrackingParameters<T>>& dst) {
 			dst.emplace_back(acquisition, digital_frontend);
 			AddSignal<
-				Signal::Galileo_E1b,
 				Signal::Galileo_E1c, 
 				Signal::Galileo_E5aI,
 				Signal::Galileo_E5aQ,
 				Signal::Galileo_E5bI,
-				Signal::Galileo_E5bQ
+				Signal::Galileo_E5bQ,
+				Signal::Galileo_E6b,
+				Signal::Galileo_E6c
 			>(acquisition, digital_frontend, dst);
 		}
 

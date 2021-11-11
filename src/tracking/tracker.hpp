@@ -71,6 +71,8 @@ namespace ugsdr {
 				Signal::Galileo_E5aQ,
 				Signal::Galileo_E5bI,
 				Signal::Galileo_E5bQ,
+				Signal::Galileo_E6b,
+				Signal::Galileo_E6c,
 				Signal::BeiDou_B1I,
 				Signal::BeiDou_B1C,
 				Signal::NavIC_L5,

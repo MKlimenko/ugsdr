@@ -43,6 +43,8 @@ namespace ugsdr {
 		Galileo_E5aQ,
 		Galileo_E5bI,
 		Galileo_E5bQ,
+		Galileo_E6b,
+		Galileo_E6c,
 		BeiDou_B1I,
 		BeiDou_B1C,
 		NavIC_L5,
@@ -91,6 +93,8 @@ namespace ugsdr {
 		case Signal::Galileo_E5aQ:
 		case Signal::Galileo_E5bI:
 		case Signal::Galileo_E5bQ:
+		case Signal::Galileo_E6b:
+		case Signal::Galileo_E6c:
 			return System::Galileo;
 		case Signal::BeiDou_B1I:
 		case Signal::BeiDou_B1C:
@@ -229,6 +233,12 @@ namespace ugsdr {
 				break;
 			case Signal::Galileo_E5bQ:
 				dst += "E5bQ";
+				break;
+			case Signal::Galileo_E6b:
+				dst += "E6B";
+				break;
+			case Signal::Galileo_E6c:
+				dst += "E6C";
 				break;
 			case Signal::BeiDou_B1I:
 				dst += "B1I";

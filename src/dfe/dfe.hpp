@@ -90,6 +90,9 @@ namespace ugsdr {
 			case Signal::Galileo_E5bI:
 			case Signal::Galileo_E5bQ:
 				return 1207.14e6;
+			case Signal::Galileo_E6b:
+			case Signal::Galileo_E6c:
+				return 1278.75e6;
 			default:
 				throw std::runtime_error("Unexpected signal");
 			}

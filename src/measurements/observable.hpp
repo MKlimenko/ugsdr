@@ -2,6 +2,7 @@
 
 #include "timescale.hpp"
 #include "../common.hpp"
+#include "../ephemeris/GpsEphemeris.hpp"
 #include "../matched_filter/ipp_matched_filter.hpp"
 #include "../math/ipp_abs.hpp"
 #include "../resample/resampler.hpp"
@@ -76,10 +77,10 @@ namespace ugsdr {
 		}
 
 		template <typename T>
-		static auto GetAccumulatedBits(std::span<const T> arr) {
+		static auto GetAccumulatedBits(std::span<const T> arr, T val = -1) {
 			auto accumulated_bits = IppAccumulator::Transform(arr, 20);
 			for (auto& el : accumulated_bits)
-				el = el > 0 ? 1 : -1;
+				el = el > 0 ? 1 : val;
 			return accumulated_bits;
 		}
 
@@ -103,7 +104,7 @@ namespace ugsdr {
 		}
 
 		template <typename T>
-		static auto FindPreambleGps(const ugsdr::TrackingParameters<T>& tracking_result) {
+		static auto FindPreambleGps(const ugsdr::TrackingParameters<T>& tracking_result, TimeScale& time_scale) -> std::optional<GpsEphemeris> {
 			std::vector<T> navigation_bits;
 			const auto& prompt = tracking_result.prompt;
 			navigation_bits.reserve(prompt.size());
@@ -125,17 +126,23 @@ namespace ugsdr {
 				vals.push_back(el.real());
 			auto preamble_position = FindPreamblePosition(indexes, std::span<const T>(vals));
 			if (!preamble_position)
-				return 0;
+				return std::nullopt;
 
-			auto nav_bits = GetAccumulatedBits(std::span<const T>(navigation_bits.begin() + preamble_position.value() - 20, 1501 * 20));
+			auto nav_bits = GetAccumulatedBits(std::span<const T>(navigation_bits.begin() + preamble_position.value() - 20, 1501 * 20), T{});
+			auto current_ephemeris = GpsEphemeris(std::span(nav_bits.begin() + 1, nav_bits.end()), nav_bits[0]);
 
-			return 0;
+			auto tow_ms = current_ephemeris.tow * 1000;
+
+			time_scale.UpdateScale(preamble_position.value(), tow_ms, System::Gps);
+
+			return current_ephemeris;
 		}
+		
 		template <typename T>
-		static auto FindPreamble(const ugsdr::TrackingParameters<T>& tracking_result) {
+		static auto FindPreamble(const ugsdr::TrackingParameters<T>& tracking_result, TimeScale& time_scale) {
 			switch (tracking_result.sv.system) {
 			case (System::Gps):
-				return FindPreambleGps(tracking_result);
+				return FindPreambleGps(tracking_result, time_scale);
 				break;
 			case (System::Glonass):
 				//break;
@@ -147,8 +154,10 @@ namespace ugsdr {
 	public:
 		template <typename T>
 		static auto MakeObservable(const ugsdr::TrackingParameters<T>& tracking_result, TimeScale& time_scale) -> std::optional<Observable> {
-			auto placeholder = FindPreamble(tracking_result);
-
+			auto optional_ephemeris = FindPreamble(tracking_result, time_scale);
+			if (!optional_ephemeris)
+				return std::nullopt;
+		
 			return std::nullopt;
 		}
 	};

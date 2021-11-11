@@ -12,6 +12,7 @@ add_executable (${PROJECT_NAME}
 							correlator/correlator.hpp
 							correlator/ipp_correlator.hpp
 							dfe/dfe.hpp
+							ephemeris/GpsEphemeris.hpp
 							helpers/af_array_proxy.hpp
 							helpers/BbpPackedSpan.hpp
 							helpers/ipp_complex_type_converter.hpp
@@ -53,6 +54,8 @@ add_executable (${PROJECT_NAME}
 							prn_codes/GalileoE5aQ.hpp
 							prn_codes/GalileoE5bI.hpp
 							prn_codes/GalileoE5bQ.hpp
+							prn_codes/GalileoE6b.hpp  
+							prn_codes/GalileoE6c.hpp  
 							prn_codes/GlonassOf.hpp 
 							prn_codes/GoldCodes.hpp  
 							prn_codes/GpsL1Ca.hpp 
