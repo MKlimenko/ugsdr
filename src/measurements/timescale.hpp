@@ -34,5 +34,10 @@ namespace ugsdr {
 			is_corrected = true;
 			last_preable_position = preable_position;
 		}
+
+		auto operator[](std::size_t ms_cnt) const {
+			return time_ms[ms_cnt];
+
+		}
 	};
 }

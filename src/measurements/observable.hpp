@@ -14,19 +14,12 @@
 
 namespace ugsdr {
 	class Observable final {
-		Sv sv;
-		std::vector<double> pseudorange;
-		std::vector<double> pseudophase;
-		std::vector<double> doppler;
-		std::vector<double> snr;
-		std::variant<GpsEphemeris> ephemeris;
-		
-		std::size_t preamble_position = std::numeric_limits<std::size_t>::max();
-
 		template <typename T, typename E>
-		Observable(const ugsdr::TrackingParameters<T>& tracking_result, TimeScale& time_scale, std::size_t position, E eph) :
-			sv(tracking_result.sv), ephemeris(std::move(eph)), preamble_position(position) {
+		Observable(const ugsdr::TrackingParameters<T>& tracking_result, TimeScale& time_scale_ref, std::size_t position, E eph) :
+			sv(tracking_result.sv), ephemeris(std::move(eph)), preamble_position(position), time_scale(time_scale_ref) {
 			pseudorange.reserve(tracking_result.code_phases.size());
+			if (tracking_result.code_phases[0] < 0.5)
+				++preamble_position;
 			for (auto& el : tracking_result.code_phases) pseudorange.push_back(el * 1000 / tracking_result.sampling_rate);
 			pseudophase = tracking_result.phases;
 			doppler = tracking_result.frequencies;
@@ -164,10 +157,35 @@ namespace ugsdr {
 			}
 		}
 
+		void UpdatePseudorangeGps(std::size_t day_offset) {
+			for (std::size_t i = 0; i < pseudorange.size(); ++i) 
+				pseudorange[i] += time_scale[i] - (static_cast<std::ptrdiff_t>(i) - preamble_position + std::get<GpsEphemeris>(ephemeris).tow * 1000);
+		}
+
 	public:
+		Sv sv;
+		std::vector<double> pseudorange;
+		std::vector<double> pseudophase;
+		std::vector<double> doppler;
+		std::vector<double> snr;
+		std::variant<GpsEphemeris> ephemeris;
+		TimeScale& time_scale;
+
+		std::size_t preamble_position = std::numeric_limits<std::size_t>::max();
+
 		template <typename T>
 		static auto MakeObservable(const ugsdr::TrackingParameters<T>& tracking_result, TimeScale& time_scale) -> std::optional<Observable> {
 			return FindPreamble(tracking_result, time_scale);
+		}
+
+		void UpdatePseudoranges(std::size_t day_offset) {
+			switch (sv.system) {
+			case (System::Gps):
+				UpdatePseudorangeGps(day_offset);
+				break;
+			default:
+				throw std::runtime_error("Unsupported system");
+			}
 		}
 	};
 }

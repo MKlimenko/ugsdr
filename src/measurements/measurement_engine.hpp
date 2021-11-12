@@ -27,6 +27,17 @@ namespace ugsdr {
 				if (current_observable)
 					observables.push_back(current_observable.value());
 			}
+
+			auto day_offset = 0;
+			for (auto& obs : observables) {
+				if (obs.sv.system == ugsdr::System::Gps) {
+					day_offset = std::floor(std::get<GpsEphemeris>(obs.ephemeris).tow / (24 * 60 * 60));
+					break;
+				}
+			}
+
+			for (auto& obs : observables)
+				obs.UpdatePseudoranges(day_offset);
 		}
 	};
 }
