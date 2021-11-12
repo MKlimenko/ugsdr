@@ -1,5 +1,4 @@
-﻿#define NOMINMAX
-#include "gtest/gtest.h"
+﻿#include "gtest/gtest.h"
 
 #include "../src/correlator/af_correlator.hpp"
 #include "../src/correlator/ipp_correlator.hpp"

@@ -1,6 +1,4 @@
-﻿#define NOMINMAX
-
-#include <benchmark/benchmark.h>
+﻿#include <benchmark/benchmark.h>
 
 #include <complex>
 #include "../src/signal_parameters.hpp"
@@ -28,7 +26,6 @@
 #include <random>
 
 #include "ipp.h"
-
 
 #if 1
 namespace signal_parameters {

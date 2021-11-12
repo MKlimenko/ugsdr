@@ -7,6 +7,8 @@
 #include "dfe/dfe.hpp"
 #include "measurements/measurement_engine.hpp"
 
+#include "rtklib.h"
+
 #include <chrono>
 
 #ifdef HAS_SIGNAL_PLOT

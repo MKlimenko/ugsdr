@@ -22,7 +22,13 @@ if (OPENMP_FOUND)
     set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
 endif()
 
+add_compile_definitions(ENAGLO ENAGAL ENAQZS ENACMP ENAIRN NFREQ=3 TRACE NOMINMAX _WINSOCK2API_)
+
 enable_testing()
 add_subdirectory ("src")
 add_subdirectory ("test")
 add_subdirectory ("benchmark")
+add_subdirectory("external")
+add_dependencies(ugsdr rtklib)
+add_dependencies(ugsdr_test rtklib)
+add_dependencies(ugsdr_benchmark rtklib)

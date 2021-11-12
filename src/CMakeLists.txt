@@ -93,6 +93,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 												${ArrayFire_INCLUDE_DIRS} 
 												${Boost_INCLUDE_DIRS} 
 												${IPP_INCLUDE_DIRS}
+												../external/RTKLIB/src
 )
 target_link_libraries(${PROJECT_NAME} PRIVATE 
 												${Boost_LIBRARIES} 
@@ -103,6 +104,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
 												IPP::ippch 
 												IPP::ippcore 
 												OpenMP::OpenMP_CXX
+												rtklib
 												TBB::tbb
 )
 

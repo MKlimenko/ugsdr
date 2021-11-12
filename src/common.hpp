@@ -8,8 +8,11 @@
 #include <cereal/archives/xml.hpp>
 #include <vector>
 
-#ifdef HAS_SIGNAL_PLOT
+#ifndef NOMINMAX
 #define NOMINMAX
+#endif
+
+#ifdef HAS_SIGNAL_PLOT
 #include "signalsviewermdi.hpp"
 #endif
 
