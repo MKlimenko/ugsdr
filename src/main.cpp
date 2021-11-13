@@ -6,8 +6,7 @@
 #include "tracking/tracker.hpp"
 #include "dfe/dfe.hpp"
 #include "measurements/measurement_engine.hpp"
-
-#include "rtklib.h"
+#include "positioning/standalone_rtklib.hpp"
 
 #include <chrono>
 
@@ -59,6 +58,9 @@ int main() {
 	//	ugsdr::Add(L"Prompt tracking result", el.prompt);
 
 	auto measurement_engine = ugsdr::MeasurementEngine(tracking_parameters);
+	auto positioning_engine = ugsdr::StandaloneRtklib(measurement_engine);
+	
+	auto pos = positioning_engine.EstimatePosition(0);
 #endif
 	
 

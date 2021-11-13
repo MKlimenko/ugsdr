@@ -17,6 +17,7 @@ add_executable (${PROJECT_NAME}
 							helpers/BbpPackedSpan.hpp
 							helpers/ipp_complex_type_converter.hpp
 							helpers/is_complex.hpp
+							helpers/rtklib_helpers.hpp
 							helpers/visualizer.hpp 
 							matched_filter/af_matched_filter.hpp
 							matched_filter/ipp_matched_filter.hpp
@@ -43,6 +44,8 @@ add_executable (${PROJECT_NAME}
 							mixer/mixer.hpp 
 							mixer/nco.hpp
 							mixer/table_mixer.hpp
+							positioning/standalone_engine.hpp
+							positioning/standalone_rtklib.hpp
 							prn_codes/BeiDouB1C.hpp
 							prn_codes/BeiDouB1I.hpp
 							prn_codes/codegen.hpp 

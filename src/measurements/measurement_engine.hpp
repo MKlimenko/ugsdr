@@ -7,10 +7,10 @@
 
 namespace ugsdr {
 	class MeasurementEngine final {
+	public:
 		TimeScale receiver_time_scale;
 		std::vector<Observable> observables;
 
-	public:
 		template <typename T>
 		MeasurementEngine(const ugsdr::Tracker<T>& tracker) : MeasurementEngine(tracker.GetTrackingParameters()) {}
 
