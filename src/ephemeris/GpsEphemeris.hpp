@@ -62,7 +62,7 @@ namespace ugsdr {
 
 			switch (subframe_id) {
 			case 1:
-				week_number = bin2dec(subframe, 60, 10) + 1024;
+				week_number = bin2dec(subframe, 60, 10) + 2048;
 				accuracy = bin2dec(subframe, 72, 4);
 				health = bin2dec(subframe, 76, 6);
 				group_delay = twocomp2dec(subframe, 196, 8) * std::pow(2, -31.0);

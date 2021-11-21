@@ -155,8 +155,6 @@ namespace ugsdr {
 				const auto translated_signal = MixerType::Translate(signal, new_sampling_rate, -doppler_frequency);
 				auto matched_output = MatchedFilterType::FilterOptimized(translated_signal, code_spectrum);
 				auto peak_one_ms = GetOneMsPeak<reshape, coherent>(matched_output, new_sampling_rate);
-
-				std::reverse(std::execution::par_unseq, peak_one_ms.begin(), peak_one_ms.end());
 				
 				auto max_index = MaxIndexType::Transform(peak_one_ms);
 				auto mean_sigma = MeanStdDevType::Calculate(peak_one_ms);

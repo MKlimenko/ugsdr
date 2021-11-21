@@ -157,7 +157,7 @@ namespace ugsdr {
 			parameters.late.push_back(late);
 
 			if (parameters.code_period > 1) 
-				parameters.code_phase += parameters.sampling_rate / 1e3;
+				parameters.code_phase -= parameters.sampling_rate / 1e3;
 
 			parameters.Pll(prompt);
 			parameters.Dll(early, late);

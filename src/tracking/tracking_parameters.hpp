@@ -268,7 +268,7 @@ namespace ugsdr {
 			const auto& epoch = digital_frontend.GetSeveralEpochs(0, ms_cnt).GetSubband(signal);
 			auto code = SequentialUpsampler::Transform(PrnGenerator<signal>::template Get<T>(parameters.sv.id), samples_per_ms * GetCodePeriod(signal));
 			code.resize(epoch.size());
-			std::rotate(code.begin(), code.begin() + parameters.code_phase, code.end());
+			std::rotate(code.rbegin(), code.rbegin() + parameters.code_phase, code.rend());
 
 			auto [correlator_value, code_offset] = MatchedFilterTranslated(epoch, parameters, code);
 			auto [correlator_value_offset, tmp] = MatchedFilterTranslated(epoch, parameters, code, 4e6);
@@ -394,14 +394,16 @@ namespace ugsdr {
 			if (current_code_phase > code_period_samples)
 				current_code_phase = std::fmod(current_code_phase, code_period_samples);
 
-			auto first_batch_length = static_cast<std::size_t>(std::ceil(code_period_samples - current_code_phase)) % samples_per_ms;
+			auto first_batch_length = static_cast<std::size_t>(std::ceil(current_code_phase)) % samples_per_ms;
 			auto second_batch_length = samples_per_ms - first_batch_length;
 
-			auto first_batch_phase = static_cast<std::size_t>(std::ceil(code_period_samples + current_code_phase));
+			auto first_batch_phase = static_cast<std::size_t>(std::ceil(2 * code_period_samples - current_code_phase));
 			auto second_batch_phase = first_batch_phase + first_batch_length;
 
-			auto first = CorrelatorType::Correlate(std::span(translated_signal.begin(), first_batch_length), std::span(full_code.begin() + first_batch_phase, first_batch_length));
-			auto second = CorrelatorType::Correlate(std::span(translated_signal.begin() + first_batch_length, second_batch_length), std::span(full_code.begin() + second_batch_phase, second_batch_length));
+			auto first = CorrelatorType::Correlate(std::span(translated_signal.begin(), first_batch_length), 
+				std::span(full_code.begin() + first_batch_phase, first_batch_length));
+			auto second = CorrelatorType::Correlate(std::span(translated_signal.begin() + first_batch_length, second_batch_length), 
+				std::span(full_code.begin() + second_batch_phase, second_batch_length));
 
 			return AddWithPhase(first, second, std::fmod(current_code_phase, samples_per_ms) / samples_per_ms);
 		}
@@ -420,7 +422,7 @@ namespace ugsdr {
 			carrier_phase_error = new_phase_error;
 			carrier_phase += new_phase_error * 2 * std::numbers::pi;
 
-			phases.push_back(carrier_phase);
+			phases.push_back(carrier_phase / 2 * std::numbers::pi);
 			frequencies.push_back(carrier_frequency);
 			previous_prompt = current_prompt;
 		}

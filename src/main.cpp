@@ -24,12 +24,13 @@ int main() {
 
 	auto digital_frontend = ugsdr::DigitalFrontend(
 		MakeChannel(signal_parameters, std::vector{ ugsdr::Signal::GpsCoarseAcquisition_L1 }, signal_parameters.GetSamplingRate()),
-		MakeChannel(signal_parameters_gln, std::vector{ ugsdr::Signal::GlonassCivilFdma_L1 }, signal_parameters_gln.GetSamplingRate())
+		MakeChannel(signal_parameters_gln, std::vector{ ugsdr::Signal::GlonassCivilFdma_L1 }, signal_parameters_gln.GetSamplingRate()),
+		MakeChannel(signal_parameters, std::vector{ ugsdr::Signal::Galileo_E1b }, signal_parameters.GetSamplingRate())
 	);
 
-#if 0
+#if 1
 	auto fse = ugsdr::FastSearchEngineBase(digital_frontend, 5e3, 200);
-	auto acquisition_results = fse.Process(true);
+	auto acquisition_results = fse.Process(!true);
 	if (acquisition_results.empty())
 		return;
 	ugsdr::Save("acquisition_results_cache", acquisition_results);
@@ -38,7 +39,7 @@ int main() {
 	ugsdr::Load("acquisition_results_cache", acquisition_results);
 #endif
 
-#if 0
+#if 1
 	auto pre = std::chrono::system_clock::now();
 	auto tracker = ugsdr::Tracker(digital_frontend, acquisition_results);
 	tracker.Track(signal_parameters.GetNumberOfEpochs());

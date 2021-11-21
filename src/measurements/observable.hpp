@@ -151,8 +151,9 @@ namespace ugsdr {
 			case (System::Gps):
 				return FindPreambleGps(tracking_result, time_scale);
 			case (System::Glonass):
-				return FindPreambleGlonass(tracking_result, time_scale);
+				//return FindPreambleGlonass(tracking_result, time_scale);
 			default:
+				break;
 				throw std::runtime_error("Unsupported system");
 			}
 		}
