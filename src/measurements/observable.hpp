@@ -14,6 +14,41 @@
 
 namespace ugsdr {
 	class Observable final {
+		static auto GetComplexToImagWrapper() {
+			static auto cplx_to_imag_wrapper = plusifier::FunctionWrapper(
+				ippsCplxToReal_32fc, ippsCplxToReal_64fc
+			);
+
+			return cplx_to_imag_wrapper;
+		}
+
+		static auto GetStdDevWrapper() {
+			static auto stddev_wrapper = plusifier::FunctionWrapper(
+				[](const Ipp32f* pSrc, int len, Ipp32f* pStdDev) { return ippsStdDev_32f(pSrc, len, pStdDev, IppHintAlgorithm::ippAlgHintNone); },
+				ippsStdDev_64f
+			);
+			
+			return stddev_wrapper;
+		}
+
+		template <typename T>
+		void CalculateSnr(const ugsdr::TrackingParameters<T>& tracking_result) {
+			static thread_local std::vector<T> real(tracking_result.prompt.size());
+			static thread_local std::vector<T> imaginary(tracking_result.prompt.size());
+			using IppType = typename IppTypeToComplex<T>::Type;
+
+			auto cplx_to_imag_wrapper = GetComplexToImagWrapper();
+			cplx_to_imag_wrapper(reinterpret_cast<const IppType*>(tracking_result.prompt.data()), real.data(), imaginary.data(), static_cast<int>(imaginary.size()));
+
+			T sigma{};
+			auto stddev_wrapper = GetStdDevWrapper();
+			stddev_wrapper(imaginary.data(), static_cast<int>(imaginary.size()), &sigma);
+
+			snr.resize(tracking_result.prompt.size());
+			for(std::size_t i = 0;i<snr.size(); ++i)
+				snr[i] = 27 + 20 * std::log10(std::abs(tracking_result.prompt[i].real()) / sigma);
+		}
+		
 		template <typename T, typename E>
 		Observable(const ugsdr::TrackingParameters<T>& tracking_result, TimeScale& time_scale_ref, std::size_t position, E eph) :
 			sv(tracking_result.sv), ephemeris(std::move(eph)), preamble_position(position), time_scale(time_scale_ref) {
@@ -21,7 +56,7 @@ namespace ugsdr {
 			for (auto& el : tracking_result.code_phases) pseudorange.push_back(el * 1000 / tracking_result.sampling_rate);
 			pseudophase = tracking_result.phases;
 			doppler = tracking_result.frequencies;
-			// snr
+			CalculateSnr(tracking_result);
 		}
 
 		template <typename T>
