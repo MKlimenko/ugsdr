@@ -59,6 +59,7 @@ add_executable (${PROJECT_NAME}
 							prn_codes/GalileoE5bQ.hpp
 							prn_codes/GalileoE6b.hpp  
 							prn_codes/GalileoE6c.hpp  
+							prn_codes/GalileoMemoryCodes.cpp
 							prn_codes/GlonassOf.hpp 
 							prn_codes/GoldCodes.hpp  
 							prn_codes/GpsL1Ca.hpp 

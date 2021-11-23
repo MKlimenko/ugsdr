@@ -3,6 +3,8 @@
 #include "../common.hpp"
 #include <vector>
 
+#include <cereal/cereal.hpp>
+
 namespace ugsdr {
 	template <typename T>
 	struct AcquisitionResult final {

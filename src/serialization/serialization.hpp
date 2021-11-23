@@ -2,6 +2,7 @@
 
 #include <cereal/archives/binary.hpp>
 #include <cereal/types/complex.hpp>
+#include <cereal/types/vector.hpp>
 #include <fstream>
 #include <string>
 

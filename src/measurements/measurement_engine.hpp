@@ -18,7 +18,7 @@ namespace ugsdr {
 		MeasurementEngine(const std::vector<ugsdr::TrackingParameters<T>>& tracking_results) {
 			if (tracking_results.empty())
 				throw std::runtime_error("Empty tracking results");
-			
+
 			receiver_time_scale = TimeScale(tracking_results.begin()->prompt.size());
 			observables.reserve(tracking_results.size());
 
@@ -35,9 +35,6 @@ namespace ugsdr {
 					break;
 				}
 			}
-
-			for (auto& obs : observables)
-				obs.UpdatePseudoranges(day_offset);
 		}
 	};
 }

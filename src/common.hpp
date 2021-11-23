@@ -2,10 +2,8 @@
 
 #include <cstdint>
 #include <cstring>
-#include <cereal/types/vector.hpp>
-#include <cereal/archives/binary.hpp>
-#include <cereal/archives/json.hpp>
-#include <cereal/archives/xml.hpp>
+#include <stdexcept>
+#include <string>
 #include <vector>
 
 #ifndef NOMINMAX
@@ -202,15 +200,20 @@ namespace ugsdr {
 			dst += std::to_string(sv_number) + ". ";
 			switch (signal) {
 			case Signal::GpsCoarseAcquisition_L1:
+			case Signal::SbasCoarseAcquisition_L1:
+			case Signal::QzssCoarseAcquisition_L1:
 				dst += "C/A L1";
 				break;
 			case Signal::Gps_L2CM:
+			case Signal::Qzss_L2CM:
 				dst += "L2CM";
 				break;
 			case Signal::Gps_L5I:
+			case Signal::Qzss_L5I:
 				dst += "L5I";
 				break;
 			case Signal::Gps_L5Q:
+			case Signal::Qzss_L5Q:
 				dst += "L5Q";
 				break;
 			case Signal::GlonassCivilFdma_L1:
@@ -252,23 +255,8 @@ namespace ugsdr {
 			case Signal::NavIC_L5:
 				dst += "L5 C/A";
 				break;
-			case Signal::SbasCoarseAcquisition_L1:
-				dst += "L1 C/A";
-				break;
-			case Signal::QzssCoarseAcquisition_L1:
-				dst += "L1 C/A";
-				break;
 			case Signal::Qzss_L1S:
 				dst += "L1 SAIF";
-				break;
-			case Signal::Qzss_L2CM:
-				dst += "L2CM";
-				break;
-			case Signal::Qzss_L5I:
-				dst += "L5I";
-				break;
-			case Signal::Qzss_L5Q:
-				dst += "L5Q";
 				break;
 			default:
 				break;

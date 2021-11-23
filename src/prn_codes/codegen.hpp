@@ -1,6 +1,7 @@
 #pragma once
 
 #include "lfsr.hpp"
+#include <vector>
 
 namespace ugsdr {
 	template <typename CodegenImpl>

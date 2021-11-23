@@ -3,6 +3,7 @@ cmake_minimum_required (VERSION 3.16)
 project(ugsdr_test)
 add_executable (${PROJECT_NAME} 
 							test.cpp	
+							../src/prn_codes/GalileoMemoryCodes.cpp
 )
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")

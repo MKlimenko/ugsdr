@@ -31,7 +31,7 @@ namespace ugsdr {
 		constexpr static inline double K2_DLL = SUMMATION_INTERVAL_DLL / TAU1CODE;
 
 		static auto AddWithPhase(std::complex<T> lhs, std::complex<T> rhs, double relative_phase) {
-			if (relative_phase > 0.5)
+			if (relative_phase < 0.5)
 				std::swap(lhs, rhs);
 
 			const auto weighted_lhs = lhs.real() / relative_phase;
@@ -198,6 +198,7 @@ namespace ugsdr {
 				code_phase = std::fmod(code_phase * sampling_rate / digital_frontend.GetSamplingRate(acquisition.GetAcquiredSignalType()),
 					code_period * sampling_rate / 1e3);
 				carrier_frequency *= 1207.14e6 / 1575.42e6;
+                break;
 			case Signal::Galileo_E6b:
 			case Signal::Galileo_E6c:
 				code_frequency = 5.115e6;
@@ -210,7 +211,7 @@ namespace ugsdr {
 				code_frequency = 2.046e6;
 				base_code_frequency = 2.046e6;
 				break;
-			case Signal::BeiDou_B1C:
+			case Signal::BeiDou_B1C:            // under construction
 				code_frequency = 2.046e6;
 				base_code_frequency = 2.046e6;
 				break;
