@@ -63,6 +63,7 @@ int main() {
 	//	ugsdr::Add(L"Prompt tracking result", el.prompt);
 
 	auto measurement_engine = ugsdr::MeasurementEngine(tracking_parameters);
+	measurement_engine.WriteRinex();
 	auto positioning_engine = ugsdr::StandaloneRtklib(measurement_engine);
 	
 	for(std::size_t i = 0; i < tracking_parameters[0].code_frequencies.size(); ++i)

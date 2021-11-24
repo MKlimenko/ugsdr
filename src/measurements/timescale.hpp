@@ -37,7 +37,18 @@ namespace ugsdr {
 
 		auto operator[](std::size_t ms_cnt) const {
 			return time_ms[ms_cnt];
+		}
 
+		auto first() const {
+			return time_ms.front();
+		}
+
+		auto last() const {
+			return time_ms.back();
+		}
+
+		auto length() const {
+			return time_ms.size();
 		}
 	};
 }
