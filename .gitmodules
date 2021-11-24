@@ -4,7 +4,3 @@
 [submodule "external/type_map"]
 	path = external/type_map
 	url = https://github.com/MKlimenko/type_map.git
-[submodule "external/RTKLIB"]
-	path = external/RTKLIB
-	url = https://github.com/tomojitakasu/RTKLIB.git
-	branch = rtklib_2.4.3

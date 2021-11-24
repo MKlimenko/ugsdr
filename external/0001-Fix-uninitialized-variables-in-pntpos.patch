@@ -1,0 +1,28 @@
+From 2915c567f04fd63cd9a271995dbe2ecc886e2fc7 Mon Sep 17 00:00:00 2001
+From: "m.klimenko" <mklimenko29@gmail.com>
+Date: Tue, 23 Nov 2021 22:45:20 +0300
+Subject: [PATCH] Fix uninitialized variables in pntpos
+
+---
+ src/pntpos.c | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/src/pntpos.c b/src/pntpos.c
+index 29b2460..2ee2aef 100644
+--- a/src/pntpos.c
++++ b/src/pntpos.c
+@@ -251,6 +251,11 @@ static int rescode(int iter, const obsd_t *obs, int n, const double *rs,
+     gtime_t time;
+     double r,freq,dion,dtrp,vmeas,vion,vtrp,rr[3],pos[3],dtr,e[3],P;
+     int i,j,nv=0,sat,sys,mask[NX-3]={0};
++
++    dion = 0.0;
++    dtrp = 0.0;
++    vion = 0.0;
++    vtrp = 0.0;
+     
+     trace(3,"resprng : n=%d\n",n);
+     
+-- 
+2.33.0.windows.2
+

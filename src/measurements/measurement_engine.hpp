@@ -35,6 +35,9 @@ namespace ugsdr {
 					break;
 				}
 			}
+
+			for (auto& obs : observables)
+				obs.UpdatePseudoranges(day_offset);
 		}
 	};
 }
