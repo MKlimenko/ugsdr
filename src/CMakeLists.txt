@@ -12,6 +12,7 @@ add_executable (${PROJECT_NAME}
 							correlator/correlator.hpp
 							correlator/ipp_correlator.hpp
 							dfe/dfe.hpp
+							ephemeris/GlonassEphemeris.hpp
 							ephemeris/GpsEphemeris.hpp
 							helpers/af_array_proxy.hpp
 							helpers/BbpPackedSpan.hpp

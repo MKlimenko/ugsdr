@@ -2,6 +2,7 @@
 
 #include "timescale.hpp"
 #include "../common.hpp"
+#include "../ephemeris/GlonassEphemeris.hpp"
 #include "../ephemeris/GpsEphemeris.hpp"
 #include "../matched_filter/ipp_matched_filter.hpp"
 #include "../math/ipp_abs.hpp"
@@ -111,15 +112,49 @@ namespace ugsdr {
 		}
 
 		template <typename T>
+		static auto GetPreambleGlonass(std::size_t size) {
+			std::vector<std::complex<T>> preamble{
+				-1, -1, -1, -1, -1, 1, 1, 1, -1, -1, 1, -1, -1, -1, 1, -1, 1, -1, 1, 1, 1, 1, -1, 1, 1, -1, 1, -1, -1, 1,
+				1, -1, 1, -1, 1, -1, 1, -1, -1, 1,
+			};
+			SequentialUpsampler::Transform(preamble, preamble.size() * 10);
+
+			preamble.resize(size);
+			return preamble;
+		}
+
+		template <typename T>
+		static auto GetSquareWaveGlonass(std::size_t size) {
+			std::vector<std::complex<T>> square_wave{
+				-1, 1
+			};
+			SequentialUpsampler::Transform(square_wave, square_wave.size() * 10);
+
+			square_wave.resize(size);
+			return square_wave;
+		}
+
+		template <typename T>
 		static auto GetAccumulatedBits(std::span<const T> arr, T val = -1) {
 			auto accumulated_bits = IppAccumulator::Transform(arr, 20);
 			for (auto& el : accumulated_bits)
-				el = el > 0 ? 1 : val;
+				el = el > static_cast<T>(0) ? static_cast<T>(1) : val;
 			return accumulated_bits;
 		}
 
 		template <typename T>
-		static std::optional<std::size_t> FindPreamblePosition(const std::vector<std::size_t>& indexes, std::span<const T> bits, double first_pseudorange) {
+		static auto GetAccumulatedBits(std::span<const std::complex<T>> arr, T val = -1) {
+			std::vector<T> accumulated_bits;
+			for (auto& el : arr)
+				accumulated_bits.push_back(el.real());
+			IppDecimator::Transform(accumulated_bits, 20);
+			for (auto& el : accumulated_bits)
+				el = el > static_cast<T>(0) ? static_cast<T>(1) : val;
+			return accumulated_bits;
+		}
+
+		template <typename T>
+		static std::optional<std::size_t> FindPreamblePositionGps(const std::vector<std::size_t>& indexes, std::span<const T> bits, double first_pseudorange) {
 			auto preamble_position = std::numeric_limits<std::size_t>::max();
 			for (auto& el : indexes) {
 				auto it = std::find_if(indexes.begin(), indexes.end(), [el](auto& ind) { return el - ind == 6000; });
@@ -160,7 +195,7 @@ namespace ugsdr {
 			std::vector<T> vals;
 			for (auto& el : prompt)
 				vals.push_back(el.real());
-			auto preamble_position = FindPreamblePosition(indexes, std::span<const T>(vals), tracking_result.code_phases[0] * 1000 / tracking_result.sampling_rate);
+			auto preamble_position = FindPreamblePositionGps(indexes, std::span<const T>(vals), tracking_result.code_phases[0] * 1000 / tracking_result.sampling_rate);
 			if (!preamble_position)
 				return std::nullopt;
 
@@ -178,7 +213,67 @@ namespace ugsdr {
 		}
 
 		template <typename T>
+		static std::optional<std::size_t> FindPreamblePositionGlonass(const std::vector<std::size_t>& indexes, std::span<const T> bits, double first_pseudorange) {
+			auto preamble_position = std::numeric_limits<std::size_t>::max();
+			for (auto& el : indexes) {
+				auto it = std::find_if(indexes.begin(), indexes.end(), [el](auto& ind) { return el - ind == 30000; });
+				if (it == indexes.end())
+					continue;
+
+				preamble_position = *it + 300;
+				auto next_string_position = preamble_position;
+				const auto raw_bits = std::vector<std::complex<T>>(bits.begin() + next_string_position, bits.begin() + next_string_position + 10000);
+				const auto bits_without_square = IppMatchedFilter::Filter(raw_bits, GetSquareWaveGlonass<T>(raw_bits.size()));
+				auto accumulated_bits = GetAccumulatedBits(std::span(bits_without_square));
+
+				if (accumulated_bits[0] < 0) {
+					for (std::size_t i = 0; i < accumulated_bits.size(); ++i)
+						accumulated_bits[i] = -accumulated_bits[i];
+				}
+
+				for (std::size_t current_string = 0; current_string < 5; ++current_string) {
+					for (std::size_t j = 0; j < 85; ++j) {
+						if (accumulated_bits[j + current_string * 100] > 0)
+							continue;
+						for (std::size_t i = j + 1; i < 85; ++i)
+							accumulated_bits[i + current_string * 100] = -accumulated_bits[i + current_string * 100];
+					}
+				}
+			
+				if (first_pseudorange < 0.5)
+					++preamble_position;
+
+				return *it;
+			}
+
+			return std::nullopt;
+		}
+
+		template <typename T>
 		static auto FindPreambleGlonass(const ugsdr::TrackingParameters<T>& tracking_result, TimeScale& receiver_time_scale) -> std::optional<Observable> {
+			std::vector<T> navigation_bits;
+			const auto& prompt = tracking_result.prompt;
+			navigation_bits.reserve(prompt.size());
+			std::transform(prompt.begin(), prompt.end(), std::back_inserter(navigation_bits), [](auto& prompt_value) {
+				auto value = prompt_value.real() > 0 ? 1 : -1;
+				return static_cast<T>(value);
+			});
+
+			const auto preamble = GetPreambleGlonass<T>(prompt.size());
+			const auto bits = std::vector<std::complex<T>>(navigation_bits.begin(), navigation_bits.end());
+			auto abs_corr = IppAbs::Transform(IppMatchedFilter::Filter(bits, preamble));
+
+			std::vector<std::size_t> indexes;
+			for (std::size_t i = 0; i < abs_corr.size(); ++i)
+				if (abs_corr[i] > 370)
+					indexes.push_back(i);
+
+			std::vector<T> vals;
+			for (auto& el : prompt)
+				vals.push_back(el.real());
+			auto preamble_position = FindPreamblePositionGlonass(indexes, std::span<const T>(vals), tracking_result.code_phases[0] * 1000 / tracking_result.sampling_rate);
+			if (!preamble_position)
+				return std::nullopt;
 
 			return std::nullopt;
 		}
@@ -189,13 +284,10 @@ namespace ugsdr {
 			case (System::Gps):
 				return FindPreambleGps(tracking_result, receiver_time_scale);
 			case (System::Glonass):
-				//return FindPreambleGlonass(tracking_result, receiver_time_scale);
+				return FindPreambleGlonass(tracking_result, receiver_time_scale);
 			default:
-				break;
 				throw std::runtime_error("Unsupported system");
 			}
-
-			return std::nullopt;
 		}
 
 		void UpdatePseudorangeGps(std::size_t day_offset) {
@@ -209,7 +301,7 @@ namespace ugsdr {
 		std::vector<double> pseudophase;
 		std::vector<double> doppler;
 		std::vector<double> snr;
-		std::variant<GpsEphemeris> ephemeris;
+		std::variant<GpsEphemeris, GlonassEphemeris> ephemeris;
 		TimeScale& time_scale;
 
 		std::size_t preamble_position = std::numeric_limits<std::size_t>::max();
