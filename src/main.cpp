@@ -21,7 +21,6 @@ int main() {
 	auto signal_parameters_L2 =  ugsdr::SignalParametersBase<float>(R"(../../../../data/nt1065_grabber.bin)", ugsdr::FileType::Nt1065GrabberThird, 1260e6, 79.5e6);
 	auto signal_parameters_E6 =  ugsdr::SignalParametersBase<float>(R"(../../../../data/nt1065_grabber.bin)", ugsdr::FileType::Nt1065GrabberFourth, 1260e6, 79.5e6);
 
-
 	auto digital_frontend = ugsdr::DigitalFrontend(
 		MakeChannel(signal_parameters, std::vector{ ugsdr::Signal::GpsCoarseAcquisition_L1 }, signal_parameters.GetSamplingRate())/*,
 		MakeChannel(signal_parameters_gln, std::vector{ ugsdr::Signal::GlonassCivilFdma_L1 }, signal_parameters_gln.GetSamplingRate()),
@@ -42,14 +41,14 @@ int main() {
 #if 0
 	auto pre = std::chrono::system_clock::now();
 	auto tracker = ugsdr::Tracker(digital_frontend, acquisition_results);
-	tracker.Track(60000 + 0 * signal_parameters.GetNumberOfEpochs());
+	tracker.Track(600000 + 0 * signal_parameters.GetNumberOfEpochs());
 	tracker.Plot();
 	auto post = std::chrono::system_clock::now();
-	ugsdr::Save("tracking_results_cache", tracker.GetTrackingParameters());
+	ugsdr::Save("tracking_results_cache_10_min", tracker.GetTrackingParameters());
 
-	return;
+	//return;
 	std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(post - pre).count() << std::endl;
-	std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(post - pre).count() / static_cast<double>(60000 + 0 * signal_parameters.GetNumberOfEpochs()) * 100.0 << std::endl;
+	std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(post - pre).count() / static_cast<double>(600000 + 0 * signal_parameters.GetNumberOfEpochs()) * 100.0 << std::endl;
 
 	auto measurement_engine = ugsdr::MeasurementEngine(tracker.GetTrackingParameters());
 	auto positioning_engine = ugsdr::StandaloneRtklib(measurement_engine);
@@ -57,13 +56,13 @@ int main() {
 	auto pos = positioning_engine.EstimatePosition(0);
 #else
 	std::vector<ugsdr::TrackingParameters<float>> tracking_parameters;
-	ugsdr::Load("tracking_results_cache", tracking_parameters);
+	ugsdr::Load("tracking_results_cache_10_min", tracking_parameters);
 	//tracking_parameters.resize(1);
 	//for (auto& el : tracking_parameters)
 	//	ugsdr::Add(L"Prompt tracking result", el.prompt);
 
 	auto measurement_engine = ugsdr::MeasurementEngine(tracking_parameters);
-	measurement_engine.WriteRinex();
+	measurement_engine.WriteRinex(50);
 	auto positioning_engine = ugsdr::StandaloneRtklib(measurement_engine);
 	
 	for(std::size_t i = 0; i < tracking_parameters[0].code_frequencies.size(); ++i)

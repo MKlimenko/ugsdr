@@ -4,12 +4,13 @@
 
 #include "rtklib.h"
 
+#include <set>
 #include <stdexcept>
 
 namespace ugsdr::rtklib_helpers {
-	auto ConvertSv(Sv sv) {
+	inline auto ConvertSystem(System system) {
 		auto sys = SYS_GPS;
-		switch (sv.system) {
+		switch (system) {
 		case System::Gps:
 			sys = SYS_GPS;
 			break;
@@ -35,6 +36,34 @@ namespace ugsdr::rtklib_helpers {
 			throw std::runtime_error("Unexpected system");
 			break;
 		}
+		return sys;
+	}
+
+	inline auto ConvertSystemIndex(System system) {
+		// GPS,GLO,GAL,QZS,SBS,CMP,IRN
+		switch (system) {
+		case System::Gps:
+			return 0;
+		case System::Glonass:
+			return 1;
+		case System::Galileo:
+			return 2;
+		case System::BeiDou:
+			return 5;
+		case System::NavIC:
+			return 6;
+		case System::Sbas:
+			return 4;
+		case System::Qzss:
+			return 3;
+		default:
+			throw std::runtime_error("Unexpected system");
+		}
+	}
+
+
+	inline auto ConvertSv(Sv sv) {
+		auto sys = ConvertSystem(sv);
 
 		auto prn = sv.id + 1;
 
@@ -45,12 +74,40 @@ namespace ugsdr::rtklib_helpers {
 		return dst;
 	}
 
-	auto ConvertCode(Sv sv) {
+	inline auto ConvertCode(Sv sv) {
 		switch (sv.signal) {
 		case Signal::GpsCoarseAcquisition_L1:
 			return CODE_L1C;
 		default:
+			throw std::runtime_error("Unexpected signal");
+		}
+	}
+
+	inline std::string GetRinexSuffix(Signal signal) {
+		switch (signal) {
+		case Signal::GpsCoarseAcquisition_L1:
+			return "1C";
+		default:
 			throw std::runtime_error("Unexpected system");
+		}
+	}
+
+	inline void FillRinexCodes(rnxopt_t* rnxopt, const std::set<Signal>& available_signals) {
+		if (!rnxopt)
+			throw std::runtime_error("Unexpected nullptr");
+
+		auto obs_types_prefix = std::array<char, 4> { 'C', 'L', 'D', 'S' };
+
+		for (const auto& signal : available_signals) {
+			auto rtklib_system = ConvertSystemIndex(ugsdr::GetSystemBySignal(signal));
+			auto offset = rnxopt->nobs[rtklib_system];
+			rnxopt->nobs[rtklib_system] += 4;
+			
+			auto suffix = GetRinexSuffix(signal);
+			for (std::size_t i = offset; i < offset + 4; ++i) {
+				auto current_string = obs_types_prefix[i] + suffix;
+				std::copy(current_string.begin(), current_string.end(), rnxopt->tobs[rtklib_system][offset + i]);
+			}
 		}
 	}
 }

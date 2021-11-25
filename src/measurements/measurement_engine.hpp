@@ -7,11 +7,13 @@
 #include "../helpers/rtklib_helpers.hpp"
 
 #include <fstream>
+#include <memory>
+#include <set>
 
 namespace ugsdr {
 	class MeasurementEngine final {
 	private:
-		void FillObservable(const ugsdr::Observable& current_observable, const gtime_t& time, std::size_t epoch, obsd_t& current_rtklib_data) {
+		void FillObservable(const ugsdr::Observable& current_observable, const gtime_t& time, std::size_t epoch, obsd_t& current_rtklib_data) const {
 			current_rtklib_data.time = time;
 			current_rtklib_data.sat = rtklib_helpers::ConvertSv(current_observable.sv);
 			current_rtklib_data.code[0] = rtklib_helpers::ConvertCode(current_observable.sv);
@@ -21,7 +23,7 @@ namespace ugsdr {
 			current_rtklib_data.SNR[0] = current_observable.snr[epoch] * 1000;
 		}
 
-		void FillEphemeris(const ugsdr::GpsEphemeris& current_ephemeris, std::uint8_t sat, eph_t& current_rtklib_ephemeris) {
+		void FillEphemeris(const ugsdr::GpsEphemeris& current_ephemeris, std::uint8_t sat, eph_t& current_rtklib_ephemeris) const {
 			current_rtklib_ephemeris.sat = sat;
 			current_rtklib_ephemeris.iode = current_ephemeris.iodc;
 			current_rtklib_ephemeris.iodc = current_ephemeris.iodc;
@@ -72,10 +74,39 @@ namespace ugsdr {
 				delete[] ptr->eph;
 		}
 
+		void WriteObs(rnxopt_t* rnxopt, std::size_t epoch_step) const {
+			if (!rnxopt)
+				throw std::runtime_error("Unexpected nullptr");
+			rtklib_helpers::FillRinexCodes(rnxopt, available_signals);
+
+			auto rinex_obs = std::unique_ptr<FILE, int(*)(FILE*)>(fopen("rinex.obs", "w"), fclose);
+
+			auto status_header = outrnxobsh(rinex_obs.get(), rnxopt, nav.get());
+
+			auto mod = epoch_step == 1 ? 1 : static_cast<std::size_t>(std::fmod(receiver_time_scale.first(), epoch_step));
+
+			for (std::size_t epoch = epoch_step - mod; epoch < receiver_time_scale.length(); epoch += epoch_step) {
+				auto [obs, nav] = GetMeasurementEpoch(epoch);
+				auto status_body = outrnxobsb(rinex_obs.get(), rnxopt, obs.data(), static_cast<int>(obs.size()), 0);
+			}
+		}
+
+		void WriteNav(rnxopt_t* rnxopt) const {
+			if (!rnxopt)
+				throw std::runtime_error("Unexpected nullptr");
+
+			auto rinex_nav = std::unique_ptr<FILE, int(*)(FILE*)>(fopen("rinex.nav", "w"), fclose);
+
+			auto status_header = outrnxnavh(rinex_nav.get(), rnxopt, nav.get());
+			for (std::size_t i = 0; i < nav->n; ++i)
+				outrnxnavb(rinex_nav.get(), rnxopt, nav->eph + i);
+		}
+
 	public:
 		TimeScale receiver_time_scale;
 		std::vector<Observable> observables;
 		std::unique_ptr<nav_t, void(*)(nav_t*)> nav;
+		std::set<ugsdr::Signal> available_signals;
 
 		template <typename T>
 		MeasurementEngine(const ugsdr::Tracker<T>& tracker) : MeasurementEngine(tracker.GetTrackingParameters()) {}
@@ -106,44 +137,32 @@ namespace ugsdr {
 				obs.UpdatePseudoranges(day_offset);
 
 			InitNav(nav.get());
-			for (std::size_t i = 0; i < observables.size(); ++i) 
+			for (std::size_t i = 0; i < observables.size(); ++i) {
+				available_signals.emplace(observables[i].sv);
 				FillEphemeris(std::get<ugsdr::GpsEphemeris>(observables[i].ephemeris), rtklib_helpers::ConvertSv(observables[i].sv), nav->eph[i]);
-		
+			}
 		}
 	
-		auto GetMeasurementEpoch(std::size_t epoch) {
+		auto GetMeasurementEpoch(std::size_t epoch) const -> std::pair< std::vector<obsd_t>, nav_t*>{
 			auto obs = std::vector<obsd_t>(observables.size(), { {0} });
 			for (std::size_t i = 0; i < obs.size(); ++i) 
-				FillObservable(observables[i], gpst2time(nav->eph[i].week, observables[i].time_scale[epoch] * 1e-3), epoch, obs[i]);
+				FillObservable(observables[i], gpst2time(nav->eph[i].week, receiver_time_scale[epoch] * 1e-3), epoch, obs[i]);
 			
 			return std::make_pair(std::move(obs), nav.get());
 		}
 
 		void WriteRinex(std::size_t epoch_step = 1) {
-			auto rinex_obs = std::unique_ptr<FILE, int(*)(FILE*)>(fopen("d:\\tmp\\rinex.obs", "w"), fclose);
-
 			auto rnxopt = std::make_unique<rnxopt_t>();
 			rnxopt->rnxver = 303;
 			rnxopt->ttol = epoch_step * 0.001;
 			rnxopt->tstart = gpst2time(nav->eph[0].week, receiver_time_scale.first() * 1e-3);
 			rnxopt->tend = gpst2time(nav->eph[0].week, receiver_time_scale.last() * 1e-3);
 			rnxopt->navsys = SYS_GPS;
-			rnxopt->nobs[0] = 4;
 			rnxopt->obstype = OBSTYPE_ALL;
 			rnxopt->freqtype = FREQTYPE_ALL;
 
-			// move to rtklib_helpers
-			std::strcpy(rnxopt->tobs[0][0], "C1C");
-			std::strcpy(rnxopt->tobs[0][1], "L1C");
-			std::strcpy(rnxopt->tobs[0][2], "D1C");
-			std::strcpy(rnxopt->tobs[0][3], "S1C");
-
-			auto status_header = outrnxobsh(rinex_obs.get(), rnxopt.get(), nav.get());
-		
-			for (std::size_t epoch = 0; epoch < receiver_time_scale.length(); epoch += epoch_step) {
-				auto [obs, nav] = GetMeasurementEpoch(epoch);
-				auto status_body = outrnxobsb(rinex_obs.get(), rnxopt.get(), obs.data(), static_cast<int>(obs.size()), 0);
-			}
+			WriteNav(rnxopt.get());
+			WriteObs(rnxopt.get(), epoch_step);
 		}
 	};
 }
