@@ -78,7 +78,7 @@ namespace ugsdr {
 
 			current_bits = bits[3];
 			tn = signmagndec(current_bits, 5, 22) * std::pow(2.0, -30);
-			delta_tau_n = bin2dec(current_bits, 27, 5);
+			delta_tau_n = signmagndec(current_bits, 27, 5) * std::pow(2.0, -30);
 			En = bin2dec(current_bits, 32, 5);
 			reserved_4 = bin2dec(current_bits, 37, 14);
 			P4 = bin2dec(current_bits, 51, 1);
