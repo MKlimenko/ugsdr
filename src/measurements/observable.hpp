@@ -57,6 +57,7 @@ namespace ugsdr {
 			for (auto& el : tracking_result.code_phases) pseudorange.push_back(el * 1000 / tracking_result.sampling_rate);
 			pseudophase = tracking_result.phases;
 			doppler = tracking_result.frequencies;
+			for (auto& el : doppler) el -= tracking_result.intermediate_frequency;
 			CalculateSnr(tracking_result);
 		}
 
@@ -221,29 +222,11 @@ namespace ugsdr {
 					continue;
 
 				preamble_position = *it + 300;
-				auto next_string_position = preamble_position;
-				const auto raw_bits = std::vector<std::complex<T>>(bits.begin() + next_string_position, bits.begin() + next_string_position + 10000);
-				const auto bits_without_square = IppMatchedFilter::Filter(raw_bits, GetSquareWaveGlonass<T>(raw_bits.size()));
-				auto accumulated_bits = GetAccumulatedBits(std::span(bits_without_square));
-
-				if (accumulated_bits[0] < 0) {
-					for (std::size_t i = 0; i < accumulated_bits.size(); ++i)
-						accumulated_bits[i] = -accumulated_bits[i];
-				}
-
-				for (std::size_t current_string = 0; current_string < 5; ++current_string) {
-					for (std::size_t j = 0; j < 85; ++j) {
-						if (accumulated_bits[j + current_string * 100] > 0)
-							continue;
-						for (std::size_t i = j + 1; i < 85; ++i)
-							accumulated_bits[i + current_string * 100] = -accumulated_bits[i + current_string * 100];
-					}
-				}
 			
 				if (first_pseudorange < 0.5)
 					++preamble_position;
 
-				return *it;
+				return preamble_position;
 			}
 
 			return std::nullopt;
@@ -275,7 +258,33 @@ namespace ugsdr {
 			if (!preamble_position)
 				return std::nullopt;
 
-			return std::nullopt;
+			auto next_string_position = preamble_position.value();
+			const auto raw_bits = std::vector<std::complex<T>>(bits.begin() + next_string_position, bits.begin() + next_string_position + 10000);
+			const auto bits_without_square = IppMatchedFilter::Filter(raw_bits, GetSquareWaveGlonass<T>(raw_bits.size()));
+			auto accumulated_bits = GetAccumulatedBits(std::span(bits_without_square));
+
+			if (accumulated_bits[0] < 0) {
+				for (std::size_t i = 0; i < accumulated_bits.size(); ++i)
+					accumulated_bits[i] = -accumulated_bits[i];
+			}
+
+			for (std::size_t current_string = 0; current_string < 5; ++current_string) {
+				for (std::size_t j = 0; j < 85; ++j) {
+					if (accumulated_bits[j + current_string * 100] > 0)
+						continue;
+					for (std::size_t i = j + 1; i < 85; ++i)
+						accumulated_bits[i + current_string * 100] = -accumulated_bits[i + current_string * 100];
+				}
+			}
+			for(std::size_t i = 0; i < accumulated_bits.size(); ++i)
+				accumulated_bits[i] = (accumulated_bits[i] < 0);
+			auto current_ephemeris = GlonassEphemeris(std::span(accumulated_bits));
+
+			auto tow_ms = (current_ephemeris.tk - 3 * 60 * 60 + 18) * 1000;
+
+			receiver_time_scale.UpdateScale(preamble_position.value(), tow_ms, System::Glonass);
+
+			return Observable(tracking_result, receiver_time_scale, preamble_position.value(), current_ephemeris);
 		}
 		
 		template <typename T>
@@ -291,8 +300,14 @@ namespace ugsdr {
 		}
 
 		void UpdatePseudorangeGps(std::size_t day_offset) {
-			for (std::size_t i = 0; i < pseudorange.size(); ++i) 
+			for (std::size_t i = 0; i < pseudorange.size(); ++i)
 				pseudorange[i] += time_scale[i] - (static_cast<std::ptrdiff_t>(i) - preamble_position + std::get<GpsEphemeris>(ephemeris).tow * 1000);
+		}
+
+		void UpdatePseudorangeGlonass(std::size_t day_offset) {
+			double tk_gps_ms = (std::get<GlonassEphemeris>(ephemeris).tk - 3.0 * 60 * 60 + 18 + day_offset * 86400) * 1000;
+			for (std::size_t i = 0; i < pseudorange.size(); ++i)
+				pseudorange[i] += time_scale[i] - (static_cast<std::ptrdiff_t>(i) - static_cast<double>(preamble_position) + tk_gps_ms);
 		}
 
 	public:
@@ -303,7 +318,6 @@ namespace ugsdr {
 		std::vector<double> snr;
 		std::variant<GpsEphemeris, GlonassEphemeris> ephemeris;
 		TimeScale& time_scale;
-
 		std::size_t preamble_position = std::numeric_limits<std::size_t>::max();
 
 		template <typename T>
@@ -315,6 +329,9 @@ namespace ugsdr {
 			switch (sv.system) {
 			case (System::Gps):
 				UpdatePseudorangeGps(day_offset);
+				break;
+			case(System::Glonass):
+				UpdatePseudorangeGlonass(day_offset);
 				break;
 			default:
 				throw std::runtime_error("Unsupported system");

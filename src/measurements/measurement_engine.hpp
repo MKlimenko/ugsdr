@@ -58,13 +58,52 @@ namespace ugsdr {
 			current_rtklib_ephemeris.tgd[0] = current_ephemeris.group_delay;
 		}
 	
-		void InitNav(nav_t* ptr) { // revise for multiple gnss
+		void FillEphemeris(const ugsdr::GlonassEphemeris& current_ephemeris, std::uint8_t sat, std::int32_t freq, geph_t& current_rtklib_ephemeris) const {
+			current_rtklib_ephemeris.sat = sat;
+			current_rtklib_ephemeris.iode = current_ephemeris.tb;
+			current_rtklib_ephemeris.frq = freq;
+			current_rtklib_ephemeris.svh = current_ephemeris.ln;
+			//current_rtklib_ephemeris.sva = 0;		// ??
+			//current_rtklib_ephemeris.age = 0;		// ??
+
+			auto adapt_time = [](auto val) {
+				val -= 10800;
+				if (val < 0)
+					val += 86400;
+				return val;
+			};
+
+			current_rtklib_ephemeris.toe = utc2gpst(gpst2time(week, adapt_time(current_ephemeris.tb)));
+			current_rtklib_ephemeris.tof = utc2gpst(gpst2time(week, adapt_time(current_ephemeris.tk)));
+
+			current_rtklib_ephemeris.pos[0] = current_ephemeris.x * 1000;
+			current_rtklib_ephemeris.vel[0] = current_ephemeris.x_dot * 1000;
+			current_rtklib_ephemeris.acc[0] = current_ephemeris.x_dot_dot * 1000;
+			current_rtklib_ephemeris.pos[1] = current_ephemeris.y * 1000;
+			current_rtklib_ephemeris.vel[1] = current_ephemeris.y_dot * 1000;
+			current_rtklib_ephemeris.acc[1] = current_ephemeris.y_dot_dot * 1000;
+			current_rtklib_ephemeris.pos[2] = current_ephemeris.z * 1000;
+			current_rtklib_ephemeris.vel[2] = current_ephemeris.z_dot * 1000;
+			current_rtklib_ephemeris.acc[2] = current_ephemeris.z_dot_dot * 1000;
+
+			current_rtklib_ephemeris.taun = current_ephemeris.tn;
+			current_rtklib_ephemeris.gamn = current_ephemeris.gamma;
+			current_rtklib_ephemeris.dtaun = current_ephemeris.delta_tau_n;
+		}
+
+		void InitNav(nav_t* ptr) {
 			if (!ptr)
 				throw std::runtime_error("Unexpected nullptr");
 
-			ptr->n = observables.size();
-			ptr->nmax = ptr->n;
-			ptr->eph = new eph_t[ptr->n];
+			// revise for multiple signals (L1 C/A and L2C would double the memory)
+			auto gps_cnt = std::count_if(observables.begin(), observables.end(), [](auto& obs) {
+				return (obs.sv.system != System::Glonass) && (obs.sv.system != System::Sbas);
+				});
+			ptr->nmax = gps_cnt;
+			ptr->eph = new eph_t[gps_cnt];
+			
+			ptr->ngmax = NSATGLO;
+			ptr->geph = new geph_t[NSATGLO];
 		}
 
 		static void FreeNav(nav_t* ptr) {
@@ -72,6 +111,9 @@ namespace ugsdr {
 				return;
 			if (ptr->eph)
 				delete[] ptr->eph;
+
+			if (ptr->geph)
+				delete[] ptr->geph;
 		}
 
 		void WriteObs(rnxopt_t* rnxopt, std::size_t epoch_step) const {
@@ -100,6 +142,8 @@ namespace ugsdr {
 			auto status_header = outrnxnavh(rinex_nav.get(), rnxopt, nav.get());
 			for (std::size_t i = 0; i < nav->n; ++i)
 				outrnxnavb(rinex_nav.get(), rnxopt, nav->eph + i);
+			for (std::size_t i = 0; i < nav->ng; ++i)
+				outrnxgnavb(rinex_nav.get(), rnxopt, nav->geph + i);
 		}
 
 	public:
@@ -107,6 +151,7 @@ namespace ugsdr {
 		std::vector<Observable> observables;
 		std::unique_ptr<nav_t, void(*)(nav_t*)> nav;
 		std::set<ugsdr::Signal> available_signals;
+		std::size_t week = 0;
 
 		template <typename T>
 		MeasurementEngine(const ugsdr::Tracker<T>& tracker) : MeasurementEngine(tracker.GetTrackingParameters()) {}
@@ -133,20 +178,36 @@ namespace ugsdr {
 				}
 			}
 
-			for (auto& obs : observables)
+			for (auto& obs : observables) 
 				obs.UpdatePseudoranges(day_offset);
 
 			InitNav(nav.get());
 			for (std::size_t i = 0; i < observables.size(); ++i) {
 				available_signals.emplace(observables[i].sv);
-				FillEphemeris(std::get<ugsdr::GpsEphemeris>(observables[i].ephemeris), rtklib_helpers::ConvertSv(observables[i].sv), nav->eph[i]);
+				switch (observables[i].sv.system)
+				{
+				case System::Gps:
+					FillEphemeris(std::get<ugsdr::GpsEphemeris>(observables[i].ephemeris), rtklib_helpers::ConvertSv(observables[i].sv), nav->eph[nav->n++]);
+					week = std::get<ugsdr::GpsEphemeris>(observables[i].ephemeris).week_number;
+					break;
+				case System::Glonass: {
+					auto fcn_rtklib = observables[i].sv.id + 8;
+					observables[i].sv.id = std::get<ugsdr::GlonassEphemeris>(observables[i].ephemeris).n - 1;
+					nav->glo_fcn[observables[i].sv.id] = fcn_rtklib;
+					FillEphemeris(std::get<ugsdr::GlonassEphemeris>(observables[i].ephemeris), rtklib_helpers::ConvertSv(observables[i].sv), fcn_rtklib, nav->geph[nav->ng++]);
+					break;
+				}
+				default:
+					throw std::runtime_error("Unexpected system");
+					break;
+				}
 			}
 		}
 	
 		auto GetMeasurementEpoch(std::size_t epoch) const -> std::pair< std::vector<obsd_t>, nav_t*>{
 			auto obs = std::vector<obsd_t>(observables.size(), { {0} });
 			for (std::size_t i = 0; i < obs.size(); ++i) 
-				FillObservable(observables[i], gpst2time(nav->eph[i].week, receiver_time_scale[epoch] * 1e-3), epoch, obs[i]);
+				FillObservable(observables[i], gpst2time(week, receiver_time_scale[epoch] * 1e-3), epoch, obs[i]);
 			
 			return std::make_pair(std::move(obs), nav.get());
 		}
@@ -157,7 +218,9 @@ namespace ugsdr {
 			rnxopt->ttol = epoch_step * 0.001;
 			rnxopt->tstart = gpst2time(nav->eph[0].week, receiver_time_scale.first() * 1e-3);
 			rnxopt->tend = gpst2time(nav->eph[0].week, receiver_time_scale.last() * 1e-3);
-			rnxopt->navsys = SYS_GPS;
+			for (auto& el : available_signals)
+				rnxopt->navsys |= rtklib_helpers::ConvertSystem(ugsdr::GetSystemBySignal(el));
+
 			rnxopt->obstype = OBSTYPE_ALL;
 			rnxopt->freqtype = FREQTYPE_ALL;
 

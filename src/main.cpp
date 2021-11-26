@@ -41,10 +41,10 @@ int main() {
 #if 0
 	auto pre = std::chrono::system_clock::now();
 	auto tracker = ugsdr::Tracker(digital_frontend, acquisition_results);
-	tracker.Track(600000 + 0 * signal_parameters.GetNumberOfEpochs());
+	tracker.Track(60000 + 0 * signal_parameters.GetNumberOfEpochs());
 	tracker.Plot();
 	auto post = std::chrono::system_clock::now();
-	ugsdr::Save("tracking_results_cache_10_min", tracker.GetTrackingParameters());
+	ugsdr::Save("tracking_results_cache", tracker.GetTrackingParameters());
 
 	//return;
 	std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(post - pre).count() << std::endl;
@@ -56,7 +56,7 @@ int main() {
 	auto pos = positioning_engine.EstimatePosition(0);
 #else
 	std::vector<ugsdr::TrackingParameters<float>> tracking_parameters;
-	ugsdr::Load("tracking_results_cache_10_min", tracking_parameters);
+	ugsdr::Load("tracking_results_cache", tracking_parameters);
 	//tracking_parameters.resize(1);
 	//for (auto& el : tracking_parameters)
 	//	ugsdr::Add(L"Prompt tracking result", el.prompt);

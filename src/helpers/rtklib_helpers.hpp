@@ -77,6 +77,7 @@ namespace ugsdr::rtklib_helpers {
 	inline auto ConvertCode(Sv sv) {
 		switch (sv.signal) {
 		case Signal::GpsCoarseAcquisition_L1:
+		case Signal::GlonassCivilFdma_L1:
 			return CODE_L1C;
 		default:
 			throw std::runtime_error("Unexpected signal");
@@ -86,6 +87,7 @@ namespace ugsdr::rtklib_helpers {
 	inline std::string GetRinexSuffix(Signal signal) {
 		switch (signal) {
 		case Signal::GpsCoarseAcquisition_L1:
+		case Signal::GlonassCivilFdma_L1:
 			return "1C";
 		default:
 			throw std::runtime_error("Unexpected system");

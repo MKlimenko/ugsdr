@@ -9,15 +9,15 @@ namespace ugsdr {
 	class StandaloneRtklib final : public StandaloneEngine<StandaloneRtklib> {
 	protected:
 		friend class StandaloneEngine<StandaloneRtklib>;
+		prcopt_t processing_options = prcopt_default;
 
-		// L1 GPS for now
 		auto Estimate(std::size_t epoch) {
 			auto [obs, nav] = measurement_engine.GetMeasurementEpoch(epoch);
 			std::vector<double> azel(obs.size() * 2);
 			std::vector<ssat_t> ssat(MAXSAT);
 			auto sol = std::make_unique<sol_t>();
 			char msg[128] = "";
-			auto status = pntpos(obs.data(), obs.size(), nav, &prcopt_default, sol.get(), azel.data(), ssat.data(), msg);
+			auto status = pntpos(obs.data(), obs.size(), nav, &processing_options, sol.get(), azel.data(), ssat.data(), msg);
 
 			if (!status)
 				std::cout << "No solution: " << msg << std::endl;
@@ -35,6 +35,9 @@ namespace ugsdr {
 		}
 
 	public:
-		StandaloneRtklib(MeasurementEngine& measurements) : StandaloneEngine<StandaloneRtklib>(measurements) {}
+		StandaloneRtklib(MeasurementEngine& measurements) : StandaloneEngine<StandaloneRtklib>(measurements) {
+			for (auto& el : measurement_engine.observables)
+				processing_options.navsys |= rtklib_helpers::ConvertSystem(el.sv);
+		}
 	};
 }
