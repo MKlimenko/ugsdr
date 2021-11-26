@@ -18,12 +18,14 @@ int main() {
 #endif
 	auto signal_parameters =     ugsdr::SignalParametersBase<float>(R"(../../../../data/nt1065_grabber.bin)", ugsdr::FileType::Nt1065GrabberFirst, 1590e6, 79.5e6);
 	auto signal_parameters_gln = ugsdr::SignalParametersBase<float>(R"(../../../../data/nt1065_grabber.bin)", ugsdr::FileType::Nt1065GrabberSecond, 1590e6, 79.5e6);
-	auto signal_parameters_L2 =  ugsdr::SignalParametersBase<float>(R"(../../../../data/nt1065_grabber.bin)", ugsdr::FileType::Nt1065GrabberThird, 1260e6, 79.5e6);
-	auto signal_parameters_E6 =  ugsdr::SignalParametersBase<float>(R"(../../../../data/nt1065_grabber.bin)", ugsdr::FileType::Nt1065GrabberFourth, 1260e6, 79.5e6);
+	auto signal_parameters_L5 =  ugsdr::SignalParametersBase<float>(R"(../../../../data/nt1065_grabber.bin)", ugsdr::FileType::Nt1065GrabberThird, 1200e6, 79.5e6);
+	auto signal_parameters_L2 =  ugsdr::SignalParametersBase<float>(R"(../../../../data/nt1065_grabber.bin)", ugsdr::FileType::Nt1065GrabberFourth, 1200e6, 79.5e6);
 
 	auto digital_frontend = ugsdr::DigitalFrontend(
-		MakeChannel(signal_parameters, std::vector{ ugsdr::Signal::GpsCoarseAcquisition_L1 }, signal_parameters.GetSamplingRate())/*,
+		MakeChannel(signal_parameters, std::vector{ ugsdr::Signal::GpsCoarseAcquisition_L1 }, signal_parameters.GetSamplingRate()),
 		MakeChannel(signal_parameters_gln, std::vector{ ugsdr::Signal::GlonassCivilFdma_L1 }, signal_parameters_gln.GetSamplingRate()),
+		MakeChannel(signal_parameters_L2, std::vector{ ugsdr::Signal::Gps_L2CM }, signal_parameters_L2.GetSamplingRate()),
+		MakeChannel(signal_parameters_L2, std::vector{ ugsdr::Signal::GlonassCivilFdma_L2 }, signal_parameters_L2.GetSamplingRate())/*,
 		MakeChannel(signal_parameters, std::vector{ ugsdr::Signal::Galileo_E1b }, signal_parameters.GetSamplingRate())*/
 	);
 
@@ -46,9 +48,9 @@ int main() {
 	auto post = std::chrono::system_clock::now();
 	ugsdr::Save("tracking_results_cache", tracker.GetTrackingParameters());
 
-	//return;
+	return;
 	std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(post - pre).count() << std::endl;
-	std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(post - pre).count() / static_cast<double>(600000 + 0 * signal_parameters.GetNumberOfEpochs()) * 100.0 << std::endl;
+	std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(post - pre).count() / static_cast<double>(60000 + 0 * signal_parameters.GetNumberOfEpochs()) * 100.0 << std::endl;
 
 	auto measurement_engine = ugsdr::MeasurementEngine(tracker.GetTrackingParameters());
 	auto positioning_engine = ugsdr::StandaloneRtklib(measurement_engine);
@@ -69,7 +71,6 @@ int main() {
 		auto pos = positioning_engine.EstimatePosition(i);
 #endif
 	
-
 	//std::exit(0);
 
 #ifndef HAS_SIGNAL_PLOT

@@ -274,13 +274,20 @@ namespace ugsdr {
 			auto [correlator_value, code_offset] = MatchedFilterTranslated(epoch, parameters, code);
 			auto [correlator_value_offset, tmp] = MatchedFilterTranslated(epoch, parameters, code, 4e6);
 
+			auto code_offset_mod = code_offset % samples_per_ms;
+			if (code_offset_mod > samples_per_ms / 2)
+				code_offset_mod -= samples_per_ms;
+#if 0
 			// will work for now, but this should be executed after L1 lock
 			if (std::abs(correlator_value) / std::abs(correlator_value_offset) >= 1.3) {
+#else
+			if (std::abs(static_cast<double>(code_offset_mod)) < 1e-6 * digital_frontend.GetSamplingRate(signal)) {
+#endif
 #if 0
 				std::cout << static_cast<std::string>(parameters.sv) << ". Offset: " << code_offset % samples_per_ms << ". Value: " << correlator_value
 					<< ". Ratio: " << correlator_value / correlator_value_offset << std::endl;
 #endif
-				parameters.code_phase -= code_offset;
+				parameters.code_phase += code_offset;
 				dst.push_back(std::move(parameters));
 			}
 		}
