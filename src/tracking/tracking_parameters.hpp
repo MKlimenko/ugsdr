@@ -55,6 +55,7 @@ namespace ugsdr {
         double carrier_frequency = 0.0;
         double intermediate_frequency = 0.0;
         double sampling_rate = 0.0;
+		bool spectrum_inversion = false;
 
 		std::vector<double> phases;
 		std::vector<double> frequencies;
@@ -81,7 +82,8 @@ namespace ugsdr {
 			code_phase(acquisition.code_offset),
 			carrier_frequency(acquisition.doppler),
 			intermediate_frequency(acquisition.intermediate_frequency),
-			sampling_rate(digital_frontend.GetSamplingRate(signal)) {
+			sampling_rate(digital_frontend.GetSamplingRate(signal)),
+			spectrum_inversion(digital_frontend.GetSpectrumInversion(signal)) {
 
 			sv.signal = signal;
 			AdaptAcquisitionData(acquisition, digital_frontend);
@@ -433,7 +435,7 @@ namespace ugsdr {
 			carrier_phase_error = new_phase_error;
 			carrier_phase += new_phase_error * 2 * std::numbers::pi;
 
-			phases.push_back(carrier_phase / 2 * std::numbers::pi);
+			phases.push_back((spectrum_inversion ? -1.0 : 1.0) * carrier_phase / 2 * std::numbers::pi);
 			frequencies.push_back(carrier_frequency);
 			previous_prompt = current_prompt;
 		}

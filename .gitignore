@@ -34,3 +34,5 @@ packages/
 /data/iq.bin
 CMakeSettings.json
 /external/RTKLIB/
+
+/research/*

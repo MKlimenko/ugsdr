@@ -52,6 +52,7 @@ namespace ugsdr {
 		std::vector<Signal> subbands;
 		double sampling_rate = 0.0;
 		double central_frequency = 0.0;
+		bool spectrum_inversion = false;
 		
 	private:
 		SignalParametersBase<UnderlyingType>& signal_parameters;
@@ -117,12 +118,11 @@ namespace ugsdr {
 		}
 
 	public:
-		Channel(SignalParametersBase<UnderlyingType>& signal_params, Signal signal, double new_sampling_rate) :
-			subbands(1, signal), sampling_rate(new_sampling_rate), central_frequency(CentralFrequency(signal)),
-			signal_parameters(signal_params), mixer(signal_parameters.GetSamplingRate(), signal_parameters.GetCentralFrequency() - central_frequency, 0) {}
+		Channel(SignalParametersBase<UnderlyingType>& signal_params, Signal signal, double new_sampling_rate) : Channel(signal_params, std::vector{signal}, new_sampling_rate) {}
 
 		Channel(SignalParametersBase<UnderlyingType>& signal_params, const std::vector<Signal>& signals, double new_sampling_rate) :
-			subbands(signals.begin(), signals.end()), sampling_rate(new_sampling_rate), central_frequency(CentralFrequency(signals)),
+			subbands(signals.begin(), signals.end()), sampling_rate(new_sampling_rate), central_frequency(CentralFrequency(signals)), 
+			spectrum_inversion((signal_params.GetCentralFrequency() - central_frequency) > 0),
 			signal_parameters(signal_params), mixer(signal_parameters.GetSamplingRate(), signal_parameters.GetCentralFrequency() - central_frequency, 0) {}
 		
 		auto GetNumberOfEpochs() const {
@@ -190,6 +190,11 @@ namespace ugsdr {
 		auto GetNumberOfEpochs(Signal signal) const {
 			auto it = GetChannel(signal);
 			return it->GetNumberOfEpochs();
+		}
+
+		auto GetSpectrumInversion(Signal signal) const {
+			auto it = GetChannel(signal);
+			return it->spectrum_inversion;
 		}
 
 	private:

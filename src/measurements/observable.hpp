@@ -304,13 +304,13 @@ namespace ugsdr {
 
 		void UpdatePseudorangeGps(std::size_t day_offset) {
 			for (std::size_t i = 0; i < pseudorange.size(); ++i)
-				pseudorange[i] += time_scale[i] - (static_cast<std::ptrdiff_t>(i) - preamble_position + std::get<GpsEphemeris>(ephemeris).tow * 1000);
+				pseudorange[i] += time_scale[i] - (static_cast<std::ptrdiff_t>(i) - preamble_position + std::get<GpsEphemeris>(ephemeris).tow * 1000 + 2);
 		}
 
 		void UpdatePseudorangeGlonass(std::size_t day_offset) {
 			double tk_gps_ms = (std::get<GlonassEphemeris>(ephemeris).tk - 3.0 * 60 * 60 + 18 + day_offset * 86400) * 1000;
 			for (std::size_t i = 0; i < pseudorange.size(); ++i)
-				pseudorange[i] += time_scale[i] - (static_cast<std::ptrdiff_t>(i) - static_cast<double>(preamble_position) + tk_gps_ms);
+				pseudorange[i] += time_scale[i] - (static_cast<std::ptrdiff_t>(i) - static_cast<double>(preamble_position) + tk_gps_ms + 2);
 		}
 
 	public:
