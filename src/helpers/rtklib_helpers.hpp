@@ -79,6 +79,10 @@ namespace ugsdr::rtklib_helpers {
 		case Signal::GpsCoarseAcquisition_L1:
 		case Signal::GlonassCivilFdma_L1:
 			return CODE_L1C;
+		case Signal::Gps_L2CM:
+			return CODE_L2S;
+		case Signal::GlonassCivilFdma_L2:
+			return CODE_L2C;
 		default:
 			throw std::runtime_error("Unexpected signal");
 		}
@@ -89,6 +93,10 @@ namespace ugsdr::rtklib_helpers {
 		case Signal::GpsCoarseAcquisition_L1:
 		case Signal::GlonassCivilFdma_L1:
 			return "1C";
+		case Signal::Gps_L2CM:
+			return "2S";
+		case Signal::GlonassCivilFdma_L2:
+			return "2C";
 		default:
 			throw std::runtime_error("Unexpected system");
 		}
@@ -107,8 +115,8 @@ namespace ugsdr::rtklib_helpers {
 			
 			auto suffix = GetRinexSuffix(signal);
 			for (std::size_t i = offset; i < offset + 4; ++i) {
-				auto current_string = obs_types_prefix[i] + suffix;
-				std::copy(current_string.begin(), current_string.end(), rnxopt->tobs[rtklib_system][offset + i]);
+				auto current_string = obs_types_prefix[i - offset] + suffix;
+				std::copy(current_string.begin(), current_string.end(), rnxopt->tobs[rtklib_system][i]);
 			}
 		}
 	}

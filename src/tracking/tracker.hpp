@@ -111,7 +111,7 @@ namespace ugsdr {
 				TrackingParameters<UnderlyingType>::FillTrackingParameters(el, digital_frontend, tracking_parameters);
 		}
 
-		auto GetEpl(TrackingParameters<UnderlyingType>& parameters, double spacing_chips) {
+		auto GetEpl(TrackingParameters<UnderlyingType>& parameters, double code_phase, double spacing_chips) {
 			auto& translated_signal = parameters.translated_signal;
 			MixerType::Translate(translated_signal, parameters.sampling_rate, -parameters.carrier_frequency, -parameters.carrier_phase);
 			parameters.UpdatePhase();
@@ -121,9 +121,9 @@ namespace ugsdr {
 			auto spacing_offset = parameters.GetSamplesPerChip() * spacing_chips;
 						
 			auto output_array = std::array{
-				std::make_pair(parameters.code_phase + spacing_offset, std::complex<UnderlyingType>{}),
-				std::make_pair(parameters.code_phase, std::complex<UnderlyingType>{}),
-				std::make_pair(parameters.code_phase - spacing_offset, std::complex<UnderlyingType>{}),
+				std::make_pair(code_phase + spacing_offset, std::complex<UnderlyingType>{}),
+				std::make_pair(code_phase, std::complex<UnderlyingType>{}),
+				std::make_pair(code_phase - spacing_offset, std::complex<UnderlyingType>{}),
 			};
 
 			std::for_each(std::execution::par_unseq, output_array.begin(), output_array.end(), [&translated_signal, &full_code, &parameters, this](auto& pair) {
@@ -151,13 +151,11 @@ namespace ugsdr {
 			CheckResize(parameters.translated_signal, signal.size());
 			copy_wrapper(reinterpret_cast<const IppType*>(signal.data()), reinterpret_cast<IppType*>(parameters.translated_signal.data()), static_cast<int>(signal.size()));
 
-			auto [early, prompt, late] = GetEpl(parameters, 0.25);
+			auto code_phase = parameters.code_phase - parameters.sampling_rate / 1e3 * (parameters.prompt.size() % parameters.GetCodePeriod());
+			auto [early, prompt, late] = GetEpl(parameters, code_phase, 0.25);
 			parameters.early.push_back(early);
 			parameters.prompt.push_back(prompt);
 			parameters.late.push_back(late);
-
-			if (parameters.code_period > 1) 
-				parameters.code_phase -= parameters.sampling_rate / 1e3;
 
 			parameters.Pll(prompt);
 			parameters.Dll(early, late);

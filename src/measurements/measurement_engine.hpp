@@ -9,18 +9,21 @@
 #include <fstream>
 #include <memory>
 #include <set>
+#include <unordered_map>
 
 namespace ugsdr {
 	class MeasurementEngine final {
 	private:
-		void FillObservable(const ugsdr::Observable& current_observable, const gtime_t& time, std::size_t epoch, obsd_t& current_rtklib_data) const {
+		void FillObservable(const ugsdr::Observable& current_observable, const gtime_t& time, std::size_t epoch, std::size_t offset, obsd_t& current_rtklib_data) const {
+			if (offset == NFREQ + NEXOBS)
+				throw std::runtime_error("Number of observables exceeded");
 			current_rtklib_data.time = time;
 			current_rtklib_data.sat = rtklib_helpers::ConvertSv(current_observable.sv);
-			current_rtklib_data.code[0] = rtklib_helpers::ConvertCode(current_observable.sv);
-			current_rtklib_data.P[0] = current_observable.pseudorange[epoch] / 1000.0 * CLIGHT;
-			current_rtklib_data.L[0] = current_observable.pseudophase[epoch];
-			current_rtklib_data.D[0] = current_observable.doppler[epoch];
-			current_rtklib_data.SNR[0] = current_observable.snr[epoch] * 1000;
+			current_rtklib_data.code[offset] = rtklib_helpers::ConvertCode(current_observable.sv);
+			current_rtklib_data.P[offset] = current_observable.pseudorange[epoch] / 1000.0 * CLIGHT;
+			current_rtklib_data.L[offset] = current_observable.pseudophase[epoch];
+			current_rtklib_data.D[offset] = current_observable.doppler[epoch];
+			current_rtklib_data.SNR[offset] = current_observable.snr[epoch] / SNR_UNIT;
 		}
 
 		void FillEphemeris(const ugsdr::GpsEphemeris& current_ephemeris, std::uint8_t sat, eph_t& current_rtklib_ephemeris) const {
@@ -164,11 +167,8 @@ namespace ugsdr {
 			receiver_time_scale = TimeScale(tracking_results.begin()->prompt.size());
 			observables.reserve(tracking_results.size());
 
-			for (auto& el : tracking_results) {
-				auto current_observable = Observable::MakeObservable(el, receiver_time_scale);
-				if (current_observable)
-					observables.push_back(current_observable.value());
-			}
+			for (auto& el : tracking_results) 
+				Observable::MakeObservable(el, receiver_time_scale, observables);
 
 			auto day_offset = 0;
 			for (auto& obs : observables) {
@@ -205,10 +205,17 @@ namespace ugsdr {
 		}
 	
 		auto GetMeasurementEpoch(std::size_t epoch) const -> std::pair< std::vector<obsd_t>, nav_t*>{
-			auto obs = std::vector<obsd_t>(observables.size(), { {0} });
-			for (std::size_t i = 0; i < obs.size(); ++i) 
-				FillObservable(observables[i], gpst2time(week, receiver_time_scale[epoch] * 1e-3), epoch, obs[i]);
-			
+			auto obs = std::vector<obsd_t>();
+			obs.reserve(observables.size());
+
+			auto unique_svs = std::unordered_map<int, std::pair<std::size_t, obsd_t*>>();
+			for (std::size_t i = 0; i < observables.size(); ++i) {
+				auto& current_sv_cnt = unique_svs[rtklib_helpers::ConvertSv(observables[i].sv)];
+				if (current_sv_cnt.first == 0) 
+					current_sv_cnt.second = &(obs.emplace_back(obsd_t{ {0} }));
+
+				FillObservable(observables[i], gpst2time(week, receiver_time_scale[epoch] * 1e-3), epoch, current_sv_cnt.first++, *current_sv_cnt.second);
+			}
 			return std::make_pair(std::move(obs), nav.get());
 		}
 

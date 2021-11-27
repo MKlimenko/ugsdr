@@ -143,7 +143,10 @@ namespace ugsdr {
 			default:
 				throw std::runtime_error("Unexpected signal");
 			}
+		}
 
+		auto GetCodePeriod() const {
+			return GetCodePeriod(sv.signal);
 		}
 
 		void AdaptAcquisitionData(const AcquisitionResult<T>& acquisition, DigitalFrontend<T>& digital_frontend) {

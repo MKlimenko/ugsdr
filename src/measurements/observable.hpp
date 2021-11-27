@@ -54,7 +54,10 @@ namespace ugsdr {
 		Observable(const ugsdr::TrackingParameters<T>& tracking_result, TimeScale& time_scale_ref, std::size_t position, E eph) :
 			sv(tracking_result.sv), ephemeris(std::move(eph)), preamble_position(position), time_scale(time_scale_ref) {
 			pseudorange.reserve(tracking_result.code_phases.size());
-			for (auto& el : tracking_result.code_phases) pseudorange.push_back(el * 1000 / tracking_result.sampling_rate);
+			auto samples_to_ms_rate = 1000 / tracking_result.sampling_rate;
+			// we're estimating position in milliseconds, not code periods, so this should work fine
+			auto pseudorange_offset = static_cast<std::int32_t>(tracking_result.code_phases[position] * samples_to_ms_rate);
+			for (auto& el : tracking_result.code_phases) pseudorange.push_back(el * samples_to_ms_rate - pseudorange_offset);
 			pseudophase = tracking_result.phases;
 			doppler = tracking_result.frequencies;
 			for (auto& el : doppler) el -= tracking_result.intermediate_frequency;
@@ -321,8 +324,19 @@ namespace ugsdr {
 		std::size_t preamble_position = std::numeric_limits<std::size_t>::max();
 
 		template <typename T>
-		static auto MakeObservable(const ugsdr::TrackingParameters<T>& tracking_result, TimeScale& receiver_time_scale) -> std::optional<Observable> {
-			return FindPreamble(tracking_result, receiver_time_scale);
+		static void MakeObservable(const ugsdr::TrackingParameters<T>& tracking_result, TimeScale& receiver_time_scale, std::vector<Observable>& observables) {
+			auto previous_satellite = std::find_if(observables.begin(), observables.end(), [sv = tracking_result.sv](Observable& obs) {
+				return (sv.system == obs.sv.system) && (sv.id == obs.sv.id) && (sv.signal != obs.sv.signal);
+			});
+
+			if (previous_satellite == observables.end()) {
+				auto optional_obs = FindPreamble(tracking_result, receiver_time_scale);
+				if (optional_obs.has_value())
+					observables.push_back(std::move(optional_obs.value()));
+			}
+			else 
+				observables.push_back(Observable(tracking_result, receiver_time_scale, previous_satellite->preamble_position, previous_satellite->ephemeris));
+			
 		}
 
 		void UpdatePseudoranges(std::size_t day_offset) {
