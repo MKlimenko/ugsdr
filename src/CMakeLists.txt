@@ -118,7 +118,7 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
 	target_compile_options(${PROJECT_NAME} PUBLIC -ftime-trace)
 endif()
 
-if (WIN32)
+if (DEFINED ENV{SIGNALPLOT64})
 	target_link_libraries(${PROJECT_NAME} PUBLIC $ENV{SIGNALPLOT64}/lib/signalplot64.lib)
 	target_include_directories(${PROJECT_NAME} PUBLIC $ENV{SIGNALPLOT64}/include)
 	add_definitions(-DHAS_SIGNAL_PLOT)

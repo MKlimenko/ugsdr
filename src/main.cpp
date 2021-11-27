@@ -10,11 +10,11 @@
 
 #include <chrono>
 
-#ifdef HAS_SIGNAL_PLOT
-void GenerateSignals(CSignalsViewer* sv) {
-	ugsdr::glob_sv = sv;
+#ifndef HAS_SIGNAL_PLOT
+void main_impl() {
 #else
-int main() {
+void GenerateSignals(CSignalsViewer * sv) {
+	ugsdr::glob_sv = sv;
 #endif
 	auto signal_parameters =     ugsdr::SignalParametersBase<float>(R"(../../../../data/nt1065_grabber.bin)", ugsdr::FileType::Nt1065GrabberFirst, 1590e6, 79.5e6);
 	auto signal_parameters_gln = ugsdr::SignalParametersBase<float>(R"(../../../../data/nt1065_grabber.bin)", ugsdr::FileType::Nt1065GrabberSecond, 1590e6, 79.5e6);
@@ -29,7 +29,7 @@ int main() {
 		MakeChannel(signal_parameters, std::vector{ ugsdr::Signal::Galileo_E1b }, signal_parameters.GetSamplingRate())*/
 	);
 
-#if 0
+#if 1
 	auto fse = ugsdr::FastSearchEngineBase(digital_frontend, 5e3, 200);
 	auto acquisition_results = fse.Process(!true);
 	if (acquisition_results.empty())
@@ -72,8 +72,11 @@ int main() {
 #endif
 	
 	//std::exit(0);
+}
 
 #ifndef HAS_SIGNAL_PLOT
+int main() {
+	main_impl();
 	return 0;
-#endif
 }
+#endif
