@@ -421,7 +421,6 @@ namespace ugsdr {
 		void Pll(const std::complex<T>& current_prompt) {
 			phases.push_back(-carrier_phase / (2 * std::numbers::pi));
 			frequencies.push_back(carrier_frequency);
-
 			auto new_phase_error = current_prompt.real() ? atan(current_prompt.imag() / current_prompt.real()) / (std::numbers::pi * 2.0) : 0.0;
 			phase_residuals.push_back(new_phase_error);
 			auto cross = current_prompt.real() * previous_prompt.imag() - previous_prompt.real() * current_prompt.imag();
@@ -440,7 +439,6 @@ namespace ugsdr {
 		void Dll(const std::complex<T>& current_early, const std::complex<T>& current_late) {
 			code_phases.push_back(code_phase);
 			code_frequencies.push_back(code_frequency);
-
 			auto early = std::abs(current_early);
 			auto late = std::abs(current_late);
 
