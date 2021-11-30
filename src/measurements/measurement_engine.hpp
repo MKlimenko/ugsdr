@@ -124,7 +124,7 @@ namespace ugsdr {
 				throw std::runtime_error("Unexpected nullptr");
 			rtklib_helpers::FillRinexCodes(rnxopt, available_signals);
 
-			auto rinex_obs = std::unique_ptr<FILE, int(*)(FILE*)>(fopen("rinex.obs", "w"), fclose);
+			auto rinex_obs = std::unique_ptr<FILE, int(*)(FILE*)>(fopen("ugsdr.obs", "w"), fclose);
 
 			auto status_header = outrnxobsh(rinex_obs.get(), rnxopt, nav.get());
 
@@ -140,7 +140,7 @@ namespace ugsdr {
 			if (!rnxopt)
 				throw std::runtime_error("Unexpected nullptr");
 
-			auto rinex_nav = std::unique_ptr<FILE, int(*)(FILE*)>(fopen("rinex.nav", "w"), fclose);
+			auto rinex_nav = std::unique_ptr<FILE, int(*)(FILE*)>(fopen("ugsdr.nav", "w"), fclose);
 
 			auto status_header = outrnxnavh(rinex_nav.get(), rnxopt, nav.get());
 			for (std::size_t i = 0; i < nav->n; ++i)

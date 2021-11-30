@@ -29,7 +29,7 @@ void GenerateSignals(CSignalsViewer * sv) {
 		MakeChannel(signal_parameters, std::vector{ ugsdr::Signal::Galileo_E1b }, signal_parameters.GetSamplingRate())*/
 	);
 
-#if 1
+#if 0
 	auto fse = ugsdr::FastSearchEngineBase(digital_frontend, 5e3, 200);
 	auto acquisition_results = fse.Process(!true);
 	if (acquisition_results.empty())
@@ -40,19 +40,19 @@ void GenerateSignals(CSignalsViewer * sv) {
 	ugsdr::Load("acquisition_results_cache", acquisition_results);
 #endif
 
-#if 0
+#if 1
 	auto pre = std::chrono::system_clock::now();
 	auto tracker = ugsdr::Tracker(digital_frontend, acquisition_results);
-	tracker.Track(60000 + 0 * signal_parameters.GetNumberOfEpochs());
+	tracker.Track(180000/3 + 0 * signal_parameters.GetNumberOfEpochs());
 	tracker.Plot();
 	auto post = std::chrono::system_clock::now();
 	ugsdr::Save("tracking_results_cache", tracker.GetTrackingParameters());
 
-	return;
 	std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(post - pre).count() << std::endl;
-	std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(post - pre).count() / static_cast<double>(60000 + 0 * signal_parameters.GetNumberOfEpochs()) * 100.0 << std::endl;
+	std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(post - pre).count() / static_cast<double>(180000 + 0 * signal_parameters.GetNumberOfEpochs()) * 100.0 << std::endl;
 
 	auto measurement_engine = ugsdr::MeasurementEngine(tracker.GetTrackingParameters());
+	measurement_engine.WriteRinex(1000);
 	auto positioning_engine = ugsdr::StandaloneRtklib(measurement_engine);
 
 	auto pos = positioning_engine.EstimatePosition(0);
@@ -64,7 +64,7 @@ void GenerateSignals(CSignalsViewer * sv) {
 	//	ugsdr::Add(L"Prompt tracking result", el.prompt);
 
 	auto measurement_engine = ugsdr::MeasurementEngine(tracking_parameters);
-	measurement_engine.WriteRinex(50);
+	measurement_engine.WriteRinex(1000);
 	auto positioning_engine = ugsdr::StandaloneRtklib(measurement_engine);
 	
 	for(std::size_t i = 0; i < tracking_parameters[0].code_frequencies.size(); ++i)

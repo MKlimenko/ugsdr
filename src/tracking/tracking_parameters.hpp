@@ -105,10 +105,7 @@ namespace ugsdr {
 		}
 
 		void UpdatePhase() {
-			auto phase_mod = std::fmod(carrier_frequency / 1000.0, 1.0);
-			if (phase_mod < 0)
-				phase_mod += 1;
-			carrier_phase += 2 * std::numbers::pi_v<double> * phase_mod;
+			carrier_phase += 2 * std::numbers::pi_v<double> * carrier_frequency / 1000.0;
 		}
 
 		static auto GetCodePeriod(Signal signal) {
@@ -281,7 +278,7 @@ namespace ugsdr {
 
 			auto code_offset_mod = code_offset % samples_per_ms;
 			if (code_offset_mod > samples_per_ms / 2)
-				code_offset_mod -= samples_per_ms;
+				code_offset_mod -= static_cast<std::ptrdiff_t>(samples_per_ms);
 #if 0
 			// will work for now, but this should be executed after L1 lock
 			if (std::abs(correlator_value) / std::abs(correlator_value_offset) >= 1.3) {
@@ -422,6 +419,9 @@ namespace ugsdr {
 		}
 
 		void Pll(const std::complex<T>& current_prompt) {
+			phases.push_back(-carrier_phase / (2 * std::numbers::pi));
+			frequencies.push_back(carrier_frequency);
+
 			auto new_phase_error = current_prompt.real() ? atan(current_prompt.imag() / current_prompt.real()) / (std::numbers::pi * 2.0) : 0.0;
 			phase_residuals.push_back(new_phase_error);
 			auto cross = current_prompt.real() * previous_prompt.imag() - previous_prompt.real() * current_prompt.imag();
@@ -433,14 +433,14 @@ namespace ugsdr {
 			auto carrier_frequency_error = std::atan2(cross, dot) / std::numbers::pi;
 			carrier_frequency += K1_PLL * new_phase_error - K2_PLL * carrier_phase_error - K3_PLL * carrier_frequency_error;
 			carrier_phase_error = new_phase_error;
-			carrier_phase += new_phase_error * 2 * std::numbers::pi;
-
-			phases.push_back((spectrum_inversion ? -1.0 : 1.0) * carrier_phase / 2 * std::numbers::pi);
-			frequencies.push_back(carrier_frequency);
+			carrier_phase += new_phase_error * std::numbers::pi / 2;
 			previous_prompt = current_prompt;
 		}
 
 		void Dll(const std::complex<T>& current_early, const std::complex<T>& current_late) {
+			code_phases.push_back(code_phase);
+			code_frequencies.push_back(code_frequency);
+
 			auto early = std::abs(current_early);
 			auto late = std::abs(current_late);
 
@@ -453,9 +453,6 @@ namespace ugsdr {
 			code_error = new_code_error;
 			code_frequency = base_code_frequency - code_nco;
 			code_phase -= sampling_rate / 1000 / 2 * (code_frequency / base_code_frequency - 1);
-
-			code_phases.push_back(code_phase);
-			code_frequencies.push_back(code_frequency);
 		}
 
 		template <typename Archive>
