@@ -1,5 +1,7 @@
 #pragma once
 
+#if __has_include(<arrayfire.h>)
+
 #include "arrayfire.h"
 #include "mixer.hpp"
 #include "../helpers/af_array_proxy.hpp"
@@ -29,3 +31,5 @@ namespace ugsdr {
 		AfMixer(double sampling_freq, double frequency, double phase) : Mixer<AfMixer>(sampling_freq, frequency, phase) {}
 	};
 }
+
+#endif

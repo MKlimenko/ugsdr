@@ -1,5 +1,7 @@
 #pragma once
 
+#if __has_include(<arrayfire.h>)
+
 #pragma pack(push)
 
 #include "is_complex.hpp"
@@ -230,3 +232,5 @@ namespace ugsdr {
 }
 
 #pragma pack(pop)
+
+#endif

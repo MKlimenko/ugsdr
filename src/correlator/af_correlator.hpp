@@ -1,5 +1,7 @@
 #pragma once
 
+#if __has_include(<arrayfire.h>)
+
 #include "arrayfire.h"
 #include "correlator.hpp"
 #include "../helpers/af_array_proxy.hpp"
@@ -23,3 +25,5 @@ namespace ugsdr {
 		}
 	};
 }
+
+#endif

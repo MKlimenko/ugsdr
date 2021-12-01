@@ -1,5 +1,7 @@
 #pragma once
 
+#if __has_include(<arrayfire.h>)
+
 #include "matched_filter.hpp"
 #include "arrayfire.h"
 #include "../helpers/ipp_complex_type_converter.hpp"
@@ -62,3 +64,5 @@ namespace ugsdr {
 	};
 
 }
+
+#endif

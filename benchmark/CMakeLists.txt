@@ -14,7 +14,6 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 )
 target_link_libraries(${PROJECT_NAME} PRIVATE 
 												${Boost_LIBRARIES} 
-												ArrayFire::afcuda
 												benchmark::benchmark 
 												gcem
 												IPP::ippcc 
@@ -23,5 +22,9 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
 												OpenMP::OpenMP_CXX
 												rtklib
 )
+
+if (${ArrayFire_FOUND})
+	target_link_libraries(${PROJECT_NAME} PRIVATE ArrayFire::afcuda)
+endif()
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 20)

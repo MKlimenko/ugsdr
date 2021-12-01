@@ -20,7 +20,6 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 )
 target_link_libraries(${PROJECT_NAME} PRIVATE 
 												${Boost_LIBRARIES} 
-												ArrayFire::afcuda
 												gcem 
 												GTest::gtest 
 												GTest::gtest_main 
@@ -31,6 +30,10 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
 												rtklib
 												TBB::tbb
 )
+
+if (${ArrayFire_FOUND})
+	target_link_libraries(${PROJECT_NAME} PRIVATE ArrayFire::afcuda)
+endif()
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 20)
 

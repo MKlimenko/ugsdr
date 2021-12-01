@@ -1,5 +1,7 @@
 #pragma once
 
+#if __has_include(<arrayfire.h>)
+
 #include "dft.hpp"
 #include "arrayfire.h"
 #include "../helpers/af_array_proxy.hpp"
@@ -41,3 +43,5 @@ namespace ugsdr {
 		}
 	};
 }
+
+#endif

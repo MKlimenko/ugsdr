@@ -103,7 +103,6 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 )
 target_link_libraries(${PROJECT_NAME} PRIVATE 
 												${Boost_LIBRARIES} 
-												ArrayFire::afcuda 
 												cereal
 												gcem 
 												IPP::ippcc 
@@ -113,6 +112,11 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
 												rtklib
 												TBB::tbb
 )
+
+if (${ArrayFire_FOUND})
+	target_link_libraries(${PROJECT_NAME} PRIVATE ArrayFire::afcuda)
+endif()
+
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
 	target_compile_options(${PROJECT_NAME} PUBLIC -ftime-trace)
