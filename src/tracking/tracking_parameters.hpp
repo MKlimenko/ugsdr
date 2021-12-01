@@ -419,8 +419,6 @@ namespace ugsdr {
 		}
 
 		void Pll(const std::complex<T>& current_prompt) {
-			phases.push_back(-carrier_phase / (2 * std::numbers::pi));
-			frequencies.push_back(carrier_frequency);
 			auto new_phase_error = current_prompt.real() ? atan(current_prompt.imag() / current_prompt.real()) / (std::numbers::pi * 2.0) : 0.0;
 			phase_residuals.push_back(new_phase_error);
 			auto cross = current_prompt.real() * previous_prompt.imag() - previous_prompt.real() * current_prompt.imag();
@@ -434,11 +432,11 @@ namespace ugsdr {
 			carrier_phase_error = new_phase_error;
 			carrier_phase += new_phase_error * std::numbers::pi / 2;
 			previous_prompt = current_prompt;
+			phases.push_back(-carrier_phase / (2 * std::numbers::pi));
+			frequencies.push_back(carrier_frequency);
 		}
 
 		void Dll(const std::complex<T>& current_early, const std::complex<T>& current_late) {
-			code_phases.push_back(code_phase);
-			code_frequencies.push_back(code_frequency);
 			auto early = std::abs(current_early);
 			auto late = std::abs(current_late);
 
@@ -451,6 +449,8 @@ namespace ugsdr {
 			code_error = new_code_error;
 			code_frequency = base_code_frequency - code_nco;
 			code_phase -= sampling_rate / 1000 / 2 * (code_frequency / base_code_frequency - 1);
+			code_phases.push_back(code_phase);
+			code_frequencies.push_back(code_frequency);
 		}
 
 		template <typename Archive>
