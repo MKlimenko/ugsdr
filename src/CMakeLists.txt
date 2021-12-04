@@ -102,21 +102,29 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 												../external/RTKLIB/src
 )
 target_link_libraries(${PROJECT_NAME} PRIVATE 
-												${Boost_LIBRARIES} 
-												cereal
-												gcem 
-												IPP::ippcc 
+												${Boost_LIBRARIES}
+												IPP::ippcc
 												IPP::ippch 
 												IPP::ippcore 
 												OpenMP::OpenMP_CXX
 												rtklib
-												TBB::tbb
 )
 
 if (${ArrayFire_FOUND})
 	target_link_libraries(${PROJECT_NAME} PRIVATE ArrayFire::afcuda)
 endif()
 
+if (${cereal_FOUND})
+	target_link_libraries(${PROJECT_NAME} PRIVATE cereal)
+endif()
+
+if (${gcem_FOUND})
+	target_link_libraries(${PROJECT_NAME} PRIVATE gcem)
+endif()
+
+if (${TBB_FOUND})
+	target_link_libraries(${PROJECT_NAME} PRIVATE TBB::tbb)
+endif()
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
 	target_compile_options(${PROJECT_NAME} PUBLIC -ftime-trace)

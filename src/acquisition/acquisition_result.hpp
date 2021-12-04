@@ -3,7 +3,9 @@
 #include "../common.hpp"
 #include <vector>
 
+#ifdef HAS_CEREAL
 #include <cereal/cereal.hpp>
+#endif
 
 namespace ugsdr {
 	template <typename T>
@@ -30,6 +32,7 @@ namespace ugsdr {
 
 		template <typename Archive>
 		void save(Archive& ar) const {
+#ifdef HAS_CEREAL
 			ar(
 				CEREAL_NVP(sv_number),
 				CEREAL_NVP(doppler),
@@ -39,10 +42,12 @@ namespace ugsdr {
 				CEREAL_NVP(intermediate_frequency),
 				CEREAL_NVP(output_peak)
 			);
+#endif
 		}
 
 		template <typename Archive>
 		void load(Archive& ar) {
+#ifdef HAS_CEREAL
 			ar(
 				sv_number,
 				doppler,
@@ -52,6 +57,7 @@ namespace ugsdr {
 				intermediate_frequency,
 				(output_peak)
 			);
+#endif
 		}
 	};
 }

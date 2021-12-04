@@ -455,6 +455,7 @@ namespace ugsdr {
 
 		template <typename Archive>
 		void save(Archive& ar) const {
+#ifdef HAS_CEREAL
 			ar(
 				CEREAL_NVP(sv),
 				CEREAL_NVP(code_phase),
@@ -479,10 +480,12 @@ namespace ugsdr {
 				CEREAL_NVP(code_nco),
 				CEREAL_NVP(code_error)
 			);
+#endif
 		}
 
 		template <typename Archive>
 		void load(Archive& ar) {
+#ifdef HAS_CEREAL
 			ar(
 				sv,
 				code_phase,
@@ -507,6 +510,7 @@ namespace ugsdr {
 				code_nco,
 				code_error
 			);
+#endif
 		}
 	};
 }

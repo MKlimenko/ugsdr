@@ -1,6 +1,6 @@
 #pragma once
 
-#if __has_include(<arrayfire.h>)
+#ifdef HAS_ARRAYFIRE
 
 #include "matched_filter.hpp"
 #include "arrayfire.h"

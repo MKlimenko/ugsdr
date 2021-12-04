@@ -3,7 +3,14 @@
 #include "mixer.hpp"
 #include "nco.hpp"
 
+#ifdef HAS_GCEM
 #include "gcem.hpp"
+#define GCEM_NAMESPACE gcem
+#define GCEM_CONSTEXPR constexpr
+#else
+#define GCEM_NAMESPACE std
+#define GCEM_CONSTEXPR 
+#endif
 
 #include <array>
 #include <cmath>
@@ -18,7 +25,7 @@ namespace ugsdr {
 		friend class Mixer<TableMixer>;
 
 		template <std::size_t phase_bits, typename T>
-		constexpr static auto GetSinCosTable() {
+		GCEM_CONSTEXPR static auto GetSinCosTable() {
 			constexpr auto table_size = 5ull * (1 << (phase_bits)) / 4;
 			std::array<T, table_size> table{};
 
@@ -28,8 +35,8 @@ namespace ugsdr {
 				scale = std::numeric_limits<T>::max();
 		
 			for (std::size_t i = 0; i < table_size; ++i) {
-				auto value = scale * gcem::sin(i * table_step);
-				table[i] = std::is_integral_v<T> ? static_cast<T>(gcem::round(value)) : static_cast<T>(value);
+				auto value = scale * GCEM_NAMESPACE::sin(i * table_step);
+				table[i] = std::is_integral_v<T> ? static_cast<T>(GCEM_NAMESPACE::round(value)) : static_cast<T>(value);
 			}
 			
 			return table;
@@ -67,7 +74,7 @@ namespace ugsdr {
 			constexpr std::size_t phase_bits = 6;
 			constexpr std::size_t nco_bits = 32;
 
-			constexpr auto table = GetSinCosTable<phase_bits, UnderlyingType>();
+			GCEM_CONSTEXPR auto table = GetSinCosTable<phase_bits, UnderlyingType>();
 			NumericallyControlledOscillator<nco_bits> nco(sampling_freq, frequency, phase);
 
 			static thread_local std::vector<std::complex<UnderlyingType>> complex_exp_vec;

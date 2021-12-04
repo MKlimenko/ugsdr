@@ -15,7 +15,6 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 target_link_libraries(${PROJECT_NAME} PRIVATE 
 												${Boost_LIBRARIES} 
 												benchmark::benchmark 
-												gcem
 												IPP::ippcc 
 												IPP::ippch
 												IPP::ippcore
@@ -25,6 +24,18 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
 
 if (${ArrayFire_FOUND})
 	target_link_libraries(${PROJECT_NAME} PRIVATE ArrayFire::afcuda)
+endif()
+
+if (${cereal_FOUND})
+	target_link_libraries(${PROJECT_NAME} PRIVATE cereal)
+endif()
+
+if (${gcem_FOUND})
+	target_link_libraries(${PROJECT_NAME} PRIVATE gcem)
+endif()
+
+if (${TBB_FOUND})
+	target_link_libraries(${PROJECT_NAME} PRIVATE TBB::tbb)
 endif()
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 20)

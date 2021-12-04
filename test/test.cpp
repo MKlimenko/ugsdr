@@ -74,7 +74,7 @@ namespace basic_tests {
 			}
 		}
 
-#if __has_include(<arrayfire.h>)
+#ifdef HAS_ARRAYFIRE
 		TYPED_TEST(CorrelatorTest, af_correlator) {
 			const auto signal_real = ugsdr::Codegen<ugsdr::GpsL1Ca>::Get<typename TestFixture::Type>(0);
 			const auto signal = std::vector<std::complex<typename TestFixture::Type>>(signal_real.begin(), signal_real.end());
@@ -95,7 +95,7 @@ namespace basic_tests {
 	}
 
 	namespace HelpersTests {
-#if __has_include(<arrayfire.h>)
+#ifdef HAS_ARRAYFIRE
 		namespace ArrayProxy {
 			template <typename T>
 			class ArrayProxyTest : public testing::Test {
@@ -202,7 +202,7 @@ namespace basic_tests {
 			TestMixer<ugsdr::TableMixer, typename TestFixture::Type>();
 		}
 
-#if __has_include(<arrayfire.h>)
+#ifdef HAS_ARRAYFIRE
 		TYPED_TEST(MixerTest, af_mixer) {
 			TestMixer<ugsdr::AfMixer, typename TestFixture::Type>(1e-3);
 		}
@@ -239,7 +239,7 @@ namespace basic_tests {
 			TestMatched<ugsdr::IppMatchedFilter, typename TestFixture::Type>();
 		}
 
-#if __has_include(<arrayfire.h>)
+#ifdef HAS_ARRAYFIRE
 		TYPED_TEST(MatchedFilterTest, af_matched_filter) {
 			TestMatched<ugsdr::AfMatchedFilter, typename TestFixture::Type>();
 		}
@@ -321,7 +321,7 @@ namespace basic_tests {
 				TestPeak<ugsdr::IppDft, typename TestFixture::Type>();
 			}
 
-#if __has_include(<arrayfire.h>)
+#ifdef HAS_ARRAYFIRE
 			TYPED_TEST(DftTest, af_dft) {
 				TestPeak<ugsdr::AfDft, typename TestFixture::Type>();
 			}
