@@ -19,6 +19,7 @@ add_executable (${PROJECT_NAME}
 							helpers/BbpPackedSpan.hpp
 							helpers/ipp_complex_type_converter.hpp
 							helpers/is_complex.hpp
+							helpers/NtlabPackedSpan.hpp
 							helpers/rtklib_helpers.hpp
 							helpers/visualizer.hpp 
 							matched_filter/af_matched_filter.hpp

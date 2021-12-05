@@ -10,6 +10,7 @@
 
 #include "common.hpp"
 #include "helpers/BbpPackedSpan.hpp"
+#include "helpers/NtlabPackedSpan.hpp"
 #include "helpers/ipp_complex_type_converter.hpp"
 #include "../external/plusifier/Plusifier.hpp"
 
@@ -22,6 +23,10 @@ namespace ugsdr {
 		Nt1065GrabberSecond,
 		Nt1065GrabberThird,
 		Nt1065GrabberFourth,
+		Nt1065GrabberFirstOptimized,
+		Nt1065GrabberSecondOptimized,
+		Nt1065GrabberThirdOptimized,
+		Nt1065GrabberFourthOptimized,
 		BbpDdc
 	};
 
@@ -67,6 +72,10 @@ namespace ugsdr {
 			case FileType::Nt1065GrabberSecond:
 			case FileType::Nt1065GrabberThird:
 			case FileType::Nt1065GrabberFourth:
+			case FileType::Nt1065GrabberFirstOptimized:
+			case FileType::Nt1065GrabberSecondOptimized:
+			case FileType::Nt1065GrabberThirdOptimized:
+			case FileType::Nt1065GrabberFourthOptimized:
 				number_of_epochs = static_cast<std::size_t>(signal_file.size() / (sampling_rate / 1e3));
 				break;
 			case FileType::BbpDdc: {
@@ -173,6 +182,23 @@ namespace ugsdr {
 			case FileType::Nt1065GrabberThird:
 			case FileType::Nt1065GrabberFourth: {
 				GetPartialSignalNt1065(2 * (static_cast<int>(FileType::Nt1065GrabberFourth) - static_cast<int>(file_type)), length_samples, samples_offset, dst);
+				break;
+			}
+			case FileType::Nt1065GrabberFirstOptimized:
+			case FileType::Nt1065GrabberSecondOptimized:
+			case FileType::Nt1065GrabberThirdOptimized:
+			case FileType::Nt1065GrabberFourthOptimized: {
+				CheckResize(dst, length_samples);
+				auto samples_per_ms = static_cast<std::size_t>(sampling_rate / 1e3);
+				auto epochs_offset = samples_offset / samples_per_ms;
+				auto length_epochs = length_samples / samples_per_ms;
+
+				for (std::size_t i = epochs_offset; i < epochs_offset + length_epochs; ++i) {
+					auto ptr = reinterpret_cast<const std::byte*>(signal_file.data() + epoch_size_bytes * i);
+
+					auto packed_span = NtlabPackedSpanFirst<UnderlyingType>(ptr, samples_per_ms);
+					std::copy(std::execution::par_unseq, packed_span.begin(), packed_span.end(), dst.begin() + samples_per_ms * (i - epochs_offset));
+				}
 				break;
 			}
 			case FileType::BbpDdc: {
