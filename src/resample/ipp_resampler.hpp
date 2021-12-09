@@ -1,5 +1,7 @@
 #pragma once
 
+#ifdef HAS_IPP
+
 #include "ipp.h"
 #include "resampler.hpp"
 #include "ipp_upsampler.hpp"
@@ -145,3 +147,5 @@ namespace ugsdr {
 
 	using IppResampler = IppResamplerBase<false> ;
 }
+
+#endif

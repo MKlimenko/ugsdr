@@ -1,5 +1,7 @@
 #pragma once
 
+#ifdef HAS_IPP
+
 #include "../common.hpp"
 #include "mixer.hpp"
 #include <ipp.h>
@@ -83,3 +85,5 @@ namespace ugsdr {
 
 	};
 }
+
+#endif

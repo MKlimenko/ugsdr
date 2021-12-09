@@ -1,5 +1,7 @@
 #pragma once
 
+#ifdef HAS_IPP
+
 #include "ipp.h"
 #include "../../external/type_map/include/type_map.hpp"
 
@@ -28,3 +30,5 @@ namespace ugsdr {
 		using Type = ComplexTypeMap::GetTypeByType<T>;
 	};
 }
+
+#endif

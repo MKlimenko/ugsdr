@@ -59,21 +59,6 @@ namespace signal_parameters {
     //BENCHMARK_TEMPLATE(GetEpochNt1065Grabber, double);
 
     template <typename T>
-    static void GetEpochNt1065GrabberOp(benchmark::State& state) {
-        // actual sampling rate is twice as high, limit for benchmarking purposes
-        auto signal_parameters = ugsdr::SignalParametersBase<T>(R"(..\..\..\..\data\nt1065_grabber.bin)", ugsdr::FileType::Nt1065GrabberFirstOptimized, 1590e6, 33.25e6);
-        std::vector<std::complex<T>> input(static_cast<std::size_t>(signal_parameters.GetSamplingRate() / 1e3));
-        for (auto _ : state) {
-            signal_parameters.GetOneMs(0, input);
-        }
-    }
-    //BENCHMARK_TEMPLATE(GetEpochNt1065Grabber, std::int8_t);
-    //BENCHMARK_TEMPLATE(GetEpochNt1065Grabber, std::int16_t);
-    //BENCHMARK_TEMPLATE(GetEpochNt1065Grabber, std::int32_t);
-    BENCHMARK_TEMPLATE(GetEpochNt1065GrabberOp, float);
-    //BENCHMARK_TEMPLATE(GetEpochNt1065Grabber, double);
-
-    template <typename T>
     static void GetEpochNt1065GrabberRemote(benchmark::State& state) {
         // actual sampling rate is twice as high, limit for benchmarking purposes
         auto signal_parameters = ugsdr::SignalParametersBase<T>(R"(\\remote_server\m.klimenko\austin_university\ntlab\ntlab.bin)", ugsdr::FileType::Nt1065GrabberFirst, 1590e6, 33.25e6);

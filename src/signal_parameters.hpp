@@ -6,13 +6,18 @@
 #include <fstream>
 
 #include "boost/iostreams/device/mapped_file.hpp"
-#include "ipp.h"
 
 #include "common.hpp"
 #include "helpers/BbpPackedSpan.hpp"
 #include "helpers/NtlabPackedSpan.hpp"
+
+#ifdef HAS_IPP
+
+#include "ipp.h"
 #include "helpers/ipp_complex_type_converter.hpp"
 #include "../external/plusifier/Plusifier.hpp"
+
+#endif
 
 namespace ugsdr {
 	enum class FileType {
@@ -23,10 +28,6 @@ namespace ugsdr {
 		Nt1065GrabberSecond,
 		Nt1065GrabberThird,
 		Nt1065GrabberFourth,
-		Nt1065GrabberFirstOptimized,
-		Nt1065GrabberSecondOptimized,
-		Nt1065GrabberThirdOptimized,
-		Nt1065GrabberFourthOptimized,
 		BbpDdc
 	};
 
@@ -72,10 +73,6 @@ namespace ugsdr {
 			case FileType::Nt1065GrabberSecond:
 			case FileType::Nt1065GrabberThird:
 			case FileType::Nt1065GrabberFourth:
-			case FileType::Nt1065GrabberFirstOptimized:
-			case FileType::Nt1065GrabberSecondOptimized:
-			case FileType::Nt1065GrabberThirdOptimized:
-			case FileType::Nt1065GrabberFourthOptimized:
 				number_of_epochs = static_cast<std::size_t>(signal_file.size() / (sampling_rate / 1e3));
 				break;
 			case FileType::BbpDdc: {
@@ -94,6 +91,7 @@ namespace ugsdr {
 			}
 		}
 
+#ifdef HAS_IPP
 		static auto GetConvertWrapper() {
 			static auto convert_wrapper = plusifier::FunctionWrapper(
 				ippsConvert_8s32f,
@@ -118,7 +116,9 @@ namespace ugsdr {
 			);
 			return real_to_complex_wrapper;
 		}
+#endif
 
+#ifdef HAS_IPP
 		void GetPartialSignalNt1065(int bit_shift, std::size_t length_samples, std::size_t samples_offset, OutputVectorType& dst) {
 			static thread_local std::vector<std::int8_t> unpacked_data;
 			CheckResize(unpacked_data, length_samples);
@@ -139,55 +139,51 @@ namespace ugsdr {
 			auto convert_wrapper = GetConvertWrapper();
 			convert_wrapper(reinterpret_cast<const int8_t*>(pseudo_complex_data.data()), reinterpret_cast<UnderlyingType*>(dst.data()), static_cast<int>(length_samples) * 2); //21000n
 		}
+#endif
 
 		void GetPartialSignal(std::size_t length_samples, std::size_t samples_offset, OutputVectorType& dst) {
 			switch (file_type) {
 			case FileType::Iq_8_plus_8: {
-				if constexpr (!std::is_same_v<std::int8_t, UnderlyingType>) {
-					auto ptr_start = signal_file.data() + samples_offset * sizeof(std::complex<std::int8_t>);
-					CheckResize(dst, length_samples);
-					
-					auto convert_wrapper = GetConvertWrapper();
-					convert_wrapper(reinterpret_cast<const int8_t*>(ptr_start), reinterpret_cast<UnderlyingType*>(dst.data()), static_cast<int>(dst.size()) * 2);
-				}
+				auto ptr_start = signal_file.data() + samples_offset * sizeof(std::complex<std::int8_t>);
+				CheckResize(dst, length_samples);
+
+				auto convert_wrapper = GetConvertWrapper();
+				convert_wrapper(reinterpret_cast<const int8_t*>(ptr_start), reinterpret_cast<UnderlyingType*>(dst.data()), static_cast<int>(dst.size()) * 2);
 				break;
 			}
 			case FileType::Iq_16_plus_16: {
-				if constexpr (!std::is_same_v<std::int8_t, UnderlyingType>) {
-					auto ptr_start = signal_file.data() + samples_offset * sizeof(std::complex<std::int16_t>);
-					CheckResize(dst, length_samples);
+				auto ptr_start = signal_file.data() + samples_offset * sizeof(std::complex<std::int16_t>);
+				CheckResize(dst, length_samples);
 
-					auto convert_wrapper = GetConvertWrapper();
-					convert_wrapper(reinterpret_cast<const int16_t*>(ptr_start), reinterpret_cast<UnderlyingType*>(dst.data()), static_cast<int>(dst.size()) * 2);
-				}
+				auto convert_wrapper = GetConvertWrapper();
+				convert_wrapper(reinterpret_cast<const int16_t*>(ptr_start), reinterpret_cast<UnderlyingType*>(dst.data()), static_cast<int>(dst.size()) * 2);
 				break;
 			}
 			case FileType::Real_8: {
-				if constexpr (!std::is_same_v<std::int8_t, UnderlyingType>) {
-					auto ptr_start = signal_file.data() + samples_offset * sizeof(std::int8_t);
-					CheckResize(dst, length_samples);
+				auto ptr_start = signal_file.data() + samples_offset * sizeof(std::int8_t);
+				CheckResize(dst, length_samples);
 
-					static thread_local std::vector<UnderlyingType> local_data(length_samples); CheckResize(local_data, length_samples);
-					auto convert_wrapper = GetConvertWrapper();
-					convert_wrapper(reinterpret_cast<const int8_t*>(ptr_start), local_data.data(), static_cast<int>(dst.size()));
+				static thread_local std::vector<UnderlyingType> local_data(length_samples); CheckResize(local_data, length_samples);
+				auto convert_wrapper = GetConvertWrapper();
+				convert_wrapper(reinterpret_cast<const int8_t*>(ptr_start), local_data.data(), static_cast<int>(dst.size()));
 
-					auto real_to_complex_wrapper = GetRealToComplexWrapper();
-					using IppType = typename IppTypeToComplex<UnderlyingType>::Type;
-					real_to_complex_wrapper(local_data.data(), nullptr, reinterpret_cast<IppType*>(dst.data()), static_cast<int>(length_samples));
-				}
+				auto real_to_complex_wrapper = GetRealToComplexWrapper();
+				using IppType = typename IppTypeToComplex<UnderlyingType>::Type;
+				real_to_complex_wrapper(local_data.data(), nullptr, reinterpret_cast<IppType*>(dst.data()), static_cast<int>(length_samples));
 				break;
 			}
+#ifdef HAS_IPP
+			case FileType::Nt1065GrabberFirst:
+			case FileType::Nt1065GrabberSecond:
+			case FileType::Nt1065GrabberThird:
+			case FileType::Nt1065GrabberFourth: 
+				GetPartialSignalNt1065(2 * (static_cast<int>(FileType::Nt1065GrabberFourth) - static_cast<int>(file_type)), length_samples, samples_offset, dst);
+				break;
+#else
 			case FileType::Nt1065GrabberFirst:
 			case FileType::Nt1065GrabberSecond:
 			case FileType::Nt1065GrabberThird:
 			case FileType::Nt1065GrabberFourth: {
-				GetPartialSignalNt1065(2 * (static_cast<int>(FileType::Nt1065GrabberFourth) - static_cast<int>(file_type)), length_samples, samples_offset, dst);
-				break;
-			}
-			case FileType::Nt1065GrabberFirstOptimized:
-			case FileType::Nt1065GrabberSecondOptimized:
-			case FileType::Nt1065GrabberThirdOptimized:
-			case FileType::Nt1065GrabberFourthOptimized: {
 				CheckResize(dst, length_samples);
 				auto samples_per_ms = static_cast<std::size_t>(sampling_rate / 1e3);
 				auto epochs_offset = samples_offset / samples_per_ms;
@@ -196,11 +192,35 @@ namespace ugsdr {
 				for (std::size_t i = epochs_offset; i < epochs_offset + length_epochs; ++i) {
 					auto ptr = reinterpret_cast<const std::byte*>(signal_file.data() + epoch_size_bytes * i);
 
-					auto packed_span = NtlabPackedSpanFirst<UnderlyingType>(ptr, samples_per_ms);
-					std::copy(std::execution::par_unseq, packed_span.begin(), packed_span.end(), dst.begin() + samples_per_ms * (i - epochs_offset));
+					// Unfortunately, case argument isn't considered a compile-time variable
+					switch (file_type) {
+					case FileType::Nt1065GrabberFirst: {
+						auto packed_span = NtlabPackedSpan<6, UnderlyingType>(ptr, samples_per_ms);
+						std::copy(std::execution::par_unseq, packed_span.begin(), packed_span.end(), dst.begin() + samples_per_ms * (i - epochs_offset));
+						break;
+					}
+					case FileType::Nt1065GrabberSecond: {
+						auto packed_span = NtlabPackedSpan<4, UnderlyingType>(ptr, samples_per_ms);
+						std::copy(std::execution::par_unseq, packed_span.begin(), packed_span.end(), dst.begin() + samples_per_ms * (i - epochs_offset));
+						break;
+					}
+					case FileType::Nt1065GrabberThird: {
+						auto packed_span = NtlabPackedSpan<2, UnderlyingType>(ptr, samples_per_ms);
+						std::copy(std::execution::par_unseq, packed_span.begin(), packed_span.end(), dst.begin() + samples_per_ms * (i - epochs_offset));
+						break;
+					}
+					case FileType::Nt1065GrabberFourth: {
+						auto packed_span = NtlabPackedSpan<0, UnderlyingType>(ptr, samples_per_ms);
+						std::copy(std::execution::par_unseq, packed_span.begin(), packed_span.end(), dst.begin() + samples_per_ms * (i - epochs_offset));
+						break;
+					}
+					default:
+						break;
+					}
 				}
 				break;
 			}
+#endif
 			case FileType::BbpDdc: {
 				CheckResize(dst, length_samples);
 				auto samples_per_ms = static_cast<std::size_t>(sampling_rate / 1e3);

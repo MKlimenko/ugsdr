@@ -16,8 +16,12 @@
 #include <cmath>
 #include <numbers>
 
+#ifdef HAS_IPP
+
 #include "../../external/plusifier/Plusifier.hpp"
 #include "../helpers/ipp_complex_type_converter.hpp"
+
+#endif
 
 namespace ugsdr {
 	class TableMixer final : public Mixer<TableMixer> {
@@ -60,6 +64,7 @@ namespace ugsdr {
 			return std::complex<T>{table[table_index + cos_offset], table[table_index]};
 		}
 
+#ifdef HAS_IPP
 
 		static auto GetMulWrapper() {
 			static auto mul_wrapper = plusifier::FunctionWrapper(
@@ -68,6 +73,7 @@ namespace ugsdr {
 
 			return mul_wrapper;
 		}
+#endif
 		
 		template <typename UnderlyingType>
 		static void Process(std::vector<std::complex<UnderlyingType>>& src_dst, double sampling_freq, double frequency, double phase = 0) {
@@ -83,10 +89,15 @@ namespace ugsdr {
 			for (std::size_t i = 0; i < complex_exp_vec.size(); ++i)
 				complex_exp_vec[i] = GetComplexExp<phase_bits>(table, nco);
 
+#ifdef HAS_IPP
 			auto mul_wrapper = GetMulWrapper();
 
 			using IppType = typename IppTypeToComplex<UnderlyingType>::Type;
 			mul_wrapper(reinterpret_cast<IppType*>(complex_exp_vec.data()), reinterpret_cast<IppType*>(src_dst.data()), static_cast<int>(src_dst.size()));
+#else
+			for (std::size_t i = 0; i < src_dst.size(); ++i)
+				src_dst[i] *= complex_exp_vec[i];
+#endif
 		}
 
 	public:

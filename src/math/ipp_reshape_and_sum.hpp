@@ -1,5 +1,7 @@
 #pragma once
 
+#ifdef HAS_IPP
+
 #include "reshape_and_sum.hpp"
 #include "ipp.h"
 #include "../../external/plusifier/Plusifier.hpp"
@@ -51,3 +53,5 @@ namespace ugsdr {
 		}
 	};
 }
+
+#endif

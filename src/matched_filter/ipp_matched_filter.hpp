@@ -1,5 +1,7 @@
 #pragma once
 
+#ifdef HAS_IPP
+
 #include "matched_filter.hpp"
 #include "ipp.h"
 #include "../helpers/is_complex.hpp"
@@ -91,3 +93,5 @@ namespace ugsdr {
 	};
 
 }
+
+#endif

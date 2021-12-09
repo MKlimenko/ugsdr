@@ -9,7 +9,7 @@ namespace ugsdr {
 	template <std::size_t offset, typename T>
 	class NtlabPackedSpan {
 		struct NtlabPacked {
-			std::uint8_t reserved_0 : offset = 0;
+			std::uint8_t : offset;
 			std::uint8_t val : 2 = 0;
 			std::uint8_t : 0;
 
