@@ -81,6 +81,10 @@ namespace ugsdr::rtklib_helpers {
 			return CODE_L1C;
 		case Signal::Gps_L2CM:
 			return CODE_L2S;
+		case Signal::Gps_L5I:
+			return CODE_L5I;
+		case Signal::Gps_L5Q:
+			return CODE_L5Q;
 		case Signal::GlonassCivilFdma_L2:
 			return CODE_L2C;
 		default:
@@ -95,6 +99,10 @@ namespace ugsdr::rtklib_helpers {
 			return "1C";
 		case Signal::Gps_L2CM:
 			return "2S";
+		case Signal::Gps_L5I:
+			return "5I";
+		case Signal::Gps_L5Q:
+			return "5Q";
 		case Signal::GlonassCivilFdma_L2:
 			return "2C";
 		default:

@@ -141,6 +141,16 @@ namespace ugsdr {
 		}
 
 		template <typename T>
+		static auto GetPreambleGalileo(std::size_t size) {
+			std::vector<std::complex<T>> preamble{
+				1, -1, 1, -1, -1, 1, 1, 1, 1, 1,
+			};
+			SequentialUpsampler::Transform(preamble, preamble.size() * 4);
+			preamble.resize(size);
+			return preamble;
+		}
+
+		template <typename T>
 		static auto GetAccumulatedBits(std::span<const T> arr, T val = -1) {
 			auto accumulated_bits = IppAccumulator::Transform(arr, 20);
 			for (auto& el : accumulated_bits)
@@ -291,6 +301,62 @@ namespace ugsdr {
 
 			return Observable(tracking_result, receiver_time_scale, preamble_position.value(), current_ephemeris);
 		}
+
+		template <typename T>
+		static auto FindPreambleGalileo(const ugsdr::TrackingParameters<T>& tracking_result, TimeScale& receiver_time_scale) -> std::optional<Observable> {
+			std::vector<T> navigation_bits;
+			const auto& prompt = tracking_result.prompt;
+			navigation_bits.reserve(prompt.size());
+			std::transform(prompt.begin(), prompt.end(), std::back_inserter(navigation_bits), [](auto& prompt_value) {
+				auto value = prompt_value.real() > 0 ? 1 : -1;
+				return static_cast<T>(value);
+				});
+
+			const auto preamble = GetPreambleGalileo<T>(prompt.size());
+			const auto bits = std::vector<std::complex<T>>(navigation_bits.begin(), navigation_bits.end());
+			auto abs_corr = IppAbs::Transform(IppMatchedFilter::Filter(bits, preamble));
+
+			std::vector<std::size_t> indexes;
+			for (std::size_t i = 0; i < abs_corr.size(); ++i)
+				if (abs_corr[i] > 40)
+					indexes.push_back(i);
+			return std::nullopt;
+
+			std::vector<T> vals;
+			for (auto& el : prompt)
+				vals.push_back(el.real());
+			auto preamble_position = FindPreamblePositionGlonass(indexes, std::span<const T>(vals), tracking_result.code_phases[0] * 1000 / tracking_result.sampling_rate);
+			if (!preamble_position)
+				return std::nullopt;
+
+			auto next_string_position = preamble_position.value();
+			const auto raw_bits = std::vector<std::complex<T>>(bits.begin() + next_string_position, bits.begin() + next_string_position + 10000);
+			const auto bits_without_square = IppMatchedFilter::Filter(raw_bits, GetSquareWaveGlonass<T>(raw_bits.size()));
+			auto accumulated_bits = GetAccumulatedBits(std::span(bits_without_square));
+
+			if (accumulated_bits[0] < 0) {
+				for (std::size_t i = 0; i < accumulated_bits.size(); ++i)
+					accumulated_bits[i] = -accumulated_bits[i];
+			}
+
+			for (std::size_t current_string = 0; current_string < 5; ++current_string) {
+				for (std::size_t j = 0; j < 85; ++j) {
+					if (accumulated_bits[j + current_string * 100] > 0)
+						continue;
+					for (std::size_t i = j + 1; i < 85; ++i)
+						accumulated_bits[i + current_string * 100] = -accumulated_bits[i + current_string * 100];
+				}
+			}
+			for (std::size_t i = 0; i < accumulated_bits.size(); ++i)
+				accumulated_bits[i] = (accumulated_bits[i] < 0);
+			auto current_ephemeris = GlonassEphemeris(std::span(accumulated_bits));
+
+			auto tow_ms = (current_ephemeris.tk - 3 * 60 * 60 + 18) * 1000;
+
+			receiver_time_scale.UpdateScale(preamble_position.value(), tow_ms, System::Glonass);
+
+			return Observable(tracking_result, receiver_time_scale, preamble_position.value(), current_ephemeris);
+		}
 		
 		template <typename T>
 		static std::optional<Observable> FindPreamble(const ugsdr::TrackingParameters<T>& tracking_result, TimeScale& receiver_time_scale) {
@@ -299,6 +365,8 @@ namespace ugsdr {
 				return FindPreambleGps(tracking_result, receiver_time_scale);
 			case (System::Glonass):
 				return FindPreambleGlonass(tracking_result, receiver_time_scale);
+			case (System::Galileo):
+				return FindPreambleGalileo(tracking_result, receiver_time_scale);
 			default:
 				throw std::runtime_error("Unsupported system");
 			}

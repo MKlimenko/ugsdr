@@ -164,6 +164,7 @@ namespace ugsdr {
 				code_frequency = 1.023e6 / 2;
 				base_code_frequency = 1.023e6 / 2;
 				carrier_frequency *= 1227.6e6 / 1575.42e6;
+				intermediate_frequency *= 1227.6e6 / 1575.42e6;
 				break;
 			case Signal::GlonassCivilFdma_L1:
 				code_frequency = 0.511e6;
@@ -175,6 +176,7 @@ namespace ugsdr {
 				code_phase = std::fmod(code_phase * sampling_rate / digital_frontend.GetSamplingRate(acquisition.GetAcquiredSignalType()),
 					code_period * sampling_rate / 1e3);
 				carrier_frequency *= 7.0 / 9;
+				intermediate_frequency *= 7.0 / 9;
 				break;
 			case Signal::Galileo_E1b:
 			case Signal::Galileo_E1c:
@@ -192,6 +194,7 @@ namespace ugsdr {
 				code_phase = std::fmod(code_phase * sampling_rate / digital_frontend.GetSamplingRate(acquisition.GetAcquiredSignalType()),
 					code_period * sampling_rate / 1e3);
 				carrier_frequency *= 1176.45e6 / 1575.42e6;
+				intermediate_frequency *= 1176.45e6 / 1575.42e6;
 				break;
 			case Signal::Galileo_E5bI:
 			case Signal::Galileo_E5bQ:
@@ -200,6 +203,7 @@ namespace ugsdr {
 				code_phase = std::fmod(code_phase * sampling_rate / digital_frontend.GetSamplingRate(acquisition.GetAcquiredSignalType()),
 					code_period * sampling_rate / 1e3);
 				carrier_frequency *= 1207.14e6 / 1575.42e6;
+				intermediate_frequency *= 1207.14e6 / 1575.42e6;
                 break;
 			case Signal::Galileo_E6b:
 			case Signal::Galileo_E6c:
@@ -208,6 +212,7 @@ namespace ugsdr {
 				code_phase = std::fmod(code_phase * sampling_rate / digital_frontend.GetSamplingRate(acquisition.GetAcquiredSignalType()),
 					code_period * sampling_rate / 1e3);
 				carrier_frequency *= 1278.75e6 / 1575.42e6;
+				intermediate_frequency *= 1278.75e6 / 1575.42e6;
 				break;
 			case Signal::BeiDou_B1I:
 				code_frequency = 2.046e6;
@@ -224,6 +229,7 @@ namespace ugsdr {
 				code_phase = std::fmod(code_phase * sampling_rate / digital_frontend.GetSamplingRate(acquisition.GetAcquiredSignalType()),
 					code_period * sampling_rate / 1e3);
 				carrier_frequency *= 1575.42e6 / 1176.45e6;
+				intermediate_frequency *= 1575.42e6 / 1176.45e6;
 				break;
 			case Signal::Sbas_L5I:
 			case Signal::Sbas_L5Q:
