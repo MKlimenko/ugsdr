@@ -10,8 +10,6 @@
 namespace ugsdr {
 	struct GlonassEphemeris final : public Ephemeris {
 	private:
-		// funcs
-
 		template <typename T>
 		std::size_t CheckHamming(std::span<T> bits) {
 			std::vector<std::int32_t> reversed_bits;

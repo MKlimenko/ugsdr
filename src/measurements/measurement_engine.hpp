@@ -175,7 +175,7 @@ namespace ugsdr {
 			auto day_offset = 0;
 			for (auto& obs : observables) {
 				if (obs.sv.system == ugsdr::System::Gps) {
-					day_offset = std::floor(std::get<GpsEphemeris>(obs.ephemeris).tow / (24 * 60 * 60));
+					day_offset = std::floor(obs.GetGpsEphemeris()->front().tow / (24 * 60 * 60));
 					break;
 				}
 			}
@@ -188,15 +188,21 @@ namespace ugsdr {
 				available_signals.emplace(observables[i].sv);
 				switch (observables[i].sv.system)
 				{
-				case System::Gps:
-					FillEphemeris(std::get<ugsdr::GpsEphemeris>(observables[i].ephemeris), rtklib_helpers::ConvertSv(observables[i].sv), nav->eph[nav->n++]);
-					week = std::get<ugsdr::GpsEphemeris>(observables[i].ephemeris).week_number;
+				case System::Gps: {
+					auto& vector_of_ephemeris = *observables[i].GetGpsEphemeris();
+					for (auto& ephemeris : vector_of_ephemeris)
+						FillEphemeris(ephemeris, rtklib_helpers::ConvertSv(observables[i].sv), nav->eph[nav->n++]);
+					week = vector_of_ephemeris.front().week_number;
 					break;
+				}
 				case System::Glonass: {
+					auto& vector_of_ephemeris = *observables[i].GetGlonassEphemeris();
 					auto fcn_rtklib = observables[i].sv.id + 8;
-					observables[i].sv.id = std::get<ugsdr::GlonassEphemeris>(observables[i].ephemeris).n - 1;
-					nav->glo_fcn[observables[i].sv.id] = fcn_rtklib;
-					FillEphemeris(std::get<ugsdr::GlonassEphemeris>(observables[i].ephemeris), rtklib_helpers::ConvertSv(observables[i].sv), fcn_rtklib, nav->geph[nav->ng++]);
+					for (auto& ephemeris : vector_of_ephemeris) {
+						observables[i].sv.id = ephemeris.n - 1;
+						nav->glo_fcn[observables[i].sv.id] = fcn_rtklib;
+						FillEphemeris(ephemeris, rtklib_helpers::ConvertSv(observables[i].sv), fcn_rtklib, nav->geph[nav->ng++]);
+					}
 					break;
 				}
 				default:
