@@ -4,6 +4,8 @@
 #include "../signal_parameters.hpp"
 #include "../mixer/ipp_mixer.hpp"
 #include "../resample/ipp_resampler.hpp"
+#include "../mixer/table_mixer.hpp"
+#include "../resample/resampler.hpp"
 
 #include <algorithm>
 #include <execution>
@@ -56,8 +58,13 @@ namespace ugsdr {
 		
 	private:
 		SignalParametersBase<UnderlyingType>& signal_parameters;
+#ifdef HAS_IPP
 		IppMixer mixer;
 		IppResampler resampler;
+#else
+		TableMixer mixer;
+		SequentialResampler resampler;
+#endif
 
 		static auto CentralFrequency(Signal signal) {
 			switch (signal) {

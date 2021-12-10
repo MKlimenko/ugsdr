@@ -46,6 +46,7 @@ namespace ugsdr {
 
 		std::mutex m;
 
+#ifdef HAS_IPP
 		using MixerType = IppMixer;
 		using UpsamplerType = SequentialUpsampler;
 		using MatchedFilterType = IppMatchedFilter;
@@ -53,7 +54,18 @@ namespace ugsdr {
 		using ReshapeAndSumType = IppReshapeAndSum;
 		using MaxIndexType = IppMaxIndex;
 		using MeanStdDevType = IppMeanStdDev;
-	
+		using ResamplerType = IppResampler;
+#else
+		using MixerType = TableMixer;
+		using UpsamplerType = SequentialUpsampler;
+		using MatchedFilterType = SequentialMatchedFilter;
+		using AbsType = SequentialAbs;
+		using ReshapeAndSumType = SequentialReshapeAndSum;
+		using MaxIndexType = SequentialMaxIndex;
+		using MeanStdDevType = SequentialMeanStdDev;
+		using ResamplerType = SequentialResampler;
+#endif
+
 		void InitSatellites() {
 			gps_sv.resize(ugsdr::gps_sv_count);
 			for(std::size_t i = 0; i < gps_sv.size(); ++i) {
@@ -185,7 +197,7 @@ namespace ugsdr {
 
 			const auto translated_signal = MixerType::Translate(signal, signal_sampling_rate, -intermediate_frequency);
 			auto new_sampling_rate = AdjustSamplingRate(signal_sampling_rate);
-			auto downsampled_signal = Resampler<IppResampler>::Transform(translated_signal, static_cast<std::size_t>(new_sampling_rate),
+			auto downsampled_signal = ResamplerType::Transform(translated_signal, static_cast<std::size_t>(new_sampling_rate),
 				static_cast<std::size_t>(signal_sampling_rate));
 
 			std::for_each(std::execution::par_unseq, gps_sv.begin(), gps_sv.end(), [&](auto sv) {
@@ -208,7 +220,7 @@ namespace ugsdr {
 			std::for_each(std::execution::par_unseq, gln_sv.begin(), gln_sv.end(), [&](Sv litera_number) {
 				auto intermediate_frequency = -(central_frequency - (1602e6 + static_cast<std::int32_t>(litera_number) * 0.5625e6));
 				const auto translated_signal = MixerType::Translate(signal, signal_sampling_rate, -intermediate_frequency);
-				auto downsampled_signal = Resampler<IppResampler>::Transform(translated_signal, static_cast<std::size_t>(new_sampling_rate),
+				auto downsampled_signal = ResamplerType::Transform(translated_signal, static_cast<std::size_t>(new_sampling_rate),
 					static_cast<std::size_t>(signal_sampling_rate));
 
 				ProcessBpsk(downsampled_signal, code, litera_number, signal_sampling_rate, new_sampling_rate, intermediate_frequency, dst);
@@ -224,7 +236,7 @@ namespace ugsdr {
 
 			const auto translated_signal = MixerType::Translate(signal, signal_sampling_rate, -intermediate_frequency);
 			auto new_sampling_rate = AdjustSamplingRate(signal_sampling_rate);
-			auto downsampled_signal = Resampler<IppResampler>::Transform(translated_signal, static_cast<std::size_t>(new_sampling_rate),
+			auto downsampled_signal = ResamplerType::Transform(translated_signal, static_cast<std::size_t>(new_sampling_rate),
 				static_cast<std::size_t>(signal_sampling_rate));
 
 			std::for_each(std::execution::par_unseq, galileo_sv.begin(), galileo_sv.end(), [&](auto sv) {
@@ -266,7 +278,7 @@ namespace ugsdr {
 
 			const auto translated_signal = MixerType::Translate(signal, signal_sampling_rate, -intermediate_frequency);
 			auto new_sampling_rate = AdjustSamplingRate(signal_sampling_rate);
-			auto downsampled_signal = Resampler<IppResampler>::Transform(translated_signal, static_cast<std::size_t>(new_sampling_rate),
+			auto downsampled_signal = ResamplerType::Transform(translated_signal, static_cast<std::size_t>(new_sampling_rate),
 				static_cast<std::size_t>(signal_sampling_rate));
 
 			std::for_each(std::execution::par_unseq, beidou_sv.begin(), beidou_sv.end(), [&](auto sv) {
@@ -286,7 +298,7 @@ namespace ugsdr {
 
 			const auto translated_signal = MixerType::Translate(signal, signal_sampling_rate, -intermediate_frequency);
 			auto new_sampling_rate = AdjustSamplingRate(signal_sampling_rate);
-			auto downsampled_signal = Resampler<IppResampler>::Transform(translated_signal, static_cast<std::size_t>(new_sampling_rate),
+			auto downsampled_signal = ResamplerType::Transform(translated_signal, static_cast<std::size_t>(new_sampling_rate),
 				static_cast<std::size_t>(signal_sampling_rate));
 
 			std::for_each(std::execution::par_unseq, navic_sv.begin(), navic_sv.end(), [&](auto sv) {
@@ -306,7 +318,7 @@ namespace ugsdr {
 
 			const auto translated_signal = MixerType::Translate(signal, signal_sampling_rate, -intermediate_frequency);
 			auto new_sampling_rate = AdjustSamplingRate(signal_sampling_rate, acquisition_sampling_rate_L5);
-			auto downsampled_signal = Resampler<IppResampler>::Transform(translated_signal, static_cast<std::size_t>(new_sampling_rate),
+			auto downsampled_signal = ResamplerType::Transform(translated_signal, static_cast<std::size_t>(new_sampling_rate),
 				static_cast<std::size_t>(signal_sampling_rate));
 
 			auto sbas_doppler_step = 10.0;
@@ -329,7 +341,7 @@ namespace ugsdr {
 
 			const auto translated_signal = MixerType::Translate(signal, signal_sampling_rate, -intermediate_frequency);
 			auto new_sampling_rate = AdjustSamplingRate(signal_sampling_rate);
-			auto downsampled_signal = Resampler<IppResampler>::Transform(translated_signal, static_cast<std::size_t>(new_sampling_rate),
+			auto downsampled_signal = ResamplerType::Transform(translated_signal, static_cast<std::size_t>(new_sampling_rate),
 				static_cast<std::size_t>(signal_sampling_rate));
 			
 			std::for_each(std::execution::par_unseq, qzss_sv.begin(), qzss_sv.end(), [&](auto sv) {

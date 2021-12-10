@@ -41,8 +41,6 @@ namespace ugsdr {
 			return lhs - rhs;
 		}
 
-		using CorrelatorType = IppCorrelator;
-
 	public:
 		Sv sv;
 		

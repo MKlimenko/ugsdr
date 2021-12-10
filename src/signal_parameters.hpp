@@ -116,6 +116,12 @@ namespace ugsdr {
 			);
 			return real_to_complex_wrapper;
 		}
+#else
+		static auto GetConvertWrapper() {
+			return [](auto* src, auto* dst, int size) {
+				std::copy(src, src + size, dst);
+			};
+		}
 #endif
 
 #ifdef HAS_IPP
@@ -163,6 +169,7 @@ namespace ugsdr {
 				auto ptr_start = signal_file.data() + samples_offset * sizeof(std::int8_t);
 				CheckResize(dst, length_samples);
 
+#ifdef HAS_IPP
 				static thread_local std::vector<UnderlyingType> local_data(length_samples); CheckResize(local_data, length_samples);
 				auto convert_wrapper = GetConvertWrapper();
 				convert_wrapper(reinterpret_cast<const int8_t*>(ptr_start), local_data.data(), static_cast<int>(dst.size()));
@@ -170,6 +177,9 @@ namespace ugsdr {
 				auto real_to_complex_wrapper = GetRealToComplexWrapper();
 				using IppType = typename IppTypeToComplex<UnderlyingType>::Type;
 				real_to_complex_wrapper(local_data.data(), nullptr, reinterpret_cast<IppType*>(dst.data()), static_cast<int>(length_samples));
+#else
+				std::copy(ptr_start, ptr_start + length_samples, dst.data());
+#endif
 				break;
 			}
 #ifdef HAS_IPP

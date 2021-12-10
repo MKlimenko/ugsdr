@@ -1,7 +1,6 @@
 #pragma once
 
 #include "codegen.hpp"
-#include "ipp.h"
 
 #include <array>
 #include <stdexcept>

@@ -104,7 +104,6 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 )
 target_link_libraries(${PROJECT_NAME} PRIVATE 
 												${Boost_LIBRARIES}
-												OpenMP::OpenMP_CXX
 												rtklib
 )
 
@@ -126,6 +125,10 @@ endif()
 
 if (${IPP_FOUND})
 	target_link_libraries(${PROJECT_NAME} PRIVATE IPP::ippcc IPP::ippch IPP::ippcore)												
+endif()
+
+if (${OpenMP_FOUND})
+	target_link_libraries(${PROJECT_NAME} PRIVATE OpenMP::OpenMP_CXX)
 endif()
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")

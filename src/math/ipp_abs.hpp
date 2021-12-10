@@ -1,8 +1,9 @@
 #pragma once
 
+#include "abs.hpp"
+
 #ifdef HAS_IPP
 
-#include "abs.hpp"
 #include "ipp.h"
 #include "../../external/plusifier/Plusifier.hpp"
 #include "../helpers/ipp_complex_type_converter.hpp"

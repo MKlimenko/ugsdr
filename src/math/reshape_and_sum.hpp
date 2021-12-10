@@ -27,4 +27,20 @@ namespace ugsdr {
 			return SumImpl::Process(src, block_size);
 		}
 	};
+
+	class SequentialReshapeAndSum : public ReshapeAndSum<SequentialReshapeAndSum> {
+	protected:
+		friend class ReshapeAndSum<SequentialReshapeAndSum>;
+
+		template <typename T>
+		static void Process(const std::vector<T>& src, std::size_t block_size) {
+		}
+
+		template <typename T>
+		static auto Process(const std::vector<T>& src, std::size_t block_size) {
+			return src;
+		}
+
+	public:
+	};
 }

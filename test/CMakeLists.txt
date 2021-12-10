@@ -20,7 +20,6 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
 												${Boost_LIBRARIES}  
 												GTest::gtest 
 												GTest::gtest_main 
-												OpenMP::OpenMP_CXX
 												rtklib
 )
 
@@ -44,6 +43,10 @@ endif()
 if(${IPP_FOUND})
 	target_link_libraries(${PROJECT_NAME} PRIVATE IPP::ippcc IPP::ippch IPP::ippcore)
 	target_include_directories(${PROJECT_NAME} PRIVATE ${IPP_INCLUDE_DIRS})
+endif()
+
+if (${OpenMP_FOUND})
+	target_link_libraries(${PROJECT_NAME} PRIVATE OpenMP::OpenMP_CXX)
 endif()
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 20)

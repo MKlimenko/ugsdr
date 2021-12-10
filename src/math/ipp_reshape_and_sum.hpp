@@ -1,8 +1,9 @@
 #pragma once
 
+#include "reshape_and_sum.hpp"
+
 #ifdef HAS_IPP
 
-#include "reshape_and_sum.hpp"
 #include "ipp.h"
 #include "../../external/plusifier/Plusifier.hpp"
 #include "../helpers/ipp_complex_type_converter.hpp"

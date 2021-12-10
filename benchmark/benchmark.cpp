@@ -25,8 +25,6 @@
 #include <execution>
 #include <random>
 
-#include "ipp.h"
-
 #if 1
 namespace signal_parameters {
     template <typename T>

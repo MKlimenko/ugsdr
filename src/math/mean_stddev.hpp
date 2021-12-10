@@ -19,4 +19,16 @@ namespace ugsdr {
 			return StdDevImpl::Process(src);
 		}
 	};
+
+	class SequentialMeanStdDev : public MeanStdDev<SequentialMeanStdDev> {
+	protected:
+		friend class MeanStdDev<SequentialMeanStdDev>;
+
+		template <typename T>
+		static auto Process(const std::vector<T>& src) {
+			return Result{};
+		}
+
+	public:
+	};
 }

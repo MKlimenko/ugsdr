@@ -1,5 +1,6 @@
 ﻿#include "gtest/gtest.h"
 
+#include "../src/correlator/correlator.hpp"
 #include "../src/correlator/af_correlator.hpp"
 #include "../src/correlator/ipp_correlator.hpp"
 #include "../src/prn_codes/GpsL1Ca.hpp"
@@ -21,6 +22,7 @@
 #include "../src/math/af_dft.hpp"
 #include "../src/math/ipp_dft.hpp"
 
+#include "../src/resample/decimator.hpp"
 #include "../src/resample/ipp_decimator.hpp"
 #include "../src/resample/ipp_resampler.hpp"
 #include "../src/resample/ipp_upsampler.hpp"
@@ -58,6 +60,7 @@ namespace basic_tests {
 			}
 		}
 
+#ifdef HAS_IPP
 		TYPED_TEST(CorrelatorTest, ipp_correlator) {
 			const auto code = ugsdr::Codegen<ugsdr::GpsL1Ca>::Get<typename TestFixture::Type>(0);
 			const auto signal = std::vector<std::complex<typename TestFixture::Type>>(code.begin(), code.end());
@@ -73,6 +76,7 @@ namespace basic_tests {
 				ASSERT_EQ(dst.imag(), 0);
 			}
 		}
+#endif
 
 #ifdef HAS_ARRAYFIRE
 		TYPED_TEST(CorrelatorTest, af_correlator) {
@@ -194,9 +198,11 @@ namespace basic_tests {
 			TestMixer<ugsdr::BatchMixer, typename TestFixture::Type>(1e-3);
 		}
 
+#ifdef HAS_IPP
 		TYPED_TEST(MixerTest, ipp_mixer) {
 			TestMixer<ugsdr::IppMixer, typename TestFixture::Type>();
 		}
+#endif
 
 		TYPED_TEST(MixerTest, table_mixer) {
 			TestMixer<ugsdr::TableMixer, typename TestFixture::Type>();
@@ -235,9 +241,11 @@ namespace basic_tests {
 			TestMatched<ugsdr::SequentialMatchedFilter, typename TestFixture::Type>();
 		}
 
+#ifdef HAS_IPP
 		TYPED_TEST(MatchedFilterTest, ipp_matched_filter) {
 			TestMatched<ugsdr::IppMatchedFilter, typename TestFixture::Type>();
 		}
+#endif
 
 #ifdef HAS_ARRAYFIRE
 		TYPED_TEST(MatchedFilterTest, af_matched_filter) {
@@ -256,15 +264,26 @@ namespace basic_tests {
 			using AbsTypes = ::testing::Types<float, double>;
 			TYPED_TEST_SUITE(AbsTest, AbsTypes);
 
-			TYPED_TEST(AbsTest, ipp_abs) {
-				const std::vector<std::complex<typename TestFixture::Type>> data(1000, { 1, -1 });
+			template <typename AbsType, typename T>
+			void TestAbs() {
+				const std::vector<std::complex<T>> data(1000, { 1, -1 });
 
-				auto result = ugsdr::IppAbs::Transform(data);
+				auto result = AbsType::Transform(data);
 
 				ASSERT_EQ(result.size(), data.size());
 				for (auto& el : result)
 					ASSERT_NEAR(el, std::sqrt(2.0), 1e-2);
 			}
+
+			TYPED_TEST(AbsTest, sequential_abs) {
+				TestAbs<ugsdr::SequentialAbs, typename TestFixture::Type>();
+			}
+
+#ifdef HAS_IPP
+			TYPED_TEST(AbsTest, ipp_abs) {
+				TestAbs<ugsdr::IppAbs, typename TestFixture::Type>();
+			}
+#endif
 		}
 		namespace Conj {
 			template <typename T>
@@ -275,6 +294,7 @@ namespace basic_tests {
 			using ConjTypes = ::testing::Types<float, double>;
 			TYPED_TEST_SUITE(ConjTest, ConjTypes);
 
+#ifdef HAS_IPP
 			TYPED_TEST(ConjTest, ipp_conj) {
 				const std::vector<std::complex<typename TestFixture::Type>> data(1000, { 1, 1 });
 
@@ -286,7 +306,9 @@ namespace basic_tests {
 					ASSERT_DOUBLE_EQ(el.imag(), -1);
 				}
 			}
+#endif
 		}
+
 		namespace Dft {
 			template <typename T>
 			class DftTest : public testing::Test {
@@ -317,9 +339,11 @@ namespace basic_tests {
 
 			}
 
+#ifdef HAS_IPP
 			TYPED_TEST(DftTest, ipp_dft) {
 				TestPeak<ugsdr::IppDft, typename TestFixture::Type>();
 			}
+#endif
 
 #ifdef HAS_ARRAYFIRE
 			TYPED_TEST(DftTest, af_dft) {
@@ -386,6 +410,7 @@ namespace basic_tests {
 			TestDecimator<ugsdr::SequentialDecimator, typename TestFixture::Type>();
 		}
 
+#ifdef HAS_IPP
 		TYPED_TEST(ResampleTest, ipp_decimator) {
 			TestDecimator<ugsdr::IppDecimator, typename TestFixture::Type>();
 		}
@@ -407,14 +432,17 @@ namespace basic_tests {
 					ASSERT_NEAR(result[i], val, 1e-4);
 			}
 		}
+#endif
 
 		TYPED_TEST(ResampleTest, sequential_upsampler) {
 			TestUpsampler<ugsdr::SequentialUpsampler, typename TestFixture::Type>();
 		}
 
+#ifdef HAS_IPP
 		TYPED_TEST(ResampleTest, ipp_upsampler) {
 			TestUpsampler<ugsdr::IppUpsampler, typename TestFixture::Type>();
 		}
+#endif
 	}
 }
 
