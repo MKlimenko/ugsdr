@@ -5,7 +5,12 @@
 #include "../ephemeris/GlonassEphemeris.hpp"
 #include "../ephemeris/GpsEphemeris.hpp"
 #include "../matched_filter/ipp_matched_filter.hpp"
+#include "../matched_filter/matched_filter.hpp"
+#include "../math/abs.hpp"
 #include "../math/ipp_abs.hpp"
+#include "../math/ipp_mean_stddev.hpp"
+#include "../math/mean_stddev.hpp"
+#include "../resample/decimator.hpp"
 #include "../resample/resampler.hpp"
 #include "../tracking/tracking_parameters.hpp"
 
@@ -15,35 +20,51 @@
 
 namespace ugsdr {
 	class Observable final {
+#ifdef HAS_IPP
+		using AbsType = IppAbs;
+		using AccumulatorType = IppAccumulator;
+		using DecimatorType = IppDecimator;
+		using MatchedFilterType = IppMatchedFilter;
+		using MeanStdDevType = IppMeanStdDev;
+#else
+		using AbsType = SequentialAbs;
+		using AccumulatorType = Accumulator;
+		using DecimatorType = SequentialDecimator;
+		using MatchedFilterType = SequentialMatchedFilter;
+		using MeanStdDevType = SequentialMeanStdDev;
+#endif
+
 		static auto GetComplexToImagWrapper() {
+#ifdef HAS_IPP
 			static auto cplx_to_imag_wrapper = plusifier::FunctionWrapper(
 				ippsCplxToReal_32fc, ippsCplxToReal_64fc
 			);
 
 			return cplx_to_imag_wrapper;
-		}
-
-		static auto GetStdDevWrapper() {
-			static auto stddev_wrapper = plusifier::FunctionWrapper(
-				[](const Ipp32f* pSrc, int len, Ipp32f* pStdDev) { return ippsStdDev_32f(pSrc, len, pStdDev, IppHintAlgorithm::ippAlgHintNone); },
-				ippsStdDev_64f
-			);
-			
-			return stddev_wrapper;
+#else
+			return [](const auto* src, auto* real, auto* imag, int size) {
+				for (int i = 0; i < size; ++i) {
+					real[i] = src[i].real();
+					imag[i] = src[i].imag();
+				}
+			};
+#endif
 		}
 
 		template <typename T>
 		void CalculateSnr(const ugsdr::TrackingParameters<T>& tracking_result) {
 			static thread_local std::vector<T> real(tracking_result.prompt.size());
 			static thread_local std::vector<T> imaginary(tracking_result.prompt.size());
+#ifdef HAS_IPP
 			using IppType = typename IppTypeToComplex<T>::Type;
+#else
+			using IppType = std::complex<T>;
+#endif
 
 			auto cplx_to_imag_wrapper = GetComplexToImagWrapper();
 			cplx_to_imag_wrapper(reinterpret_cast<const IppType*>(tracking_result.prompt.data()), real.data(), imaginary.data(), static_cast<int>(imaginary.size()));
 
-			T sigma{};
-			auto stddev_wrapper = GetStdDevWrapper();
-			stddev_wrapper(imaginary.data(), static_cast<int>(imaginary.size()), &sigma);
+			auto [mean, sigma] = MeanStdDevType::Calculate(imaginary);
 
 			snr.resize(tracking_result.prompt.size());
 			for(std::size_t i = 0;i<snr.size(); ++i)
@@ -142,7 +163,7 @@ namespace ugsdr {
 
 		template <typename T>
 		static auto GetAccumulatedBits(std::span<const T> arr, T val = -1) {
-			auto accumulated_bits = IppAccumulator::Transform(arr, 20);
+			auto accumulated_bits = AccumulatorType::Transform(arr, 20);
 			for (auto& el : accumulated_bits)
 				el = el > static_cast<T>(0) ? static_cast<T>(1) : val;
 			return accumulated_bits;
@@ -153,7 +174,7 @@ namespace ugsdr {
 			std::vector<T> accumulated_bits;
 			for (auto& el : arr)
 				accumulated_bits.push_back(el.real());
-			IppDecimator::Transform(accumulated_bits, 20);
+			DecimatorType::Transform(accumulated_bits, 20);
 			for (auto& el : accumulated_bits)
 				el = el > static_cast<T>(0) ? static_cast<T>(1) : val;
 			return accumulated_bits;
@@ -191,7 +212,7 @@ namespace ugsdr {
 
 			const auto preamble = GetPreambleGps<T>(prompt.size());
 			const auto bits = std::vector<std::complex<T>>(navigation_bits.begin(), navigation_bits.end());
-			auto abs_corr = IppAbs::Transform(IppMatchedFilter::Filter(bits, preamble));
+			auto abs_corr = AbsType::Transform(MatchedFilterType::Filter(bits, preamble));
 
 			std::vector<std::size_t> indexes;
 			for (std::size_t i = 0; i < abs_corr.size(); ++i)
@@ -248,7 +269,7 @@ namespace ugsdr {
 
 			const auto preamble = GetPreambleGlonass<T>(prompt.size());
 			const auto bits = std::vector<std::complex<T>>(navigation_bits.begin(), navigation_bits.end());
-			auto abs_corr = IppAbs::Transform(IppMatchedFilter::Filter(bits, preamble));
+			auto abs_corr = AbsType::Transform(MatchedFilterType::Filter(bits, preamble));
 
 			std::vector<std::size_t> indexes;
 			for (std::size_t i = 0; i < abs_corr.size(); ++i)
@@ -264,7 +285,7 @@ namespace ugsdr {
 
 			auto next_string_position = preamble_position.value();
 			const auto raw_bits = std::vector<std::complex<T>>(bits.begin() + next_string_position, bits.begin() + next_string_position + 10000);
-			const auto bits_without_square = IppMatchedFilter::Filter(raw_bits, GetSquareWaveGlonass<T>(raw_bits.size()));
+			const auto bits_without_square = MatchedFilterType::Filter(raw_bits, GetSquareWaveGlonass<T>(raw_bits.size()));
 			auto accumulated_bits = GetAccumulatedBits(std::span(bits_without_square));
 
 			if (accumulated_bits[0] < 0) {

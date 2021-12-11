@@ -33,12 +33,19 @@ namespace ugsdr {
 		friend class ReshapeAndSum<SequentialReshapeAndSum>;
 
 		template <typename T>
-		static void Process(const std::vector<T>& src, std::size_t block_size) {
+		static void Process(std::vector<T>& src, std::size_t block_size) {
+			auto blocks = src.size() / block_size;
+			for (std::size_t i = 1; i < blocks; ++i) {
+				for (std::size_t j = 0; j < block_size; ++j)
+					src[j] += src[j + i * block_size];
+			}
 		}
 
 		template <typename T>
 		static auto Process(const std::vector<T>& src, std::size_t block_size) {
-			return src;
+			auto dst = src;
+			Process(dst, block_size);
+			return dst;
 		}
 
 	public:

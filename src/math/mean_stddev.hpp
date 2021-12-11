@@ -26,7 +26,17 @@ namespace ugsdr {
 
 		template <typename T>
 		static auto Process(const std::vector<T>& src) {
-			return Result{};
+			if (src.size() < 2)
+				return Result<T>{ 0, 0 };
+			auto q = T{};
+			auto m = T{};
+			for (auto& el : src) {
+				q += el * el;
+				m += el;
+			}
+			auto val = (q - m * m / src.size()) / (src.size() - 1);
+
+			return Result<T>{ m / src.size(), std::sqrt(val) };
 		}
 
 	public:

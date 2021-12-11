@@ -20,7 +20,7 @@ namespace ugsdr {
 			return dst;
 		}
 
-		template <typename T >
+		template <typename T>
 		static auto PrepareCodeSpectrum(const std::vector<T>& impulse_response) {
 			return FilterImpl::Prepare(impulse_response);
 		}
@@ -41,6 +41,16 @@ namespace ugsdr {
 	class SequentialMatchedFilter : public MatchedFilter<SequentialMatchedFilter> {
 	protected:
 		friend class MatchedFilter<SequentialMatchedFilter>;
+
+		template <typename T>
+		static auto Prepare(const std::vector<T>& impulse_response) {
+			return impulse_response;
+		}
+
+		template <typename UnderlyingType, typename T>
+		static auto ProcessOptimized(std::vector<std::complex<UnderlyingType>>& src_dst, const std::vector<T>& impulse_response) {
+			Process(src_dst, impulse_response);
+		}
 
 		template <typename UnderlyingType, typename T>
 		static void Process(std::vector<std::complex<UnderlyingType>>& src_dst, const std::vector<T>& impulse_response) {
