@@ -26,7 +26,7 @@ set(IPP_SHARED FALSE)
 find_package(Boost REQUIRED COMPONENTS system iostreams)
 #find_package(cereal CONFIG)
 #find_package(gcem CONFIG)
-find_package(IPP CONFIG REQUIRED PATHS ${IPP_PATH})
+#find_package(IPP CONFIG REQUIRED PATHS ${IPP_PATH})
 #find_package(OpenMP REQUIRED)
 #find_package(TBB CONFIG)
 

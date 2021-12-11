@@ -10,18 +10,12 @@ namespace ugsdr {
 	class NtlabPackedSpan {
 		struct NtlabPacked {
 			std::uint8_t : offset;
-			std::uint8_t val : 2 = 0;
+			std::uint8_t sign : 1 = 0;
+			std::uint8_t magnitude : 1 = 0;
 			std::uint8_t : 0;
 
 			auto GetVal() const {
-				std::int8_t dst = val;
-
-				if (dst == 0)
-					dst = -1;
-				else if (dst == 2)
-					dst = -3;
-
-				return static_cast<T>(dst);
+				return static_cast<T>((2 * sign - 1) * (1 + 2 * magnitude));
 			}
 		};
 		static_assert(sizeof(NtlabPacked) == 1);

@@ -83,7 +83,7 @@ namespace signal_parameters {
     //BENCHMARK_TEMPLATE(GetEpoch8plus8, std::int8_t);
     //BENCHMARK_TEMPLATE(GetEpoch8plus8, std::int16_t);
     //BENCHMARK_TEMPLATE(GetEpoch8plus8, std::int32_t);
-    BENCHMARK_TEMPLATE(GetEpochBbp, float);
+    //BENCHMARK_TEMPLATE(GetEpochBbp, float);
     //BENCHMARK_TEMPLATE(GetEpoch8plus8, double);
 }
 #endif

@@ -4,8 +4,6 @@
 #include <cereal/archives/binary.hpp>
 #include <cereal/types/complex.hpp>
 #include <cereal/types/vector.hpp>
-#else
-#pragma message("Warning: cereal serialization library was not found, using stubs instead of serialization") 
 #endif
 
 #include <fstream>
