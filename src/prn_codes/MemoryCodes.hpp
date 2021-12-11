@@ -25,7 +25,7 @@ namespace ugsdr {
 			for (std::size_t i = 0; i < memory_code_len; ++i) {
 				auto bitset = std::bitset<4>(CharToInt(memory_code[i / 4]));
 				auto current_val = 2 * bitset[3 - i % 4] - 1;
-				prn[i] = current_val;
+				prn[i] = static_cast<T>(current_val);
 			}
 		}
 
@@ -34,8 +34,8 @@ namespace ugsdr {
 			for (std::size_t i = 0; i < memory_code_len; ++i) {
 				auto bitset = std::bitset<4>(CharToInt(memory_code[i / 4]));
 				auto current_val = 2 * bitset[3 - i % 4] - 1;
-				prn[2 * i] = current_val;
-				prn[2 * i + 1] = -current_val;
+				prn[2 * i] = static_cast<T>(current_val);
+				prn[2 * i + 1] = static_cast<T>(-current_val);
 			}
 		}
 	};

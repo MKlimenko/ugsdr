@@ -26,7 +26,7 @@ set(IPP_SHARED FALSE)
 find_package(Boost REQUIRED COMPONENTS system iostreams)
 #find_package(cereal CONFIG)
 #find_package(gcem CONFIG)
-#find_package(IPP CONFIG REQUIRED PATHS ${IPP_PATH})
+find_package(IPP CONFIG REQUIRED PATHS ${IPP_PATH})
 #find_package(OpenMP REQUIRED)
 #find_package(TBB CONFIG)
 
@@ -57,7 +57,9 @@ if (OPENMP_FOUND)
     set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
 endif()
 
-add_compile_definitions(ENAGLO ENAGAL ENAQZS ENACMP ENAIRN NFREQ=3 TRACE NOMINMAX _WINSOCK2API_)
+set (CMAKE_VS_JUST_MY_CODE_DEBUGGING 1)
+
+add_compile_definitions(ENAGLO ENAGAL ENAQZS ENACMP ENAIRN NFREQ=3 TRACE NOMINMAX _WINSOCK2API_ _CRT_SECURE_NO_WARNINGS)
 
 enable_testing()
 add_subdirectory ("src")

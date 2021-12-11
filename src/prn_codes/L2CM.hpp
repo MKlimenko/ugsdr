@@ -21,7 +21,7 @@ namespace ugsdr {
 		template <typename T>
 		static void Generate(T* prn, std::size_t sv_number, std::size_t(*LfsrValue)(std::size_t)) {
 			Lfsr lfsr;
-			lfsr.Val(LfsrValue(sv_number));
+			lfsr.Val(static_cast<std::uint32_t>(LfsrValue(sv_number)));
 			lfsr.Poly(lfsr_poly);
 			lfsr.Outpin(lfsr_output_pin);
 			lfsr.ResetPeriod(10230);

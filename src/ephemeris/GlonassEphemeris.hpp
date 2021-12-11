@@ -151,8 +151,8 @@ namespace ugsdr {
 
 		template <typename T>
 		GlonassEphemeris(std::span<T> nav_bits) {
-			std::array<std::size_t, 5> current_string;
-			std::array<std::size_t, 5> string_start;
+			std::array<std::size_t, 5> current_string{};
+			std::array<std::size_t, 5> string_start{};
 			std::array<std::span<T>, 5> bits;
 			std::array<std::size_t, 5> parity{};
 
@@ -171,8 +171,6 @@ namespace ugsdr {
 			}
 
 			FillSubframeData(bits);
-
-			auto a = 5;
 		}
 	};
 }

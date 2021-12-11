@@ -218,8 +218,7 @@ namespace ugsdr {
 			return Observable(tracking_result, receiver_time_scale, preamble_position.value(), current_ephemeris);
 		}
 
-		template <typename T>
-		static std::optional<std::size_t> FindPreamblePositionGlonass(const std::vector<std::size_t>& indexes, std::span<const T> bits, double first_pseudorange) {
+		static std::optional<std::size_t> FindPreamblePositionGlonass(const std::vector<std::size_t>& indexes, double first_pseudorange) {
 			auto preamble_position = std::numeric_limits<std::size_t>::max();
 			for (auto& el : indexes) {
 				auto it = std::find_if(indexes.begin(), indexes.end(), [el](auto& ind) { return el - ind == 30000; });
@@ -259,7 +258,7 @@ namespace ugsdr {
 			std::vector<T> vals;
 			for (auto& el : prompt)
 				vals.push_back(el.real());
-			auto preamble_position = FindPreamblePositionGlonass(indexes, std::span<const T>(vals), tracking_result.code_phases[0] * 1000 / tracking_result.sampling_rate);
+			auto preamble_position = FindPreamblePositionGlonass(indexes, tracking_result.code_phases[0] * 1000 / tracking_result.sampling_rate);
 			if (!preamble_position)
 				return std::nullopt;
 
@@ -285,7 +284,7 @@ namespace ugsdr {
 				accumulated_bits[i] = (accumulated_bits[i] < 0);
 			auto current_ephemeris = GlonassEphemeris(std::span(accumulated_bits));
 
-			auto tow_ms = (current_ephemeris.tk - 3 * 60 * 60 + 18) * 1000;
+			auto tow_ms = static_cast<std::size_t>((current_ephemeris.tk - 3 * 60 * 60 + 18) * 1000);
 
 			receiver_time_scale.UpdateScale(preamble_position.value(), tow_ms, System::Glonass);
 
@@ -304,7 +303,7 @@ namespace ugsdr {
 			}
 		}
 
-		void UpdatePseudorangeGps(std::size_t day_offset) {
+		void UpdatePseudorangeGps() {
 			for (std::size_t i = 0; i < pseudorange.size(); ++i)
 				pseudorange[i] += time_scale[i] - (static_cast<std::ptrdiff_t>(i) - preamble_position + std::get<GpsEphemeris>(ephemeris).tow * 1000 + 2);
 		}
@@ -344,7 +343,7 @@ namespace ugsdr {
 		void UpdatePseudoranges(std::size_t day_offset) {
 			switch (sv.system) {
 			case (System::Gps):
-				UpdatePseudorangeGps(day_offset);
+				UpdatePseudorangeGps();
 				break;
 			case(System::Glonass):
 				UpdatePseudorangeGlonass(day_offset);

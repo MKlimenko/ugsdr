@@ -18,6 +18,9 @@ namespace ugsdr {
 		std::ofstream data_stream(path, std::ios::binary);
 		cereal::BinaryOutputArchive archive(data_stream);
 		archive(data_to_save);
+#else
+		static_cast<void>(path);
+		static_cast<void>(data_to_save);
 #endif
 	}
 
@@ -27,6 +30,8 @@ namespace ugsdr {
 #ifdef HAS_CEREAL
 		cereal::BinaryInputArchive archive(data_stream);
 		archive(data_to_load);
+#else
+		static_cast<void>(data_to_load);
 #endif
 	}
 	

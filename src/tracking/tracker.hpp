@@ -42,8 +42,8 @@ namespace ugsdr {
 				return;
 
 			auto sampling_rate = digital_frontend.GetSamplingRate(signal);
-			auto offset = ugsdr::GetSystemBySignal(signal) == System::Sbas ? ugsdr::sbas_sv_offset :0;
-			for (std::int32_t i = offset; i < offset + GetCodesCount(GetSystemBySignal(signal)); ++i) {
+			auto offset = static_cast<std::int32_t>(ugsdr::GetSystemBySignal(signal) == System::Sbas ? ugsdr::sbas_sv_offset : 0);
+			for (std::int32_t i = offset; i < static_cast<std::int32_t>(offset + GetCodesCount(GetSystemBySignal(signal))); ++i) {
 				auto sv = Sv{ i, GetSystemBySignal(signal), signal };
 				codes[sv] = UpsamplerType::Transform(RepeatCodeNTimes(PrnGenerator<signal>::template Get<UnderlyingType>(i), 3),
 					static_cast<std::size_t>(3 * PrnGenerator<signal>::GetNumberOfMilliseconds() * sampling_rate / 1e3));
@@ -103,9 +103,14 @@ namespace ugsdr {
 		Codes<UnderlyingType> codes;
 		std::vector<TrackingParameters<UnderlyingType>> tracking_parameters;
 
+#ifdef HAS_IPP
 		using MatchedFilterType = IppMatchedFilter;
 		using MixerType = IppMixer;
-		
+#else
+		using MatchedFilterType = SequentialMatchedFilter;
+		using MixerType = TableMixer;
+#endif
+
 		void InitTrackingParameters() {
 			for (const auto& el : acquisition_results)
 				TrackingParameters<UnderlyingType>::FillTrackingParameters(el, digital_frontend, tracking_parameters);
@@ -135,11 +140,17 @@ namespace ugsdr {
 
 
 		static auto GetCopyWrapper() {
+#ifdef HAS_IPP
 			static auto copy_wrapper = plusifier::FunctionWrapper(
 				ippsCopy_32fc, ippsCopy_64fc
 			);
 
 			return copy_wrapper;
+#else
+			return [](const auto* src, auto* dst, int size) {
+				std::copy(src, src + size, dst);
+			};
+#endif
 		}
 
 		void TrackSingleSatellite(TrackingParameters<UnderlyingType>& parameters, const SignalEpoch<UnderlyingType>& signal_epoch) {
@@ -147,7 +158,11 @@ namespace ugsdr {
 
 			auto copy_wrapper = GetCopyWrapper();
 						
+#ifdef HAS_IPP
 			using IppType = typename IppTypeToComplex<UnderlyingType>::Type;
+#else
+			using IppType = std::complex<UnderlyingType>;
+#endif
 			CheckResize(parameters.translated_signal, signal.size());
 			copy_wrapper(reinterpret_cast<const IppType*>(signal.data()), reinterpret_cast<IppType*>(parameters.translated_signal.data()), static_cast<int>(signal.size()));
 

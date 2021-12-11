@@ -97,10 +97,10 @@ namespace ugsdr {
 		double crc = 0.0;
 		double omega = 0.0;
 		double omega_dot = 0.0;
-		std::size_t iode_sf3 = 0.0;
+		std::size_t iode_sf3 = 0;
 		double i_dot = 0.0;
 
-		std::size_t tow = 0.0;
+		std::size_t tow = 0;
 
 		GpsEphemeris() = default;
 		template <typename T>

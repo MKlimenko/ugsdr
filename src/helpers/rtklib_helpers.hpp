@@ -71,10 +71,10 @@ namespace ugsdr::rtklib_helpers {
 		if (dst == 0)
 			throw std::runtime_error("Unexpected satellite id value");
 
-		return dst;
+		return static_cast<std::uint8_t>(dst);
 	}
 
-	inline auto ConvertCode(Sv sv) {
+	inline std::uint8_t ConvertCode(Sv sv) {
 		switch (sv.signal) {
 		case Signal::GpsCoarseAcquisition_L1:
 		case Signal::GlonassCivilFdma_L1:

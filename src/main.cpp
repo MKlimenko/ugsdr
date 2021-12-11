@@ -55,7 +55,7 @@ void GenerateSignals(CSignalsViewer * sv) {
 	measurement_engine.WriteRinex(1000);
 	auto positioning_engine = ugsdr::StandaloneRtklib(measurement_engine);
 
-	auto pos = positioning_engine.EstimatePosition(0);
+	positioning_engine.EstimatePosition(0);
 #else
 	std::vector<ugsdr::TrackingParameters<float>> tracking_parameters;
 	ugsdr::Load("tracking_results_cache", tracking_parameters);
@@ -80,3 +80,4 @@ int main() {
 	return 0;
 }
 #endif
+

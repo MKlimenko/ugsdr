@@ -74,7 +74,7 @@ namespace ugsdr {
 			//double pi_2 = 8 * std::atan(1.0);
 			thread_local std::vector<Ipp16sc> c_exp(src_dst.size());
 			CheckResize(c_exp, src_dst.size());
-			float phase_fp32 = 0;
+			float phase_fp32 = static_cast<float>(phase);
 			ippsTone_16sc(c_exp.data(), static_cast<int>(c_exp.size()), scale, static_cast<Ipp32f>(frequency / sampling_freq), &phase_fp32, IppHintAlgorithm::ippAlgHintFast);
 
 			ippsMul_16sc_ISfs(c_exp.data(), reinterpret_cast<Ipp16sc*>(src_dst.data()), static_cast<int>(src_dst.size()), 8);

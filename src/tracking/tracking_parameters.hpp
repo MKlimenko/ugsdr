@@ -2,8 +2,10 @@
 
 #include "../common.hpp"
 #include "../acquisition/acquisition_result.hpp"
+#include "../correlator/correlator.hpp"
 #include "../correlator/ipp_correlator.hpp"
 #include "../dfe/dfe.hpp"
+#include "../mixer/table_mixer.hpp"
 #include "../mixer/ipp_mixer.hpp"
 
 #include <complex>
@@ -40,6 +42,20 @@ namespace ugsdr {
 				return lhs + rhs;
 			return lhs - rhs;
 		}
+
+#ifdef HAS_IPP
+		using MixerType = IppMixer;
+		using ReshapeAndSumType = IppReshapeAndSum;
+		using AbsType = IppAbs;
+		using MatchedFilterType = IppMatchedFilter;
+		using CorrelatorType = IppCorrelator;
+#else
+		using MixerType = TableMixer;
+		using ReshapeAndSumType = SequentialReshapeAndSum;
+		using AbsType = SequentialAbs;
+		using MatchedFilterType = SequentialMatchedFilter;
+		using CorrelatorType = SequentialCorrelator;
+#endif
 
 	public:
 		Sv sv;
@@ -235,11 +251,11 @@ namespace ugsdr {
 
 		template <typename Tc>
 		static auto MatchedFilterTranslated(const std::vector<std::complex<T>>& epoch, const TrackingParameters<T>& parameters, const Tc& code, double frequency_offset = 0.0) {
-			const auto translated = IppMixer::Translate(epoch, parameters.sampling_rate, -parameters.carrier_frequency + frequency_offset);
+			const auto translated = MixerType::Translate(epoch, parameters.sampling_rate, -parameters.carrier_frequency + frequency_offset);
 
 			auto local_code = std::vector(code.begin(), code.begin() + translated.size());
 			auto batch_size = static_cast<std::size_t>(parameters.code_period * parameters.sampling_rate / 1e3);
-			auto matched_output = IppReshapeAndSum::Transform(IppAbs::Transform(IppMatchedFilter::Filter(translated, local_code)), batch_size);
+			auto matched_output = ReshapeAndSumType::Transform(AbsType::Transform(MatchedFilterType::Filter(translated, local_code)), batch_size);
 
 #if 0
 			if (frequency_offset == 0.0)
@@ -251,7 +267,7 @@ namespace ugsdr {
 			});
 					
 			auto code_offset = static_cast<std::ptrdiff_t>(std::distance(matched_output.begin(), it));
-			if (code_offset > batch_size / 2)
+			if (code_offset > static_cast<std::ptrdiff_t>(batch_size / 2))
 				code_offset = code_offset - batch_size;
 			return std::make_pair(*it, code_offset);
 		}
@@ -269,7 +285,7 @@ namespace ugsdr {
 			const auto& epoch = digital_frontend.GetSeveralEpochs(0, ms_cnt).GetSubband(signal);
 			auto code = SequentialUpsampler::Transform(PrnGenerator<signal>::template Get<T>(parameters.sv.id), samples_per_ms * GetCodePeriod(signal));
 			code.resize(epoch.size());
-			std::rotate(code.rbegin(), code.rbegin() + parameters.code_phase, code.rend());
+			std::rotate(code.rbegin(), code.rbegin() + static_cast<std::ptrdiff_t>(parameters.code_phase), code.rend());
 
 			auto [correlator_value, code_offset] = MatchedFilterTranslated(epoch, parameters, code);
 			auto [correlator_value_offset, tmp] = MatchedFilterTranslated(epoch, parameters, code, 4e6);
@@ -435,12 +451,12 @@ namespace ugsdr {
 		}
 
 		void Dll(const std::complex<T>& current_early, const std::complex<T>& current_late) {
-			auto early = std::abs(current_early);
-			auto late = std::abs(current_late);
-
+			auto early_abs = std::abs(current_early);
+			auto late_abs = std::abs(current_late);
+		
 			auto new_code_error = 0.0;
-			if (early + late != 0)
-				new_code_error = (early - late) / (early + late);
+			if (early_abs + late_abs != 0)
+				new_code_error = (early_abs - late_abs) / (early_abs + late_abs);
 
 			code_residuals.push_back(new_code_error);
 			code_nco += (K1_DLL * (new_code_error - code_error) + K2_DLL * new_code_error)* (base_code_frequency / 1.023e6);

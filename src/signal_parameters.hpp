@@ -236,8 +236,6 @@ namespace ugsdr {
 				auto samples_per_ms = static_cast<std::size_t>(sampling_rate / 1e3);
 				auto epochs_offset = samples_offset / samples_per_ms;
 				auto length_epochs = length_samples / samples_per_ms;
-				auto samples_raw = epoch_size_bytes - 8;
-				auto samples_unpacked = epoch_size_bytes * 4;
 
 				for (std::size_t i = epochs_offset; i < epochs_offset + length_epochs; ++i) {
 					auto ptr = reinterpret_cast<const std::byte*>(signal_file.data() + epoch_size_bytes * i + 8);

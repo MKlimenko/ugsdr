@@ -17,7 +17,7 @@ namespace ugsdr {
 			std::vector<ssat_t> ssat(MAXSAT);
 			auto sol = std::make_unique<sol_t>();
 			char msg[128] = "";
-			auto status = pntpos(obs.data(), obs.size(), nav, &processing_options, sol.get(), azel.data(), ssat.data(), msg);
+			auto status = pntpos(obs.data(), static_cast<int>(obs.size()), nav, &processing_options, sol.get(), azel.data(), ssat.data(), msg);
 
 			if (!status)
 				std::cout << "No solution: " << msg << std::endl;

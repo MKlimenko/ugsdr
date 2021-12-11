@@ -140,3 +140,8 @@ if (DEFINED ENV{SIGNALPLOT64})
 	target_include_directories(${PROJECT_NAME} PUBLIC $ENV{SIGNALPLOT64}/include)
 	add_definitions(-DHAS_SIGNAL_PLOT)
 endif()
+
+target_compile_options(${PROJECT_NAME} PRIVATE
+	$<$<CXX_COMPILER_ID:MSVC>:/W4>
+	$<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -Wpedantic>
+)

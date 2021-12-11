@@ -27,6 +27,7 @@ namespace ugsdr {
 			lfsr.Val(initial_value);
 			lfsr.Poly(lfsr_poly);
 			lfsr.Outpin(lfsr_output_pin);
+			static_cast<void>(sv_number);
 
 			for (std::size_t i = 0; i < lfsr.CountSequenceLen(); ++i) {
 				*prn++ = static_cast<T>(1 - 2 * lfsr.Get());

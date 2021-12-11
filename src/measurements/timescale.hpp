@@ -27,7 +27,7 @@ namespace ugsdr {
 				return;
 
 			auto initial_ms_offset = 70;
-			double current_offset = tow_ms + initial_ms_offset - preable_position;
+			auto current_offset = static_cast<double>(tow_ms + initial_ms_offset - preable_position);
 			std::iota(time_ms.begin(), time_ms.end(), current_offset);
 			std::transform(std::execution::par_unseq, time_ms.begin(), time_ms.end(), system_time_ms.begin(),
 				[initial_ms_offset](auto& val) {return val - initial_ms_offset + 2; });

@@ -22,17 +22,17 @@ namespace ugsdr {
 			current_rtklib_data.code[offset] = rtklib_helpers::ConvertCode(current_observable.sv);
 			current_rtklib_data.P[offset] = current_observable.pseudorange[epoch] / 1000.0 * CLIGHT;
 			current_rtklib_data.L[offset] = current_observable.pseudophase[epoch];
-			current_rtklib_data.D[offset] = current_observable.doppler[epoch];
-			current_rtklib_data.SNR[offset] = current_observable.snr[epoch] / SNR_UNIT;
+			current_rtklib_data.D[offset] = static_cast<float>(current_observable.doppler[epoch]);
+			current_rtklib_data.SNR[offset] = static_cast<std::uint16_t>(current_observable.snr[epoch] / SNR_UNIT);
 		}
 
 		void FillEphemeris(const ugsdr::GpsEphemeris& current_ephemeris, std::uint8_t sat, eph_t& current_rtklib_ephemeris) const {
 			current_rtklib_ephemeris.sat = sat;
-			current_rtklib_ephemeris.iode = current_ephemeris.iodc;
-			current_rtklib_ephemeris.iodc = current_ephemeris.iodc;
-			current_rtklib_ephemeris.sva = current_ephemeris.accuracy;
-			current_rtklib_ephemeris.svh = current_ephemeris.health;
-			current_rtklib_ephemeris.week = current_ephemeris.week_number;
+			current_rtklib_ephemeris.iode = static_cast<int>(current_ephemeris.iodc);
+			current_rtklib_ephemeris.iodc = static_cast<int>(current_ephemeris.iodc);
+			current_rtklib_ephemeris.sva = static_cast<int>(current_ephemeris.accuracy);
+			current_rtklib_ephemeris.svh = static_cast<int>(current_ephemeris.health);
+			current_rtklib_ephemeris.week = static_cast<int>(current_ephemeris.week_number);
 			current_rtklib_ephemeris.code = CODE_NONE;
 			current_rtklib_ephemeris.flag = 0;
 			current_rtklib_ephemeris.toe = gpst2time(static_cast<int>(current_ephemeris.week_number), current_ephemeris.toe);
@@ -63,9 +63,9 @@ namespace ugsdr {
 	
 		void FillEphemeris(const ugsdr::GlonassEphemeris& current_ephemeris, std::uint8_t sat, std::int32_t freq, geph_t& current_rtklib_ephemeris) const {
 			current_rtklib_ephemeris.sat = sat;
-			current_rtklib_ephemeris.iode = current_ephemeris.tb;
+			current_rtklib_ephemeris.iode = static_cast<int>(current_ephemeris.tb);
 			current_rtklib_ephemeris.frq = freq;
-			current_rtklib_ephemeris.svh = current_ephemeris.ln;
+			current_rtklib_ephemeris.svh = static_cast<int>(current_ephemeris.ln);
 			//current_rtklib_ephemeris.sva = 0;		// ??
 			//current_rtklib_ephemeris.age = 0;		// ??
 
@@ -76,8 +76,8 @@ namespace ugsdr {
 				return val;
 			};
 
-			current_rtklib_ephemeris.toe = utc2gpst(gpst2time(week, adapt_time(current_ephemeris.tb)));
-			current_rtklib_ephemeris.tof = utc2gpst(gpst2time(week, adapt_time(current_ephemeris.tk)));
+			current_rtklib_ephemeris.toe = utc2gpst(gpst2time(static_cast<int>(week), adapt_time(current_ephemeris.tb)));
+			current_rtklib_ephemeris.tof = utc2gpst(gpst2time(static_cast<int>(week), adapt_time(current_ephemeris.tk)));
 
 			current_rtklib_ephemeris.pos[0] = current_ephemeris.x * 1000;
 			current_rtklib_ephemeris.vel[0] = current_ephemeris.x_dot * 1000;
@@ -102,7 +102,7 @@ namespace ugsdr {
 			auto gps_cnt = std::count_if(observables.begin(), observables.end(), [](auto& obs) {
 				return (obs.sv.system != System::Glonass) && (obs.sv.system != System::Sbas);
 				});
-			ptr->nmax = gps_cnt;
+			ptr->nmax = static_cast<int>(gps_cnt);
 			ptr->eph = new eph_t[gps_cnt];
 			
 			ptr->ngmax = NSATGLO;
@@ -126,13 +126,13 @@ namespace ugsdr {
 
 			auto rinex_obs = std::unique_ptr<FILE, int(*)(FILE*)>(fopen("../../../../research/ugsdr.obs", "w"), fclose);
 
-			auto status_header = outrnxobsh(rinex_obs.get(), rnxopt, nav.get());
+			outrnxobsh(rinex_obs.get(), rnxopt, nav.get());
 
 			auto mod = epoch_step == 1 ? 1 : static_cast<std::size_t>(std::fmod(receiver_time_scale.first(), epoch_step));
 
 			for (std::size_t epoch = epoch_step - mod; epoch < receiver_time_scale.length(); epoch += epoch_step) {
-				auto [obs, nav] = GetMeasurementEpoch(epoch);
-				auto status_body = outrnxobsb(rinex_obs.get(), rnxopt, obs.data(), static_cast<int>(obs.size()), 0);
+				auto [obs_local, nav_local] = GetMeasurementEpoch(epoch);
+				outrnxobsb(rinex_obs.get(), rnxopt, obs_local.data(), static_cast<int>(obs_local.size()), 0);
 			}
 		}
 
@@ -142,7 +142,7 @@ namespace ugsdr {
 
 			auto rinex_nav = std::unique_ptr<FILE, int(*)(FILE*)>(fopen("../../../../research/ugsdr.nav", "w"), fclose);
 
-			auto status_header = outrnxnavh(rinex_nav.get(), rnxopt, nav.get());
+			outrnxnavh(rinex_nav.get(), rnxopt, nav.get());
 			for (std::size_t i = 0; i < nav->n; ++i)
 				outrnxnavb(rinex_nav.get(), rnxopt, nav->eph + i);
 			for (std::size_t i = 0; i < nav->ng; ++i)
@@ -173,7 +173,7 @@ namespace ugsdr {
 			auto day_offset = 0;
 			for (auto& obs : observables) {
 				if (obs.sv.system == ugsdr::System::Gps) {
-					day_offset = std::floor(std::get<GpsEphemeris>(obs.ephemeris).tow / (24 * 60 * 60));
+					day_offset = static_cast<int>(std::floor(std::get<GpsEphemeris>(obs.ephemeris).tow / (24 * 60 * 60)));
 					break;
 				}
 			}
@@ -214,7 +214,7 @@ namespace ugsdr {
 				if (current_sv_cnt.first == 0) 
 					current_sv_cnt.second = &(obs.emplace_back(obsd_t{ {0} }));
 
-				FillObservable(observables[i], gpst2time(week, receiver_time_scale[epoch] * 1e-3), epoch, current_sv_cnt.first++, *current_sv_cnt.second);
+				FillObservable(observables[i], gpst2time(static_cast<int>(week), receiver_time_scale[epoch] * 1e-3), epoch, current_sv_cnt.first++, *current_sv_cnt.second);
 			}
 			return std::make_pair(std::move(obs), nav.get());
 		}
