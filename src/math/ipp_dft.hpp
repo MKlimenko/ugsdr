@@ -56,7 +56,6 @@ namespace ugsdr {
 
 			Ipp8u* spec_ptr = GetSpec();
 			using DftSpecType = typename IppDftFunctions<UnderlyingType>::SpecType;
-			using IppType = typename IppTypeToComplex<UnderlyingType>::Type;
 			IppDftFunctions<UnderlyingType>::GetInit(static_cast<int>(signal_size), IPP_FFT_DIV_INV_BY_N, ippAlgHintNone, reinterpret_cast<DftSpecType*>(spec_ptr), GetInitializationBuffer());
 
 		}

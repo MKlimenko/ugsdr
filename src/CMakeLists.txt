@@ -100,6 +100,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 												${ArrayFire_INCLUDE_DIRS} 
 												${Boost_INCLUDE_DIRS} 
 												${IPP_INCLUDE_DIRS}
+												${FFTW3_INCLUDE_DIRS}
 												../external/RTKLIB/src
 )
 target_link_libraries(${PROJECT_NAME} PRIVATE 
@@ -124,7 +125,9 @@ if (${TBB_FOUND})
 endif()
 
 if (${IPP_FOUND})
-	target_link_libraries(${PROJECT_NAME} PRIVATE IPP::ippcc IPP::ippch IPP::ippcore)												
+	target_link_libraries(${PROJECT_NAME} PRIVATE IPP::ippcc IPP::ippch IPP::ippcore)
+else()
+	target_link_libraries(${PROJECT_NAME} PRIVATE FFTW3::fftw3 FFTW3::fftw3f)	
 endif()
 
 if (${OpenMP_FOUND})
@@ -141,7 +144,7 @@ if (DEFINED ENV{SIGNALPLOT64})
 	add_definitions(-DHAS_SIGNAL_PLOT)
 endif()
 
-target_compile_options(${PROJECT_NAME} PRIVATE
-	$<$<CXX_COMPILER_ID:MSVC>:/W4>
-	$<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -Wpedantic>
-)
+#target_compile_options(${PROJECT_NAME} PRIVATE
+#	$<$<CXX_COMPILER_ID:MSVC>:/W4>
+#	$<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -Wpedantic -Wno-c++98-compat -Wno-c++98-compat-pedantic -Wno-exit-time-destructors -Wno-covered-switch-default -Wno-old-style-cast -Wno-reserved-id-macro -Wno-ctad-maybe-unsupported>
+#)

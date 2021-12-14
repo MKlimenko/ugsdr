@@ -13,7 +13,7 @@ namespace ugsdr {
 		// funcs
 
 		template <typename T>
-		std::size_t CheckHamming(std::span<T> bits) {
+		std::ptrdiff_t CheckHamming(std::span<T> bits) {
 			std::vector<std::int32_t> reversed_bits;
 			for (auto it = bits.rbegin(); it != bits.rend(); ++it)
 				reversed_bits.push_back(static_cast<std::int32_t>(*it));
@@ -151,16 +151,16 @@ namespace ugsdr {
 
 		template <typename T>
 		GlonassEphemeris(std::span<T> nav_bits) {
-			std::array<std::size_t, 5> current_string{};
-			std::array<std::size_t, 5> string_start{};
+			std::array<std::ptrdiff_t, 5> current_string{};
+			std::array<std::ptrdiff_t, 5> string_start{};
 			std::array<std::span<T>, 5> bits;
-			std::array<std::size_t, 5> parity{};
+			std::array<std::ptrdiff_t, 5> parity{};
 
-			for (std::size_t i = 0; i < current_string.size(); ++i) {
-				current_string[i] = bin2dec(nav_bits, 1 + i * 100, 4);
+			for (std::ptrdiff_t i = 0; i < static_cast<std::ptrdiff_t>(current_string.size()); ++i) {
+				current_string[i] = static_cast<std::ptrdiff_t>(bin2dec(nav_bits, 1 + i * 100, 4));
 				if (current_string[i] != i + 1)
 					throw std::runtime_error("Unexpected GLONASS string number");
-				string_start[i] = bin2dec(nav_bits, i * 100, 1);
+				string_start[i] = static_cast<std::ptrdiff_t>(bin2dec(nav_bits, i * 100, 1));
 				if (string_start[i] != 0)
 					throw std::runtime_error("Unexpected GLONASS string start");
 				bits[i] = std::span(nav_bits.begin() + i * 100, 85);

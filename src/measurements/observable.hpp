@@ -73,14 +73,14 @@ namespace ugsdr {
 		
 		template <typename T, typename E>
 		Observable(const ugsdr::TrackingParameters<T>& tracking_result, TimeScale& time_scale_ref, std::size_t position, E eph) :
-			sv(tracking_result.sv), ephemeris(std::move(eph)), preamble_position(position), time_scale(time_scale_ref) {
+			sv(tracking_result.sv), ephemeris(std::move(eph)), time_scale(time_scale_ref), preamble_position(position) {
 			pseudorange.reserve(tracking_result.code_phases.size());
 			auto samples_to_ms_rate = 1000 / tracking_result.sampling_rate;
 			// we're estimating position in milliseconds, not code periods, so this should work fine
 			auto pseudorange_offset = static_cast<std::int32_t>(tracking_result.code_phases[position] * samples_to_ms_rate);
 			for (auto& el : tracking_result.code_phases) pseudorange.push_back(el * samples_to_ms_rate - pseudorange_offset);
 			auto intermediate_frequency_windup = tracking_result.intermediate_frequency / 1e3;
-			for (std::size_t i = 0; i < tracking_result.phases.size(); ++i) pseudophase.push_back(tracking_result.phases[i] + (i + 1) * intermediate_frequency_windup);
+			for (std::size_t i = 0; i < tracking_result.phases.size(); ++i) pseudophase.push_back(tracking_result.phases[i] + static_cast<double>(i + 1) * intermediate_frequency_windup);
 			//pseudophase = tracking_result.phases;
 			doppler = tracking_result.frequencies;
 			for (auto& el : doppler) el -= tracking_result.intermediate_frequency;

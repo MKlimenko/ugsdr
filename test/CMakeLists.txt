@@ -14,6 +14,7 @@ find_package(GTest CONFIG REQUIRED)
 
 target_include_directories(${PROJECT_NAME} PRIVATE 
 												${Boost_INCLUDE_DIRS}
+												${FFTW3_INCLUDE_DIRS}
 												../external/RTKLIB/src
 )
 target_link_libraries(${PROJECT_NAME} PRIVATE 
@@ -43,6 +44,8 @@ endif()
 if(${IPP_FOUND})
 	target_link_libraries(${PROJECT_NAME} PRIVATE IPP::ippcc IPP::ippch IPP::ippcore)
 	target_include_directories(${PROJECT_NAME} PRIVATE ${IPP_INCLUDE_DIRS})
+else()
+	target_link_libraries(${PROJECT_NAME} PRIVATE FFTW3::fftw3 FFTW3::fftw3f)	
 endif()
 
 if (${OpenMP_FOUND})

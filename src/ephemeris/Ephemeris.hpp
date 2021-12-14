@@ -12,8 +12,8 @@ namespace ugsdr {
 	protected:
 		template <typename T>
 		static auto bin2dec(std::span<T> full_span, std::size_t offset, std::size_t length) {
-			auto data = std::span(full_span.begin() + offset, length);
-			boost::dynamic_bitset bit_value(data.size(), 0);
+			auto data = std::span(full_span.begin() + static_cast<std::ptrdiff_t>(offset), length);
+			auto bit_value = boost::dynamic_bitset(data.size(), 0);
 			for (std::size_t i = 0; i < data.size(); ++i)
 				bit_value[i] = data[data.size() - i - 1];
 

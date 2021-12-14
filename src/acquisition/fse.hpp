@@ -139,7 +139,7 @@ namespace ugsdr {
 			};
 
 			for (std::size_t i = 1; i < static_cast<std::size_t>(2 * signal_sampling_rate / target_sampling_rate); ++i) {
-				auto fs_candidate = signal_sampling_rate / i;
+				auto fs_candidate = signal_sampling_rate / static_cast<double>(i);
 				if (std::fmod(fs_candidate / 1e3, 1) != 0.0)
 					continue;
 				

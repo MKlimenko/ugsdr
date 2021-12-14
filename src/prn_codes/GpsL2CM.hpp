@@ -6,7 +6,7 @@
 namespace ugsdr {
 	class GpsL2CM final : public Codegen<GpsL2CM>, public L2CM {
 	private:
-		static std::size_t LfsrValue(std::size_t sv_number) {
+		static auto LfsrValue(std::size_t sv_number) {
 			constexpr static auto lfsr_values = std::array{
 				22999285,	84902174,	17716541,	23790168,	68613052,	106676766,	16105048,	76969855,
 				77965538,	57558230,	99108613,	54913561,	110517083,	71826178,	277102,		56514710,
@@ -17,7 +17,7 @@ namespace ugsdr {
 			if (sv_number >= lfsr_values.size())
 				throw std::runtime_error("SV number for the GPS L2CM code exceed available values");
 
-			return lfsr_values[sv_number];
+			return static_cast<std::size_t>(lfsr_values[sv_number]);
 		}
 
 	protected:

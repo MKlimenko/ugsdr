@@ -6,7 +6,7 @@
 namespace ugsdr {
 	class QzssL1Saif final : public Codegen<QzssL1Saif>, public GoldCodes {
 	private:
-		static std::size_t SecondLfsrPhase(std::size_t sv_number) {
+		static auto SecondLfsrPhase(std::size_t sv_number) {
 			constexpr static auto delay_table = std::array{
 				144,	476,	193,	109,	445,	291,	87,		399,	292,
 				144,	476,	193,	109,	445,	291,	87,		399,	292,
@@ -15,7 +15,7 @@ namespace ugsdr {
 			if (sv_number >= delay_table.size())
 				throw std::runtime_error("SV number for the QZSS SAIF code exceed available values");
 
-			return 1023 - delay_table[sv_number];
+			return static_cast<std::size_t>(1023 - delay_table[sv_number]);
 		}
 
 	protected:

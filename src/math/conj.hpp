@@ -20,4 +20,17 @@ namespace ugsdr {
 			return dst;
 		}
 	};
+
+	class SequentialConj : public ComplexConjugate<SequentialConj> {
+	protected:
+		friend class ComplexConjugate<SequentialConj>;
+
+		template <typename UnderlyingType>
+		static void Process(std::vector<std::complex<UnderlyingType>>& src_dst) {
+			for (auto& el : src_dst)
+				el = std::conj(el);
+		}
+
+	public:
+	};
 }

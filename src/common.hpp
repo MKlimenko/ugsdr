@@ -71,7 +71,7 @@ namespace ugsdr {
 
 	template <typename T>
 	auto RepeatCodeNTimes(std::vector<T> code, std::size_t repeats) {
-		auto code_period = code.size();
+		auto code_period = static_cast<std::ptrdiff_t>(code.size());
 		for (std::size_t i = 1; i < repeats; ++i)
 			code.insert(code.end(), code.begin(), code.begin() + code_period);
 
@@ -210,10 +210,12 @@ namespace ugsdr {
 				break;
 			case Signal::Gps_L5I:
 			case Signal::Qzss_L5I:
+			case Signal::Sbas_L5I:
 				dst += "L5I";
 				break;
 			case Signal::Gps_L5Q:
 			case Signal::Qzss_L5Q:
+			case Signal::Sbas_L5Q:
 				dst += "L5Q";
 				break;
 			case Signal::GlonassCivilFdma_L1:

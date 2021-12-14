@@ -9,6 +9,7 @@
 #include "../src/helpers/af_array_proxy.hpp"
 #include "../src/helpers/is_complex.hpp"
 
+#include "../src/matched_filter/matched_filter.hpp"
 #include "../src/matched_filter/ipp_matched_filter.hpp"
 #include "../src/matched_filter/af_matched_filter.hpp"
 
@@ -19,6 +20,7 @@
 
 #include "../src/math/ipp_abs.hpp"
 #include "../src/math/ipp_conj.hpp"
+#include "../src/math/dft.hpp"
 #include "../src/math/af_dft.hpp"
 #include "../src/math/ipp_dft.hpp"
 
@@ -231,9 +233,9 @@ namespace basic_tests {
 
 			auto dst = FilterType::Filter(signal, code);
 
-			ASSERT_NEAR(dst[0].real(), code.size(), 1e-4);
+			ASSERT_NEAR(dst[0].real(), code.size(), 5e-3);
 			for (std::size_t i = 1; i < dst.size(); ++i)
-				ASSERT_NEAR(dst[i].real(), -1.0, 1e-4);
+				ASSERT_NEAR(dst[i].real(), -1.0, 5e-3);
 			
 		}
 		
@@ -337,6 +339,10 @@ namespace basic_tests {
 				ASSERT_NEAR(result[result.size() / 10].imag(), 0, 1e-4);
 				ASSERT_NEAR(std::abs(result[result.size() / 10]), result.size(), 1e-4);
 
+			}
+
+			TYPED_TEST(DftTest, sequential_dft) {
+				TestPeak<ugsdr::SequentialDft, typename TestFixture::Type>();
 			}
 
 #ifdef HAS_IPP

@@ -6,7 +6,7 @@
 namespace ugsdr {
 	class SbasL5Q final : public Codegen<SbasL5Q>, public L5 {
 	private:
-		static std::size_t SecondLfsrPhase(std::size_t sv_number) {
+		static auto SecondLfsrPhase(std::size_t sv_number) {
 			sv_number -= ugsdr::sbas_sv_offset;
 			constexpr static auto delay_table = std::array{
 				6837,	1393,	7383,	611,	4920,	5416,	1611,	2474,	118,
@@ -17,7 +17,7 @@ namespace ugsdr {
 			if (sv_number >= delay_table.size())
 				throw std::runtime_error("SV number for the SBAS L5Q code exceed available values");
 
-			return delay_table[sv_number];
+			return static_cast<std::size_t>(delay_table[sv_number]);
 		}
 
 	protected:

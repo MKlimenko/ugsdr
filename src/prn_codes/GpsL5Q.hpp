@@ -6,7 +6,7 @@
 namespace ugsdr {
 	class GpsL5Q final : public Codegen<GpsL5Q>, public L5 {
 	private:
-		static std::size_t SecondLfsrPhase(std::size_t sv_number) {
+		static auto SecondLfsrPhase(std::size_t sv_number) {
 			constexpr static auto delay_table = std::array{
 				1701,	323,	5292,	2020,	5429,	7136,	1041,	5947,	4315,
 				148,	535,	1939,	5206,	5910,	3595,	5135,	6082,	6990,
@@ -17,7 +17,7 @@ namespace ugsdr {
 			if (sv_number >= delay_table.size())
 				throw std::runtime_error("SV number for the GPS L5Q code exceed available values");
 
-			return delay_table[sv_number];
+			return static_cast<std::size_t>(delay_table[sv_number]);
 		}
 
 	protected:

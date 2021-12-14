@@ -6,7 +6,7 @@
 namespace ugsdr {
 	class QzssL5I final : public Codegen<QzssL5I>, public L5 {
 	private:
-		static std::size_t SecondLfsrPhase(std::size_t sv_number) {
+		static auto SecondLfsrPhase(std::size_t sv_number) {
 			constexpr static auto delay_table = std::array{
 				5836, 926, 6086, 950, 5905, 3240, 6675, 3197, 1555, 3589
 			};
@@ -14,7 +14,7 @@ namespace ugsdr {
 			if (sv_number >= delay_table.size())
 				throw std::runtime_error("SV number for the QZSS L5I code exceed available values");
 
-			return delay_table[sv_number];
+			return static_cast<std::size_t>(delay_table[sv_number]);
 		}
 
 	protected:

@@ -11,7 +11,7 @@ namespace ugsdr {
 	private:
 		static constexpr std::size_t code_len = 10230;
 
-		static std::size_t SecondLfsrPhase(std::size_t sv_number) {
+		static auto SecondLfsrPhase(std::size_t sv_number) {
 			constexpr static auto delay_table = std::array{
 				1344, 6591, 5065, 15628, 1178, 3984, 3040, 3487, 5104, 5116, 9197, 10580, 8058, 4124, 6713, 13753, 8560,
 				12600, 16190, 13938, 11820, 5059, 8075, 10769, 6365, 14657, 10084, 16301, 183, 3320, 12010, 1313, 3988,
@@ -22,7 +22,7 @@ namespace ugsdr {
 			if (sv_number >= delay_table.size())
 				throw std::runtime_error("SV number for the Galileo E5aI code exceed available values");
 
-			return delay_table[sv_number];
+			return static_cast<std::size_t>(delay_table[sv_number]);
 		}		
 		
 	protected:

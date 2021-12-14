@@ -6,7 +6,7 @@
 namespace ugsdr {
 	class GpsL1Ca final : public Codegen<GpsL1Ca>, public GoldCodes {
 	private:
-		static std::size_t SecondLfsrPhase(std::size_t sv_number) {
+		static auto SecondLfsrPhase(std::size_t sv_number) {
 			constexpr static auto delay_table = std::array{
 				5,   6,   7,   8,   17,  18,  139, 140, 141, 251,
 				252, 254, 255, 256, 257, 258, 469, 470, 471, 472,
@@ -17,7 +17,7 @@ namespace ugsdr {
 			if (sv_number >= delay_table.size())
 				throw std::runtime_error("SV number for the GPS C/A code exceed available values");
 
-			return 1023 - delay_table[sv_number];
+			return static_cast<std::size_t>(1023 - delay_table[sv_number]);
 		}
 
 	protected:

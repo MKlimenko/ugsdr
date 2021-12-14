@@ -14,6 +14,7 @@
 
 #include "../src/helpers/ipp_complex_type_converter.hpp"
 
+#include "../src/matched_filter/matched_filter.hpp"
 #include "../src/matched_filter/af_matched_filter.hpp"
 #include "../src/matched_filter/ipp_matched_filter.hpp"
 
@@ -25,7 +26,7 @@
 #include <execution>
 #include <random>
 
-#if 1
+#if 0
 namespace signal_parameters {
     template <typename T>
     static void GetEpoch8plus8(benchmark::State& state) {
@@ -259,12 +260,50 @@ namespace dft {
 }
 #endif
 
-#if 0
+#if 1
 namespace matched_filter {
     constexpr auto max_range = 2048 << 8;
 
-#define DFT_BENCHMARK_OPTIONS RangeMultiplier(2)->Range(2048, max_range)->Complexity()->Unit(benchmark::TimeUnit::kMicrosecond)->Threads(16)
+#define DFT_BENCHMARK_OPTIONS RangeMultiplier(2)->Range(2048, max_range)->Complexity()->Unit(benchmark::TimeUnit::kMicrosecond)
 
+#ifdef HAS_FFTW
+    template <typename T>
+    static void StdMf(benchmark::State& state) {
+        using MatchedFilterType = ugsdr::MatchedFilter<ugsdr::SequentialMatchedFilter>;
+
+        std::vector<std::complex<T>> signal(state.range());
+        std::vector<T> ir(state.range());
+
+        for (auto _ : state) {
+            MatchedFilterType::Filter(signal, ir);
+            benchmark::DoNotOptimize(signal);
+            benchmark::DoNotOptimize(ir);
+        }
+        state.SetComplexityN(state.range());
+    }
+    BENCHMARK_TEMPLATE(StdMf, float)->DFT_BENCHMARK_OPTIONS;
+    BENCHMARK_TEMPLATE(StdMf, double)->DFT_BENCHMARK_OPTIONS;
+
+    template <typename T>
+    static void StdMfOptimized(benchmark::State& state) {
+        using MatchedFilterType = ugsdr::SequentialMatchedFilter;
+
+        std::vector<std::complex<T>> signal(state.range());
+        std::vector<T> ir(state.range());
+        auto ir_spectrum = MatchedFilterType::PrepareCodeSpectrum(ir);
+
+        for (auto _ : state) {
+            MatchedFilterType::FilterOptimized(signal, ir_spectrum);
+            benchmark::DoNotOptimize(signal);
+            benchmark::DoNotOptimize(ir);
+        }
+        state.SetComplexityN(state.range());
+    }
+    BENCHMARK_TEMPLATE(StdMfOptimized, float)->DFT_BENCHMARK_OPTIONS;
+    BENCHMARK_TEMPLATE(StdMfOptimized, double)->DFT_BENCHMARK_OPTIONS;
+#endif
+
+#ifdef HAS_IPP
     template <typename T>
     static void IppMf(benchmark::State& state) {
         using MatchedFilterType = ugsdr::MatchedFilter<ugsdr::IppMatchedFilter>;
@@ -302,7 +341,9 @@ namespace matched_filter {
     }
     BENCHMARK_TEMPLATE(IppMfOptimized, float)->DFT_BENCHMARK_OPTIONS;
     BENCHMARK_TEMPLATE(IppMfOptimized, double)->DFT_BENCHMARK_OPTIONS;
+#endif
 
+#ifdef HAS_ARRAYFIRE
     template <typename T>
     static void AfMf(benchmark::State& state) {
         using MatchedFilterType = ugsdr::MatchedFilter<ugsdr::AfMatchedFilter>;
@@ -340,6 +381,7 @@ namespace matched_filter {
     }
     BENCHMARK_TEMPLATE(AfMfOptimized, float)->DFT_BENCHMARK_OPTIONS;
     BENCHMARK_TEMPLATE(AfMfOptimized, double)->DFT_BENCHMARK_OPTIONS;
+#endif
 }
 #endif
 

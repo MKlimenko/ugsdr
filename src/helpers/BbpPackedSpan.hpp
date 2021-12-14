@@ -69,10 +69,10 @@ namespace ugsdr {
 
 			friend bool operator== (const Iterator& a, const Iterator& b) {
 				return (a - b == 0);
-			};
+			}
 			friend bool operator!= (const Iterator& a, const Iterator& b) {
 				return !(a == b);
-			};
+			}
 		};
 
 		PackedSpan(const std::byte* data_ptr, std::size_t samples) : data(data_ptr), signal_samples(samples) {}

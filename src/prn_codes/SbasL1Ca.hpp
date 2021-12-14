@@ -7,7 +7,7 @@
 namespace ugsdr {
 	class SbasL1Ca final : public Codegen<SbasL1Ca>, public GoldCodes {
 	private:
-		static std::size_t SecondLfsrPhase(std::size_t sv_number) {
+		static auto SecondLfsrPhase(std::size_t sv_number) {
 			sv_number -= ugsdr::sbas_sv_offset;
 
 			constexpr static auto delay_table = std::array{
@@ -19,7 +19,7 @@ namespace ugsdr {
 			if (sv_number >= delay_table.size())
 				throw std::runtime_error("SV number for the SBAS C/A code exceed available values");
 
-			return 1023 - delay_table[sv_number];
+			return static_cast<std::size_t>(1023 - delay_table[sv_number]);
 		}
 
 	protected:

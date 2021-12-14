@@ -8,7 +8,7 @@ namespace ugsdr {
 	private:
 		static constexpr std::size_t code_len = 10230;
 
-		static std::size_t SecondLegendrePhase(std::size_t sv_number) {
+		static auto SecondLegendrePhase(std::size_t sv_number) {
 			constexpr static auto phase_table = std::array{
 				2678, 4802,  958,  859, 3843,
 				2232,  124, 4352, 1816, 1126,
@@ -28,10 +28,10 @@ namespace ugsdr {
 			if (sv_number >= phase_table.size())
 				throw std::runtime_error("SV number for the BeiDou B1C code exceed available values");
 
-			return phase_table[sv_number];
+			return static_cast<std::size_t>(phase_table[sv_number]);
 		}
 
-		static std::size_t WeilTruncationPoint(std::size_t sv_number) {
+		static auto WeilTruncationPoint(std::size_t sv_number) {
 			constexpr static auto truncation_point_table = std::array{
 				699,  694, 7318, 2127,  715,
 				6682, 7850, 5495, 1162, 7682,
@@ -51,7 +51,7 @@ namespace ugsdr {
 			if (sv_number >= truncation_point_table.size())
 				throw std::runtime_error("SV number for the BeiDou B1C code exceed available values");
 
-			return truncation_point_table[sv_number] - 1;
+			return static_cast<std::size_t>(truncation_point_table[sv_number] - 1);
 		}		
 
 	protected:

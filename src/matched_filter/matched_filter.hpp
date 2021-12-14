@@ -3,6 +3,9 @@
 #include <complex>
 #include <vector>
 
+#include "../math/conj.hpp"
+#include "../math/dft.hpp"
+
 namespace ugsdr {
 	template <typename FilterImpl>
 	class MatchedFilter {
@@ -44,24 +47,23 @@ namespace ugsdr {
 
 		template <typename T>
 		static auto Prepare(const std::vector<T>& impulse_response) {
-			return impulse_response;
+			auto ir_spectrum = SequentialDft::Transform(impulse_response);
+			SequentialConj::Transform(ir_spectrum);
+			return ir_spectrum;
 		}
 
 		template <typename UnderlyingType, typename T>
 		static auto ProcessOptimized(std::vector<std::complex<UnderlyingType>>& src_dst, const std::vector<T>& impulse_response) {
-			Process(src_dst, impulse_response);
+			SequentialDft::Transform(src_dst);
+			std::transform(src_dst.begin(), src_dst.end(), impulse_response.begin(), src_dst.begin(), std::multiplies<std::complex<UnderlyingType>>{});
+			SequentialDft::Transform(src_dst, true);
 		}
 
 		template <typename UnderlyingType, typename T>
 		static void Process(std::vector<std::complex<UnderlyingType>>& src_dst, const std::vector<T>& impulse_response) {
-			auto dst = src_dst;
-			for (std::size_t i = 0; i < src_dst.size(); ++i) {
-				dst[i] = 0;
-				for (std::size_t j = 0; j < impulse_response.size(); j++)
-					dst[i] += impulse_response[j % impulse_response.size()] * src_dst[(i + j) % src_dst.size()];
-			}
-
-			src_dst = dst;
+			auto ir_spectrum = SequentialDft::Transform(impulse_response);
+			SequentialConj::Transform(ir_spectrum);
+			ProcessOptimized(src_dst, ir_spectrum);
 		}
 
 	public:

@@ -1,5 +1,8 @@
 #pragma once
 
+#include <array>
+#include <stdexcept>
+
 #include "codegen.hpp"
 
 namespace ugsdr {
@@ -25,7 +28,7 @@ namespace ugsdr {
 			if (sv_number >= delay_table.size())
 				throw std::runtime_error("SV number for the BeiDOu B1I code exceed available values");
 
-			return delay_table[sv_number];
+			return static_cast<std::size_t>(delay_table[sv_number]);
 		}
 
 	protected:

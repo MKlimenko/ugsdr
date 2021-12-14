@@ -34,40 +34,40 @@ namespace ugsdr {
 
 			switch (array.type()) {
 			case f32:
-				dst = std::vector<float>(array.elements());
+				dst = std::vector<float>(static_cast<std::size_t>(array.elements()));
 				break;
 			case c32:
-				dst = std::vector<std::complex<float>>(array.elements());
+				dst = std::vector<std::complex<float>>(static_cast<std::size_t>(array.elements()));
 				break;
 			case f64:
-				dst = std::vector<double>(array.elements());
+				dst = std::vector<double>(static_cast<std::size_t>(array.elements()));
 				break;
 			case c64:
-				dst = std::vector<std::complex<double>>(array.elements());
+				dst = std::vector<std::complex<double>>(static_cast<std::size_t>(array.elements()));
 				break;
 			case b8:
-				dst = std::vector<std::int8_t>(array.elements());
+				dst = std::vector<std::int8_t>(static_cast<std::size_t>(array.elements()));
 				break;
 			case s32:
-				dst = std::vector<std::int32_t>(array.elements());
+				dst = std::vector<std::int32_t>(static_cast<std::size_t>(array.elements()));
 				break;
 			case u32:
-				dst = std::vector<std::uint32_t>(array.elements());
+				dst = std::vector<std::uint32_t>(static_cast<std::size_t>(array.elements()));
 				break;
 			case u8:
-				dst = std::vector<std::uint8_t>(array.elements());
+				dst = std::vector<std::uint8_t>(static_cast<std::size_t>(array.elements()));
 				break;
 			case s64:
-				dst = std::vector<std::int64_t>(array.elements());
+				dst = std::vector<std::int64_t>(static_cast<std::size_t>(array.elements()));
 				break;
 			case u64:
-				dst = std::vector<std::uint64_t>(array.elements());
+				dst = std::vector<std::uint64_t>(static_cast<std::size_t>(array.elements()));
 				break;
 			case s16:
-				dst = std::vector<std::int16_t>(array.elements());
+				dst = std::vector<std::int16_t>(static_cast<std::size_t>(array.elements()));
 				break;
 			case u16:
-				dst = std::vector<std::uint16_t>(array.elements());
+				dst = std::vector<std::uint16_t>(static_cast<std::size_t>(array.elements()));
 				break;
 			case f16:
 			default:
@@ -146,70 +146,70 @@ namespace ugsdr {
 			switch (array.type()) {
 			case c32:
 				if (std::is_same_v<T, std::complex<float>>) {
-					optional_dst.resize(array.elements());
+					optional_dst.resize(static_cast<std::size_t>(array.elements()));
 					array.host(optional_dst.data());
 					return std::nullopt;
 				}
 				break;
 			case c64:
 				if (std::is_same_v<T, std::complex<double>>) {
-					optional_dst.resize(array.elements());
+					optional_dst.resize(static_cast<std::size_t>(array.elements()));
 					array.host(optional_dst.data());
 					return std::nullopt;
 				}
 				break;
 			case f64:
 				if (std::is_same_v<T, double>) {
-					optional_dst.resize(array.elements());
+					optional_dst.resize(static_cast<std::size_t>(array.elements()));
 					array.host(optional_dst.data());
 					return std::nullopt;
 				}
 				break;
 			case f32:
 				if (std::is_same_v<T, float>) {
-					optional_dst.resize(array.elements());
+					optional_dst.resize(static_cast<std::size_t>(array.elements()));
 					array.host(optional_dst.data());
 					return std::nullopt;
 				}
 				break;
 			case s32:
 				if (std::is_same_v<T, std::int32_t>) {
-					optional_dst.resize(array.elements());
+					optional_dst.resize(static_cast<std::size_t>(array.elements()));
 					array.host(optional_dst.data());
 					return std::nullopt;
 				}
 				break;
 			case u32:
 				if (std::is_same_v<T, std::uint32_t>) {
-					optional_dst.resize(array.elements());
+					optional_dst.resize(static_cast<std::size_t>(array.elements()));
 					array.host(optional_dst.data());
 					return std::nullopt;
 				}
 				break;
 			case s64:
 				if (std::is_same_v<T, std::int64_t>) {
-					optional_dst.resize(array.elements());
+					optional_dst.resize(static_cast<std::size_t>(array.elements()));
 					array.host(optional_dst.data());
 					return std::nullopt;
 				}
 				break;
 			case u64:
 				if (std::is_same_v<T, std::uint64_t>) {
-					optional_dst.resize(array.elements());
+					optional_dst.resize(static_cast<std::size_t>(array.elements()));
 					array.host(optional_dst.data());
 					return std::nullopt;
 				}
 				break;
 			case s16:
 				if (std::is_same_v<T, std::int16_t>) {
-					optional_dst.resize(array.elements());
+					optional_dst.resize(static_cast<std::size_t>(array.elements()));
 					array.host(optional_dst.data());
 					return std::nullopt;
 				}
 				break;
 			case u16:
 				if (std::is_same_v<T, std::uint16_t>) {
-					optional_dst.resize(array.elements());
+					optional_dst.resize(static_cast<std::size_t>(array.elements()));
 					array.host(optional_dst.data());
 					return std::nullopt;
 				}
@@ -224,8 +224,8 @@ namespace ugsdr {
 		}
 
 		[[nodiscard]]
-		std::size_t size() const {
-			return array.elements();
+		auto size() const {
+			return static_cast<std::size_t>(array.elements());
 		}
 	};
 
