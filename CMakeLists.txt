@@ -10,7 +10,7 @@ FetchContent_Declare(
 	GIT_TAG			rtklib_2.4.3
 	GIT_SHALLOW		ON
 	GIT_PROGRESS	ON
-	PATCH_COMMAND	git apply --reject ${CMAKE_CURRENT_SOURCE_DIR}/external/0001-Fix-uninitialized-variables-in-pntpos.patch
+	PATCH_COMMAND	git apply --reject --ignore-space-change --ignore-whitespace ${CMAKE_CURRENT_SOURCE_DIR}/external/0001-Fix-uninitialized-variables-in-pntpos.patch
 	SOURCE_DIR		${CMAKE_CURRENT_LIST_DIR}/external/RTKLIB
 )
 set(FETCHCONTENT_UPDATES_DISCONNECTED_RTKLIB_SOURCE on)
