@@ -30,7 +30,7 @@
 namespace signal_parameters {
     template <typename T>
     static void GetEpoch8plus8(benchmark::State& state) {
-        auto signal_parameters = ugsdr::SignalParametersBase<T>(R"(..\..\..\..\data\iq.bin)", ugsdr::FileType::Iq_8_plus_8, 1590e6, 33.25e6);
+        auto signal_parameters = ugsdr::SignalParametersBase<T>(SIGNAL_DATA_PATH + std::string("iq_8_plus_8.bin"), ugsdr::FileType::Iq_8_plus_8, 1590e6, 33.25e6);
         std::vector<std::complex<T>> input(static_cast<std::size_t>(signal_parameters.GetSamplingRate() / 1e3));
         for (auto _ : state) {
             signal_parameters.GetOneMs(0, input);
@@ -45,7 +45,7 @@ namespace signal_parameters {
     template <typename T>
     static void GetEpochNt1065Grabber(benchmark::State& state) {
         // actual sampling rate is twice as high, limit for benchmarking purposes
-        auto signal_parameters = ugsdr::SignalParametersBase<T>(R"(..\..\..\..\data\nt1065_grabber.bin)", ugsdr::FileType::Nt1065GrabberFirst, 1590e6, 33.25e6);
+        auto signal_parameters = ugsdr::SignalParametersBase<T>(SIGNAL_DATA_PATH + std::string("nt1065_grabber.bin"), ugsdr::FileType::Nt1065GrabberFirst, 1590e6, 33.25e6);
         std::vector<std::complex<T>> input(static_cast<std::size_t>(signal_parameters.GetSamplingRate() / 1e3));
         for (auto _ : state) {
             signal_parameters.GetOneMs(0, input);
@@ -75,7 +75,7 @@ namespace signal_parameters {
 
     template <typename T>
     static void GetEpochBbp(benchmark::State& state) {
-        auto signal_parameters = ugsdr::SignalParametersBase<T>(R"(..\..\..\..\data\bbp_ddc_gps_L1.dat)", ugsdr::FileType::BbpDdc, 1575.42e6, 33.25e6);
+        auto signal_parameters = ugsdr::SignalParametersBase<T>(SIGNAL_DATA_PATH + std::string("bbp_ddc_gps_L1.dat"), ugsdr::FileType::BbpDdc, 1575.42e6, 33.25e6);
         std::vector<std::complex<T>> input(static_cast<std::size_t>(signal_parameters.GetSamplingRate() / 1e3));
         for (auto _ : state) {
             signal_parameters.GetOneMs(0, input);

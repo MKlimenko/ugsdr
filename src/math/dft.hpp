@@ -119,11 +119,11 @@ namespace ugsdr {
 			auto plan_function = FftwFunctions<T>::GetCreatePlan();
 			auto src_copy = src;
 			FftwFunctions<T>::GetPlannerThreadSafe()();
-			auto plan = plan_function(static_cast<int>(src.size()), reinterpret_cast<FftwFunctions<T>::DftType*>(src_copy.data()),
+			auto plan = plan_function(static_cast<int>(src.size()), reinterpret_cast<typename FftwFunctions<T>::DftType*>(src_copy.data()),
 				reinterpret_cast<typename FftwFunctions<DstType>::DftType*>(dst.data()), is_inverse ? FFTW_BACKWARD : FFTW_FORWARD, FFTW_ESTIMATE);
 
 			auto dft = FftwFunctions<T>::GetDft();
-			dft(plan, reinterpret_cast<FftwFunctions<T>::DftType*>(src_copy.data()), reinterpret_cast<typename FftwFunctions<DstType>::DftType*>(dst.data()));
+			dft(plan, reinterpret_cast<typename FftwFunctions<T>::DftType*>(src_copy.data()), reinterpret_cast<typename FftwFunctions<DstType>::DftType*>(dst.data()));
 
 			if (is_inverse) {
 				for (auto& el : dst) {

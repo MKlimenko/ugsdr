@@ -63,6 +63,7 @@ endif()
 set (CMAKE_VS_JUST_MY_CODE_DEBUGGING 1)
 
 add_compile_definitions(ENAGLO ENAGAL ENAQZS ENACMP ENAIRN NFREQ=3 TRACE NOMINMAX _WINSOCK2API_ _CRT_SECURE_NO_WARNINGS)
+add_compile_definitions(SIGNAL_DATA_PATH="${CMAKE_CURRENT_LIST_DIR}/data/")
 
 enable_testing()
 add_subdirectory ("src")

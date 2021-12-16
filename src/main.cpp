@@ -16,10 +16,10 @@ void main_impl() {
 void GenerateSignals(CSignalsViewer * sv) {
 	ugsdr::glob_sv = sv;
 #endif
-	auto signal_parameters =     ugsdr::SignalParametersBase<float>(R"(../../../../data/nt1065_grabber.bin)", ugsdr::FileType::Nt1065GrabberFirst, 1590e6, 79.5e6);
-	auto signal_parameters_gln = ugsdr::SignalParametersBase<float>(R"(../../../../data/nt1065_grabber.bin)", ugsdr::FileType::Nt1065GrabberSecond, 1590e6, 79.5e6);
-	auto signal_parameters_L5 =  ugsdr::SignalParametersBase<float>(R"(../../../../data/nt1065_grabber.bin)", ugsdr::FileType::Nt1065GrabberThird, 1200e6, 79.5e6);
-	auto signal_parameters_L2 =  ugsdr::SignalParametersBase<float>(R"(../../../../data/nt1065_grabber.bin)", ugsdr::FileType::Nt1065GrabberFourth, 1200e6, 79.5e6);
+	auto signal_parameters =     ugsdr::SignalParametersBase<float>(SIGNAL_DATA_PATH + std::string("nt1065_grabber.bin"), ugsdr::FileType::Nt1065GrabberFirst, 1590e6, 79.5e6);
+	auto signal_parameters_gln = ugsdr::SignalParametersBase<float>(SIGNAL_DATA_PATH + std::string("nt1065_grabber.bin"), ugsdr::FileType::Nt1065GrabberSecond, 1590e6, 79.5e6);
+	auto signal_parameters_L5 =  ugsdr::SignalParametersBase<float>(SIGNAL_DATA_PATH + std::string("nt1065_grabber.bin"), ugsdr::FileType::Nt1065GrabberThird, 1200e6, 79.5e6);
+	auto signal_parameters_L2 =  ugsdr::SignalParametersBase<float>(SIGNAL_DATA_PATH + std::string("nt1065_grabber.bin"), ugsdr::FileType::Nt1065GrabberFourth, 1200e6, 79.5e6);
 
 	auto digital_frontend = ugsdr::DigitalFrontend(
 		MakeChannel(signal_parameters, std::vector{ ugsdr::Signal::GpsCoarseAcquisition_L1 }, signal_parameters.GetSamplingRate()),
