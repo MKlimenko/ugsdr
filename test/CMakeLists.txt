@@ -10,8 +10,6 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
 	target_compile_options(${PROJECT_NAME} PUBLIC -ftime-trace)
 endif()
 
-find_package(GTest CONFIG REQUIRED)
-
 target_include_directories(${PROJECT_NAME} PRIVATE 
 												${Boost_INCLUDE_DIRS}
 												${FFTW3_INCLUDE_DIRS}

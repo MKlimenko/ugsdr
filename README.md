@@ -47,11 +47,9 @@ Some of the following requirements may be loosen in the future to provide more f
 1. C++ compiler with C++20 support. I've used `std::span` quite heavily, so this probably won't be relaxed. There are also some nice additions like `std::numbers` for π or `std::ranges` and `operator<=>`, but they are not so necessary for the performance as a non-owning data view. Specific compiler versions would be specified later.
 2. CMake 3.18+. I just love CMake, I've worked so much with various build systems and approaches to appreciate the CMake.
 3. Subset of the `Boost` library suite. There is a significant performance boost (pun intended) when using memory mapped I/O instead of the traditional `ifstream::read()` approach. I personally also love the console progress bar, which is very handy for the console-only applicaitons.
-4. `GTest` for testing.
-5. `googlebenchmark` for benchmarking. These are the primary candidates to be moved to the optional section.
-6. My own `type_map` and `plusifier` libraries, but they're checked out as submodules, so you don't have to worry about them.
-7. `RTKLIB` is used for positioning (temporaraly) and RINEX output. It's being downloaded via `FetchContent` at  
-8. `FFTW3` library. According to the [convolution theorem](https://en.wikipedia.org/wiki/Convolution_theorem), circular convolution may be substituted by the elementwise multiplication of the Fourier transforms (plain with conjugated to be precise) of the input signals. Circular convolution is the main operation of the matched filter, used heavily in the acquisition routines, this provides a significant boost against the plain implementation. The benefit is so great that the plain solution is removed completely.
+4. My own `type_map` and `plusifier` libraries, but they're checked out as submodules, so you don't have to worry about them.
+5. `RTKLIB` is used for positioning (temporaraly) and RINEX output. It's being downloaded via `FetchContent` at  
+6. `FFTW3` library. According to the [convolution theorem](https://en.wikipedia.org/wiki/Convolution_theorem), circular convolution may be substituted by the elementwise multiplication of the Fourier transforms (plain with conjugated to be precise) of the input signals. Circular convolution is the main operation of the matched filter, used heavily in the acquisition routines, this provides a significant boost against the plain implementation. The benefit is so great that the plain solution is removed completely.
 
 ### Optional dependencies
 
@@ -59,6 +57,8 @@ Some of the following requirements may be loosen in the future to provide more f
 2. `cereal` library for serialization. This is the first project I've used this library in, it really shines when there's a need to save the intermediate data, but according to clang's `-ftime-trace` it has a serious compilation time impact.
 3. `gcem` is a great compile-time math library, used in the generation of the sin-cos table for the NCO.
 4. `IPP`. I love it. This is the best and the most performant digital signal processing library out there for the x86. The only downside for me is that there's no C++ interface, so I've used my `plusifier` library to abstract away the typed functions. 
+5. `GTest` for testing.
+6. `googlebenchmark` for benchmarking. These are the primary candidates to be moved to the optional section.
 
 ## Roadmap
 

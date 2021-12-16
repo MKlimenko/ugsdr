@@ -4,7 +4,6 @@ project(ugsdr_benchmark)
 add_executable (${PROJECT_NAME} 
 							benchmark.cpp	
 )
-find_package(benchmark CONFIG REQUIRED)
 
 target_include_directories(${PROJECT_NAME} PRIVATE 
 												${Boost_INCLUDE_DIRS} 
