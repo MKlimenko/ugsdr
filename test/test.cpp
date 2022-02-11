@@ -335,9 +335,9 @@ namespace basic_tests {
 				auto result = static_cast<std::vector<std::complex<T>>>(DftType::Transform(data));
 
 				ASSERT_EQ(result.size(), data.size());
-				ASSERT_NEAR(result[result.size() / 10].real(), result.size(), 1e-4);
-				ASSERT_NEAR(result[result.size() / 10].imag(), 0, 1e-4);
-				ASSERT_NEAR(std::abs(result[result.size() / 10]), result.size(), 1e-4);
+				ASSERT_NEAR(result[result.size() / 10].real(), result.size(), 5e-3);
+				ASSERT_NEAR(result[result.size() / 10].imag(), 0, 5e-3);
+				ASSERT_NEAR(std::abs(result[result.size() / 10]), result.size(), 5e-3);
 
 			}
 
