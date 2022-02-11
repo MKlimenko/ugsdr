@@ -17,6 +17,7 @@
 #include "../resample/upsampler.hpp"
 #include "../resample/ipp_resampler.hpp"
 
+#include <concepts>
 #include <cstring>
 #include <functional>
 #include <mutex>
@@ -25,7 +26,71 @@
 #include <vector>
 
 namespace ugsdr {
-	template <typename UnderlyingType>
+	template <
+		typename MixerT,
+		typename UpsamplerT,
+		typename MatchedFilterT,
+		typename AbsT,
+		typename ReshapeAndSumT,
+		typename MaxIndexT,
+		typename MeanStdDevT,
+		typename ResamplerT
+	>
+	struct FseConfig {
+		using MixerType = MixerT;
+		using UpsamplerType = UpsamplerT;
+		using MatchedFilterType = MatchedFilterT;
+		using AbsType = AbsT;
+		using ReshapeAndSumType = ReshapeAndSumT;
+		using MaxIndexType = MaxIndexT;
+		using MeanStdDevType = MeanStdDevT;
+		using ResamplerType = ResamplerT;
+
+		static_assert(std::is_base_of_v<Mixer<MixerType>, MixerType>, "Incorrect mixer provided, expected ugsdr::Mixer<T>");
+		static_assert(std::is_base_of_v<Upsampler<UpsamplerType>, UpsamplerType>, "Incorrect upsampler provided, expected ugsdr::Upsampler<T>");
+		static_assert(std::is_base_of_v<MatchedFilter<MatchedFilterType>, MatchedFilterType>, "Incorrect matched filter provided, expected ugsdr::MatchedFilter<T>");
+		static_assert(std::is_base_of_v<Abs<AbsType>, AbsType>, "Incorrect abs provided, expected ugsdr::Abs<T>");
+		static_assert(std::is_base_of_v<ReshapeAndSum<ReshapeAndSumType>, ReshapeAndSumType>, "Incorrect reshape_and_sum provided, expected ReshapeAndSum::Abs<T>");
+		static_assert(std::is_base_of_v<MaxIndex<MaxIndexType>, MaxIndexType>, "Incorrect max_index provided, expected ugsdr::MaxIndex<T>");
+		static_assert(std::is_base_of_v<MeanStdDev<MeanStdDevType>, MeanStdDevType>, "Incorrect mean_std_Dev provided, expected ugsdr::MeanStdDev<T>");
+		static_assert(std::is_base_of_v<Resampler<ResamplerType>, ResamplerType>, "Incorrect resampler provided, expected ugsdr::Resampler<T>");
+	};
+
+	using DefaultFseConfig = FseConfig <
+#ifdef HAS_IPP
+		IppMixer,
+		SequentialUpsampler,
+		IppMatchedFilter,
+		IppAbs,
+		IppReshapeAndSum,
+		IppMaxIndex,
+		IppMeanStdDev,
+		IppResampler
+#else
+		TableMixer,
+		SequentialUpsampler,
+		SequentialMatchedFilter,
+		SequentialAbs,
+		SequentialReshapeAndSum,
+		SequentialMaxIndex,
+		SequentialMeanStdDev,
+		SequentialResampler
+#endif
+	>;
+
+	template <typename T>
+	constexpr bool IsConfig(T val) {
+		return false;
+	}
+	template <typename ... Args>
+	constexpr bool IsConfig(FseConfig<Args...> val) {
+		return true;
+	}
+	template <typename T>
+	concept FseConfigConcept = IsConfig(T{});
+
+
+	template <FseConfigConcept Config = DefaultFseConfig, typename UnderlyingType = float>
 	class FastSearchEngineBase final {
 	private:
 		constexpr static std::size_t ms_to_process = 4;
@@ -409,5 +474,5 @@ namespace ugsdr {
 		}
 	};
 
-	using FastSearchEngine = FastSearchEngineBase<float>;
+	using FastSearchEngine = FastSearchEngineBase<DefaultFseConfig, float>;
 }
