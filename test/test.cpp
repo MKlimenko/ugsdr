@@ -650,7 +650,7 @@ namespace integration_tests {
 
 		
 		TYPED_TEST(PositioningTest, GPSdata_DiscreteComponents) {
-			auto signal_parameters = ugsdr::SignalParametersBase<float>(SIGNAL_DATA_PATH + 
+			auto signal_parameters = ugsdr::SignalParametersBase<typename TestFixture::Type>(SIGNAL_DATA_PATH +
 				std::string("GPSdata-DiscreteComponents-fs38_192-if9_55.bin"), 
 				ugsdr::FileType::Real_8, 1575.42e6 + 9.55e6, 38.192e6);
 			auto digital_frontend = ugsdr::DigitalFrontend(
