@@ -23,16 +23,26 @@ jobs:
       with:
         version: latest
         
+    - uses: actions/cache@v2
+      id: vcpkg-cache
+      with:
+        path: vcpkg
+        key: ${{ runner.os }}-vcpkg
+        
     - name: Get vcpkg
+      if: steps.vcpkg-cache.outputs.cache-hit != 'true'
       run: git clone https://github.com/microsoft/vcpkg.git --depth 1
 
     - name: Bootstrap vcpkg
+      if: steps.vcpkg-cache.outputs.cache-hit != 'true'
       run: ./vcpkg/bootstrap-vcpkg.sh
 
     - name: Integrate vcpkg
+      if: steps.vcpkg-cache.outputs.cache-hit != 'true'
       run: ./vcpkg/vcpkg integrate install
       
     - name: Install dependencies
+      if: steps.vcpkg-cache.outputs.cache-hit != 'true'
       run: ./vcpkg/vcpkg install boost-iostreams boost-timer boost-system gtest benchmark fftw3[threads] tbb
       
     - name: Install IPP
