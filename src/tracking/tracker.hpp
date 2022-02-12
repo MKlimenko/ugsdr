@@ -25,7 +25,7 @@
 #include <vector>
 
 namespace ugsdr {
-	template <typename UnderlyingType>
+	template <ChannelConfigConcept ChConfig, typename UnderlyingType>
 	struct Codes final {
 	private:
 		using UpsamplerType = Upsampler<SequentialUpsampler>;
@@ -37,7 +37,7 @@ namespace ugsdr {
 		MapType codes;
 
 		template <Signal signal>
-		void FillCodesImpl(const DigitalFrontend<UnderlyingType>& digital_frontend) {
+		void FillCodesImpl(const DigitalFrontend<ChConfig, UnderlyingType>& digital_frontend) {
 			if (!digital_frontend.HasSignal(signal))
 				return;
 
@@ -51,13 +51,13 @@ namespace ugsdr {
 		}
 
 		template <Signal signal, Signal ... signals>
-		void FillCodes(const DigitalFrontend<UnderlyingType>& digital_frontend) {
+		void FillCodes(const DigitalFrontend<ChConfig, UnderlyingType>& digital_frontend) {
 			FillCodesImpl<signal>(digital_frontend);
 			if constexpr(sizeof...(signals) != 0)
 				FillCodes<signals...>(digital_frontend);
 		}
 
-		Codes(const DigitalFrontend<UnderlyingType>& digital_frontend) {
+		Codes(const DigitalFrontend<ChConfig, UnderlyingType>& digital_frontend) {
 			FillCodes<
 				Signal::GpsCoarseAcquisition_L1,
 				Signal::Gps_L2CM,
@@ -95,12 +95,12 @@ namespace ugsdr {
 		}
 	};
 
-	template <typename UnderlyingType>
+	template <ChannelConfigConcept ChConfig, typename UnderlyingType>
 	class Tracker final {
-		DigitalFrontend<UnderlyingType>& digital_frontend;
+		DigitalFrontend<ChConfig, UnderlyingType>& digital_frontend;
 		const std::vector<AcquisitionResult<UnderlyingType>>& acquisition_results;
 
-		Codes<UnderlyingType> codes;
+		Codes<ChConfig, UnderlyingType> codes;
 		std::vector<TrackingParameters<UnderlyingType>> tracking_parameters;
 
 #ifdef HAS_IPP
@@ -177,7 +177,7 @@ namespace ugsdr {
 		}
 		
 	public:
-		Tracker(DigitalFrontend<UnderlyingType>& dfe, 
+		Tracker(DigitalFrontend<ChConfig, UnderlyingType>& dfe, 
 			const std::vector<AcquisitionResult<UnderlyingType>>& acquisition_dst) :	digital_frontend(dfe), acquisition_results(acquisition_dst),
 																						codes(digital_frontend) {
 			InitTrackingParameters();

@@ -3,9 +3,6 @@
 This is a little pet project I've been working on during weekends and after-work hours, designed to be a research testbench for GNSS (Global Navigation Satellite Systems) software-defined receivers. Currently, it consists of a post-processing receiver (IF- or RF-sampled data processing from correlators to positioning), benchmark subproject and some tests.
 
 ---
-UPD: This project is on temporary hiatus due to my new work as an AI algorithm engineer. I hope to come back to it once I have more time to spare.
----
----
 
 - [Universal GNSS Software-defined Receiver (UGSDR)](#universal-gnss-software-defined-receiver-ugsdr)
   - [Tracking table](#tracking-table)

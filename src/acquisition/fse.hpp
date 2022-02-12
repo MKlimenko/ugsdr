@@ -79,23 +79,24 @@ namespace ugsdr {
 	>;
 
 	template <typename T>
-	constexpr bool IsConfig(T val) {
+	constexpr bool IsFseConfig(T val) {
 		return false;
 	}
 	template <typename ... Args>
-	constexpr bool IsConfig(FseConfig<Args...> val) {
+	constexpr bool IsFseConfig(FseConfig<Args...> val) {
 		return true;
 	}
 	template <typename T>
-	concept FseConfigConcept = IsConfig(T{});
+	concept FseConfigConcept = IsFseConfig(T{});
 
-
-	template <FseConfigConcept Config = DefaultFseConfig, typename UnderlyingType = float>
+	template <FseConfigConcept Config = DefaultFseConfig,
+				ChannelConfigConcept ChConfig = DefaultChannelConfig,
+				typename UnderlyingType = float>
 	class FastSearchEngineBase final {
 	private:
 		constexpr static std::size_t ms_to_process = 4;
 
-		DigitalFrontend<UnderlyingType>& digital_frontend;
+		DigitalFrontend<ChConfig, UnderlyingType>& digital_frontend;
 		double doppler_range = 5e3;
 		double doppler_step = 20;
 		std::vector<Sv> gps_sv;
@@ -398,7 +399,7 @@ namespace ugsdr {
 		}
 		
 	public:
-		FastSearchEngineBase(DigitalFrontend<UnderlyingType>& dfe, double range, double step) :
+		FastSearchEngineBase(DigitalFrontend<ChConfig, UnderlyingType>& dfe, double range, double step) :
 																														digital_frontend(dfe),
 																														doppler_range(range),
 																														doppler_step(step) {
@@ -454,5 +455,5 @@ namespace ugsdr {
 		}
 	};
 
-	using FastSearchEngine = FastSearchEngineBase<DefaultFseConfig, float>;
+	using FastSearchEngine = FastSearchEngineBase<DefaultFseConfig, DefaultChannelConfig, float>;
 }

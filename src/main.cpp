@@ -43,13 +43,13 @@ void GenerateSignals(CSignalsViewer * sv) {
 #if 1
 	auto pre = std::chrono::system_clock::now();
 	auto tracker = ugsdr::Tracker(digital_frontend, acquisition_results);
-	tracker.Track(180000/3 + 0 * signal_parameters.GetNumberOfEpochs());
+	tracker.Track(signal_parameters.GetNumberOfEpochs());
 	tracker.Plot();
 	auto post = std::chrono::system_clock::now();
 	ugsdr::Save("tracking_results_cache", tracker.GetTrackingParameters());
 
 	std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(post - pre).count() << std::endl;
-	std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(post - pre).count() / static_cast<double>(180000 + 0 * signal_parameters.GetNumberOfEpochs()) * 100.0 << std::endl;
+	std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(post - pre).count() / static_cast<double>(signal_parameters.GetNumberOfEpochs()) * 100.0 << std::endl;
 
 	auto measurement_engine = ugsdr::MeasurementEngine(tracker.GetTrackingParameters());
 	measurement_engine.WriteRinex(1000);

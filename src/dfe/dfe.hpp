@@ -13,6 +13,39 @@
 #include <vector>
 
 namespace ugsdr {
+	template <
+		typename MixerT,
+		typename ResamplerT
+	>
+	struct ChannelConfig {
+		using MixerType = MixerT;
+		using ResamplerType = ResamplerT;
+
+		static_assert(std::is_base_of_v<Mixer<MixerType>, MixerType>, "Incorrect mixer provided, expected ugsdr::Mixer<T>");
+		static_assert(std::is_base_of_v<Resampler<ResamplerType>, ResamplerType>, "Incorrect resampler provided, expected ugsdr::Resampler<T>");
+	};
+
+	using DefaultChannelConfig = ChannelConfig <
+#ifdef HAS_IPP
+		IppMixer,
+		IppResampler
+#else
+		TableMixer,
+		SequentialResampler
+#endif
+	>;
+
+	template <typename T>
+	constexpr bool IsChannelConfig(T val) {
+		return false;
+	}
+	template <typename ... Args>
+	constexpr bool IsChannelConfig(ChannelConfig<Args...> val) {
+		return true;
+	}
+	template <typename T>
+	concept ChannelConfigConcept = IsChannelConfig(T{});
+
 	template <typename UnderlyingType>
 	struct SignalEpoch final {
 	private:
@@ -48,7 +81,7 @@ namespace ugsdr {
 		}
 	};
 
-	template <typename UnderlyingType>
+	template <ChannelConfigConcept Config = DefaultChannelConfig, typename UnderlyingType = float>
 	struct Channel final {
 	public:
 		std::vector<Signal> subbands;
@@ -58,13 +91,8 @@ namespace ugsdr {
 		
 	private:
 		SignalParametersBase<UnderlyingType>& signal_parameters;
-#ifdef HAS_IPP
-		IppMixer mixer;
-		IppResampler resampler;
-#else
-		TableMixer mixer;
-		SequentialResampler resampler;
-#endif
+		typename Config::MixerType mixer;
+		typename Config::ResamplerType resampler;
 
 		static auto CentralFrequency(Signal signal) {
 			switch (signal) {
@@ -149,19 +177,19 @@ namespace ugsdr {
 		}
 	};
 
-	template <typename UnderlyingType>
+	template <ChannelConfigConcept Config = DefaultChannelConfig, typename UnderlyingType = float>
 	class DigitalFrontend final {		
 	public:
-		DigitalFrontend(std::vector<Channel<UnderlyingType>> input_channels) : channels(std::move(input_channels)) {}
+		DigitalFrontend(std::vector<Channel<Config, UnderlyingType>> input_channels) : channels(std::move(input_channels)) {}
 
-		DigitalFrontend(Channel<UnderlyingType> channel) {
+		DigitalFrontend(Channel<Config, UnderlyingType> channel) {
 			channels.push_back(channel);
 			signal_epoch.Initialize(channels.back().subbands, static_cast<std::size_t>(channels.back().sampling_rate / 1e3));
 			
 		}
 
 		template <typename ... Args>
-		DigitalFrontend(Channel<UnderlyingType> channel, Args ... rem) : DigitalFrontend(rem...) {
+		DigitalFrontend(Channel<Config, UnderlyingType> channel, Args ... rem) : DigitalFrontend(rem...) {
 			channels.push_back(channel);
 			signal_epoch.Initialize(channels.back().subbands, static_cast<std::size_t>(channels.back().sampling_rate / 1e3));
 		}
@@ -173,7 +201,7 @@ namespace ugsdr {
 		}
 		
 		auto& GetSeveralEpochs(std::size_t epoch_offset, std::size_t epoch_cnt) {
-			std::for_each(std::execution::par_unseq, channels.begin(), channels.end(), [epoch_offset, epoch_cnt, this](Channel<UnderlyingType>& channel) {
+			std::for_each(std::execution::par_unseq, channels.begin(), channels.end(), [epoch_offset, epoch_cnt, this](Channel<Config, UnderlyingType>& channel) {
 				channel.GetSeveralEpochs(epoch_offset, epoch_cnt, signal_epoch);
 			});
 
@@ -205,7 +233,7 @@ namespace ugsdr {
 		}
 
 	private:
-		std::vector<Channel<UnderlyingType>> channels;
+		std::vector<Channel<Config, UnderlyingType>> channels;
 		SignalEpoch<UnderlyingType> signal_epoch;
 		std::size_t current_epoch = 0;
 
@@ -227,8 +255,13 @@ namespace ugsdr {
 		}
 	};
 
+	template <ChannelConfigConcept Config, typename T, typename ... Args>
+	auto MakeChannel(SignalParametersBase<T>& signal_parameters, Args&&...args) {
+		return Channel<Config, T>(signal_parameters, args...);
+	}
+
 	template <typename T, typename ... Args>
 	auto MakeChannel(SignalParametersBase<T>& signal_parameters, Args&&...args) {
-		return Channel<T>(signal_parameters, args...);
+		return Channel<DefaultChannelConfig, T>(signal_parameters, args...);
 	}
 }

@@ -156,11 +156,11 @@ namespace ugsdr {
 		std::set<ugsdr::Signal> available_signals;
 		std::size_t week = 0;
 
-		template <typename T>
-		MeasurementEngine(const ugsdr::Tracker<T>& tracker) : MeasurementEngine(tracker.GetTrackingParameters()) {}
+		template <ChannelConfigConcept ChConfig, typename T>
+		MeasurementEngine(const Tracker<ChConfig, T>& tracker) : MeasurementEngine(tracker.GetTrackingParameters()) {}
 
 		template <typename T>
-		MeasurementEngine(const std::vector<ugsdr::TrackingParameters<T>>& tracking_results) : nav(new nav_t(), FreeNav) {
+		MeasurementEngine(const std::vector<TrackingParameters<T>>& tracking_results) : nav(new nav_t(), FreeNav) {
 			if (tracking_results.empty())
 				throw std::runtime_error("Empty tracking results");
 

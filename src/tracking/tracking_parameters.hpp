@@ -18,7 +18,7 @@ namespace ugsdr {
 		constexpr static inline double PLL_NOISE_BANDWIDTH = 25.0;
 		constexpr static inline double FLL_NOISE_BANDWIDTH = 250.0;
 		constexpr static inline double SUMMATION_INTERVAL_PLL = 0.001;
-		constexpr static inline double K1_PLL = SUMMATION_INTERVAL_PLL * ((PLL_NOISE_BANDWIDTH / 0.53) * (PLL_NOISE_BANDWIDTH / 0.53)) + 1.414 * (PLL_NOISE_BANDWIDTH / 0.53);
+		constexpr static inline double K1_PLL = SUMMATION_INTERVAL_PLL * (PLL_NOISE_BANDWIDTH / 0.53 * (PLL_NOISE_BANDWIDTH / 0.53)) + 1.414 * (PLL_NOISE_BANDWIDTH / 0.53);
 		constexpr static inline double K2_PLL = 1.414 * (PLL_NOISE_BANDWIDTH / 0.53);
 		constexpr static inline double K3_PLL = SUMMATION_INTERVAL_PLL * (FLL_NOISE_BANDWIDTH / 0.25);
 
@@ -90,8 +90,10 @@ namespace ugsdr {
 		double code_error = 0.0;
 
 		TrackingParameters() = default;
-		TrackingParameters(const AcquisitionResult<T>& acquisition, DigitalFrontend<T>& digital_frontend) : TrackingParameters(acquisition, digital_frontend, acquisition.GetAcquiredSignalType()) {}
-		TrackingParameters(const AcquisitionResult<T>& acquisition, DigitalFrontend<T>& digital_frontend, Signal signal) :
+		template <ChannelConfigConcept ChConfig>
+		TrackingParameters(const AcquisitionResult<T>& acquisition, DigitalFrontend<ChConfig, T>& digital_frontend) : TrackingParameters(acquisition, digital_frontend, acquisition.GetAcquiredSignalType()) {}
+		template <ChannelConfigConcept ChConfig>
+		TrackingParameters(const AcquisitionResult<T>& acquisition, DigitalFrontend<ChConfig, T>& digital_frontend, Signal signal) :
 			sv(acquisition.sv_number),
 			code_phase(acquisition.code_offset),
 			carrier_frequency(acquisition.doppler),
@@ -162,7 +164,8 @@ namespace ugsdr {
 			return GetCodePeriod(sv.signal);
 		}
 
-		void AdaptAcquisitionData(const AcquisitionResult<T>& acquisition, DigitalFrontend<T>& digital_frontend) {
+		template <ChannelConfigConcept ChConfig>
+		void AdaptAcquisitionData(const AcquisitionResult<T>& acquisition, DigitalFrontend<ChConfig, T>& digital_frontend) {
 			code_period = GetCodePeriod(sv.signal);
 
 			switch (sv.signal) {
@@ -272,8 +275,8 @@ namespace ugsdr {
 			return std::make_pair(*it, code_offset);
 		}
 
-		template <Signal signal>
-		static void AddSignalImpl(const AcquisitionResult<T>& acquisition, DigitalFrontend<T>& digital_frontend, std::vector<TrackingParameters<T>>& dst) {
+		template <Signal signal, ChannelConfigConcept ChConfig>
+		static void AddSignalImpl(const AcquisitionResult<T>& acquisition, DigitalFrontend<ChConfig, T>& digital_frontend, std::vector<TrackingParameters<T>>& dst) {
 			if (!digital_frontend.HasSignal(signal))
 				return;
 
@@ -308,15 +311,16 @@ namespace ugsdr {
 			}
 		}
 
-		template <Signal signal, Signal ... signals>
-		static void AddSignal(const AcquisitionResult<T>& acquisition, DigitalFrontend<T>& digital_frontend, std::vector<TrackingParameters<T>>& dst) {
+		template <ChannelConfigConcept ChConfig, Signal signal, Signal ... signals>
+		static void AddSignal(const AcquisitionResult<T>& acquisition, DigitalFrontend<ChConfig, T>& digital_frontend, std::vector<TrackingParameters<T>>& dst) {
 			AddSignalImpl<signal>(acquisition, digital_frontend, dst);
 			if constexpr (sizeof...(signals) != 0)
-				AddSignal<signals...>(acquisition, digital_frontend, dst);
+				AddSignal<ChConfig, signals...>(acquisition, digital_frontend, dst);
 		}
 
-		static void AddGps(const AcquisitionResult<T>& acquisition, DigitalFrontend<T>& digital_frontend, std::vector<TrackingParameters<T>>& dst) {
-			AddSignal<
+		template <ChannelConfigConcept ChConfig>
+		static void AddGps(const AcquisitionResult<T>& acquisition, DigitalFrontend<ChConfig, T>& digital_frontend, std::vector<TrackingParameters<T>>& dst) {
+			AddSignal<ChConfig,
 				Signal::GpsCoarseAcquisition_L1,
 				Signal::Gps_L2CM,
 				Signal::Gps_L5I,
@@ -324,15 +328,17 @@ namespace ugsdr {
 			>(acquisition, digital_frontend, dst);
 		}
 
-		static void AddGlonass(const AcquisitionResult<T>& acquisition, DigitalFrontend<T>& digital_frontend, std::vector<TrackingParameters<T>>& dst) {
-			AddSignal<
+		template <ChannelConfigConcept ChConfig>
+		static void AddGlonass(const AcquisitionResult<T>& acquisition, DigitalFrontend<ChConfig, T>& digital_frontend, std::vector<TrackingParameters<T>>& dst) {
+			AddSignal<ChConfig,
 				Signal::GlonassCivilFdma_L1, 
 				Signal::GlonassCivilFdma_L2
 			>(acquisition, digital_frontend, dst);
 		}
-		
-		static void AddGalileo(const AcquisitionResult<T>& acquisition, DigitalFrontend<T>& digital_frontend, std::vector<TrackingParameters<T>>& dst) {
-			AddSignal<
+
+		template <ChannelConfigConcept ChConfig>
+		static void AddGalileo(const AcquisitionResult<T>& acquisition, DigitalFrontend<ChConfig, T>& digital_frontend, std::vector<TrackingParameters<T>>& dst) {
+			AddSignal<ChConfig,
 				Signal::Galileo_E1b,
 				Signal::Galileo_E1c, 
 				Signal::Galileo_E5aI,
@@ -344,31 +350,39 @@ namespace ugsdr {
 			>(acquisition, digital_frontend, dst);
 		}
 
-		static void AddBeiDou(const AcquisitionResult<T>& acquisition, DigitalFrontend<T>& digital_frontend, std::vector<TrackingParameters<T>>& dst) {
+
+		template <ChannelConfigConcept ChConfig>
+		static void AddBeiDou(const AcquisitionResult<T>& acquisition, DigitalFrontend<ChConfig, T>& digital_frontend, std::vector<TrackingParameters<T>>& dst) {
 			dst.emplace_back(acquisition, digital_frontend);
-			//AddSignal<
+			//AddSignal<ChConfig,
 			//	Signal::BeiDou_B2I
 			//>(acquisition, digital_frontend, dst);
 		}
 
-		static void AddNavIC(const AcquisitionResult<T>& acquisition, DigitalFrontend<T>& digital_frontend, std::vector<TrackingParameters<T>>& dst) {
+
+		template <ChannelConfigConcept ChConfig>
+		static void AddNavIC(const AcquisitionResult<T>& acquisition, DigitalFrontend<ChConfig, T>& digital_frontend, std::vector<TrackingParameters<T>>& dst) {
 			dst.emplace_back(acquisition, digital_frontend);
-			//AddSignal<
+			//AddSignal<ChConfig,
 			//	Signal::NavIC_S			// wish me luck finding the S-band dataset
 			//>(acquisition, digital_frontend, dst);
 		}
 
-		static void AddSbas(const AcquisitionResult<T>& acquisition, DigitalFrontend<T>& digital_frontend, std::vector<TrackingParameters<T>>& dst) {
-			AddSignal<
+
+		template <ChannelConfigConcept ChConfig>
+		static void AddSbas(const AcquisitionResult<T>& acquisition, DigitalFrontend<ChConfig, T>& digital_frontend, std::vector<TrackingParameters<T>>& dst) {
+			AddSignal<ChConfig,
 				Signal::SbasCoarseAcquisition_L1,
 				Signal::Sbas_L5I
 			>(acquisition, digital_frontend, dst);
 			dst.emplace_back(acquisition, digital_frontend);
 		}
 
-		static void AddQzss(const AcquisitionResult<T>& acquisition, DigitalFrontend<T>& digital_frontend, std::vector<TrackingParameters<T>>& dst) {
+
+		template <ChannelConfigConcept ChConfig>
+		static void AddQzss(const AcquisitionResult<T>& acquisition, DigitalFrontend<ChConfig, T>& digital_frontend, std::vector<TrackingParameters<T>>& dst) {
 			dst.emplace_back(acquisition, digital_frontend); 
-			AddSignal<
+			AddSignal<ChConfig,
 				Signal::Qzss_L1S,
 				Signal::Qzss_L2CM,
 				Signal::Qzss_L5I,
@@ -376,27 +390,28 @@ namespace ugsdr {
 			>(acquisition, digital_frontend, dst);
 		}
 
-		static void FillTrackingParameters(const AcquisitionResult<T>& acquisition, DigitalFrontend<T>& digital_frontend, std::vector<TrackingParameters<T>>& dst) {
+		template <ChannelConfigConcept ChConfig>
+		static void FillTrackingParameters(const AcquisitionResult<T>& acquisition, DigitalFrontend<ChConfig, T>& digital_frontend, std::vector<TrackingParameters<T>>& dst) {
 			switch (acquisition.sv_number.system) {
-			case(System::Gps):
+			case System::Gps:
 				AddGps(acquisition, digital_frontend, dst);
 				break;
-			case(System::Glonass):
+			case System::Glonass:
 				AddGlonass(acquisition, digital_frontend, dst);
 				break;
-			case(System::Galileo):
+			case System::Galileo:
 				AddGalileo(acquisition, digital_frontend, dst);
 				break;
-			case(System::BeiDou):
+			case System::BeiDou:
 				AddBeiDou(acquisition, digital_frontend, dst);
 				break;
-			case(System::NavIC):
+			case System::NavIC:
 				AddNavIC(acquisition, digital_frontend, dst);
 				break;
-			case(System::Sbas):
+			case System::Sbas:
 				AddSbas(acquisition, digital_frontend, dst);
 				break;
-			case(System::Qzss):
+			case System::Qzss:
 				AddQzss(acquisition, digital_frontend, dst);
 				break;
 			default:
