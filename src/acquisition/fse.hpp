@@ -110,27 +110,7 @@ namespace ugsdr {
 		constexpr static inline double acquisition_sampling_rate_L5 = 20.46e6;
 
 		std::mutex m;
-
-#ifdef HAS_IPP
-		using MixerType = IppMixer;
-		using UpsamplerType = SequentialUpsampler;
-		using MatchedFilterType = IppMatchedFilter;
-		using AbsType = IppAbs;
-		using ReshapeAndSumType = IppReshapeAndSum;
-		using MaxIndexType = IppMaxIndex;
-		using MeanStdDevType = IppMeanStdDev;
-		using ResamplerType = IppResampler;
-#else
-		using MixerType = TableMixer;
-		using UpsamplerType = SequentialUpsampler;
-		using MatchedFilterType = SequentialMatchedFilter;
-		using AbsType = SequentialAbs;
-		using ReshapeAndSumType = SequentialReshapeAndSum;
-		using MaxIndexType = SequentialMaxIndex;
-		using MeanStdDevType = SequentialMeanStdDev;
-		using ResamplerType = SequentialResampler;
-#endif
-
+		
 		void InitSatellites() {
 			gps_sv.resize(ugsdr::gps_sv_count);
 			for(std::size_t i = 0; i < gps_sv.size(); ++i) {
@@ -181,17 +161,17 @@ namespace ugsdr {
 			const auto samples_per_ms = static_cast<std::size_t>(new_sampling_rate / 1e3);
 			
 			if constexpr (!reshape) {
-				return AbsType::Transform(signal);
+				return Config::AbsType::Transform(signal);
 			}
 			else {
 				if constexpr (coherent) {
-					const auto abs_value = AbsType::Transform(signal);
-					auto one_ms_peak = ReshapeAndSumType::Transform(abs_value, samples_per_ms);
+					const auto abs_value = Config::AbsType::Transform(signal);
+					auto one_ms_peak = Config::ReshapeAndSumType::Transform(abs_value, samples_per_ms);
 					return one_ms_peak;
 				}
 				else {
-					const auto one_ms_peak = ReshapeAndSumType::Transform(signal, samples_per_ms);
-					const auto abs_peak = AbsType::Transform(one_ms_peak);
+					const auto one_ms_peak = Config::ReshapeAndSumType::Transform(signal, samples_per_ms);
+					const auto abs_peak = Config::AbsType::Transform(one_ms_peak);
 					return abs_peak;
 				}
 			}
@@ -224,17 +204,17 @@ namespace ugsdr {
 			AcquisitionResult<UnderlyingType> tmp, max_result;
 			auto ratio = signal_sampling_rate / new_sampling_rate;
 
-			auto code_spectrum = MatchedFilterType::PrepareCodeSpectrum(code);
+			auto code_spectrum = Config::MatchedFilterType::PrepareCodeSpectrum(code);
 			
 			for (double doppler_frequency = -doppler_range;
 						doppler_frequency <= doppler_range;
 						doppler_frequency += doppler_step) {
-				const auto translated_signal = MixerType::Translate(signal, new_sampling_rate, -doppler_frequency);
-				auto matched_output = MatchedFilterType::FilterOptimized(translated_signal, code_spectrum);
+				const auto translated_signal = Config::MixerType::Translate(signal, new_sampling_rate, -doppler_frequency);
+				auto matched_output = Config::MatchedFilterType::FilterOptimized(translated_signal, code_spectrum);
 				auto peak_one_ms = GetOneMsPeak<reshape, coherent>(matched_output, new_sampling_rate);
 				
-				auto max_index = MaxIndexType::Transform(peak_one_ms);
-				auto mean_sigma = MeanStdDevType::Calculate(peak_one_ms);
+				auto max_index = Config::MaxIndexType::Transform(peak_one_ms);
+				auto mean_sigma = Config::MeanStdDevType::Calculate(peak_one_ms);
 				tmp.level = max_index.value;
 				tmp.sigma = mean_sigma.sigma + mean_sigma.mean;
 				tmp.code_offset = ratio * max_index.index;
@@ -260,13 +240,13 @@ namespace ugsdr {
 			
 			auto intermediate_frequency = -(central_frequency - 1575.42e6);
 
-			const auto translated_signal = MixerType::Translate(signal, signal_sampling_rate, -intermediate_frequency);
+			const auto translated_signal = Config::MixerType::Translate(signal, signal_sampling_rate, -intermediate_frequency);
 			auto new_sampling_rate = AdjustSamplingRate(signal_sampling_rate);
-			auto downsampled_signal = ResamplerType::Transform(translated_signal, static_cast<std::size_t>(new_sampling_rate),
+			auto downsampled_signal = Config::ResamplerType::Transform(translated_signal, static_cast<std::size_t>(new_sampling_rate),
 				static_cast<std::size_t>(signal_sampling_rate));
 
 			std::for_each(std::execution::par_unseq, gps_sv.begin(), gps_sv.end(), [&](auto sv) {
-				const auto code = UpsamplerType::Transform(RepeatCodeNTimes(PrnGenerator<Signal::GpsCoarseAcquisition_L1>::Get<UnderlyingType>(sv.id), ms_to_process),
+				const auto code = Config::UpsamplerType::Transform(RepeatCodeNTimes(PrnGenerator<Signal::GpsCoarseAcquisition_L1>::Get<UnderlyingType>(sv.id), ms_to_process),
 					static_cast<std::size_t>(ms_to_process * new_sampling_rate / 1e3));
 
 				ProcessBpsk(downsampled_signal, code, sv, signal_sampling_rate, new_sampling_rate, intermediate_frequency, dst);
@@ -279,13 +259,13 @@ namespace ugsdr {
 			auto central_frequency = digital_frontend.GetCentralFrequency(Signal::GlonassCivilFdma_L1);
 			auto new_sampling_rate = AdjustSamplingRate(signal_sampling_rate);
 
-			const auto code = UpsamplerType::Transform(RepeatCodeNTimes(PrnGenerator<Signal::GlonassCivilFdma_L1>::Get<UnderlyingType>(0), ms_to_process),
+			const auto code = Config::UpsamplerType::Transform(RepeatCodeNTimes(PrnGenerator<Signal::GlonassCivilFdma_L1>::Get<UnderlyingType>(0), ms_to_process),
 				static_cast<std::size_t>(ms_to_process * new_sampling_rate / 1e3));
 
 			std::for_each(std::execution::par_unseq, gln_sv.begin(), gln_sv.end(), [&](Sv litera_number) {
 				auto intermediate_frequency = -(central_frequency - (1602e6 + static_cast<std::int32_t>(litera_number) * 0.5625e6));
-				const auto translated_signal = MixerType::Translate(signal, signal_sampling_rate, -intermediate_frequency);
-				auto downsampled_signal = ResamplerType::Transform(translated_signal, static_cast<std::size_t>(new_sampling_rate),
+				const auto translated_signal = Config::MixerType::Translate(signal, signal_sampling_rate, -intermediate_frequency);
+				auto downsampled_signal = Config::ResamplerType::Transform(translated_signal, static_cast<std::size_t>(new_sampling_rate),
 					static_cast<std::size_t>(signal_sampling_rate));
 
 				ProcessBpsk(downsampled_signal, code, litera_number, signal_sampling_rate, new_sampling_rate, intermediate_frequency, dst);
@@ -299,14 +279,14 @@ namespace ugsdr {
 
 			auto intermediate_frequency = -(central_frequency - 1575.42e6);
 
-			const auto translated_signal = MixerType::Translate(signal, signal_sampling_rate, -intermediate_frequency);
+			const auto translated_signal = Config::MixerType::Translate(signal, signal_sampling_rate, -intermediate_frequency);
 			auto new_sampling_rate = AdjustSamplingRate(signal_sampling_rate);
-			auto downsampled_signal = ResamplerType::Transform(translated_signal, static_cast<std::size_t>(new_sampling_rate),
+			auto downsampled_signal = Config::ResamplerType::Transform(translated_signal, static_cast<std::size_t>(new_sampling_rate),
 				static_cast<std::size_t>(signal_sampling_rate));
 
 			std::for_each(std::execution::par_unseq, galileo_sv.begin(), galileo_sv.end(), [&](auto sv) {
 				auto samples_per_ms = static_cast<std::size_t>(new_sampling_rate / 1e3);
-				const auto ref_code = UpsamplerType::Transform(PrnGenerator<Signal::Galileo_E1b>::Get<UnderlyingType>(sv.id),
+				const auto ref_code = Config::UpsamplerType::Transform(PrnGenerator<Signal::Galileo_E1b>::Get<UnderlyingType>(sv.id),
 					ms_to_process * samples_per_ms);
 	
 				std::vector<AcquisitionResult<UnderlyingType>> temporary_dst;
@@ -341,13 +321,13 @@ namespace ugsdr {
 
 			auto intermediate_frequency = -(central_frequency - 1561.098e6);
 
-			const auto translated_signal = MixerType::Translate(signal, signal_sampling_rate, -intermediate_frequency);
+			const auto translated_signal = Config::MixerType::Translate(signal, signal_sampling_rate, -intermediate_frequency);
 			auto new_sampling_rate = AdjustSamplingRate(signal_sampling_rate);
-			auto downsampled_signal = ResamplerType::Transform(translated_signal, static_cast<std::size_t>(new_sampling_rate),
+			auto downsampled_signal = Config::ResamplerType::Transform(translated_signal, static_cast<std::size_t>(new_sampling_rate),
 				static_cast<std::size_t>(signal_sampling_rate));
 
 			std::for_each(std::execution::par_unseq, beidou_sv.begin(), beidou_sv.end(), [&](auto sv) {
-				const auto code = UpsamplerType::Transform(RepeatCodeNTimes(PrnGenerator<Signal::BeiDou_B1I>::Get<UnderlyingType>(sv.id), ms_to_process),
+				const auto code = Config::UpsamplerType::Transform(RepeatCodeNTimes(PrnGenerator<Signal::BeiDou_B1I>::Get<UnderlyingType>(sv.id), ms_to_process),
 					static_cast<std::size_t>(ms_to_process * new_sampling_rate / 1e3));
 
 				ProcessBpsk(downsampled_signal, code, sv, signal_sampling_rate, new_sampling_rate, intermediate_frequency, dst);
@@ -361,13 +341,13 @@ namespace ugsdr {
 
 			auto intermediate_frequency = -(central_frequency - 1176.45e6);
 
-			const auto translated_signal = MixerType::Translate(signal, signal_sampling_rate, -intermediate_frequency);
+			const auto translated_signal = Config::MixerType::Translate(signal, signal_sampling_rate, -intermediate_frequency);
 			auto new_sampling_rate = AdjustSamplingRate(signal_sampling_rate);
-			auto downsampled_signal = ResamplerType::Transform(translated_signal, static_cast<std::size_t>(new_sampling_rate),
+			auto downsampled_signal = Config::ResamplerType::Transform(translated_signal, static_cast<std::size_t>(new_sampling_rate),
 				static_cast<std::size_t>(signal_sampling_rate));
 
 			std::for_each(std::execution::par_unseq, navic_sv.begin(), navic_sv.end(), [&](auto sv) {
-				const auto code = UpsamplerType::Transform(RepeatCodeNTimes(PrnGenerator<Signal::NavIC_L5>::Get<UnderlyingType>(sv.id), ms_to_process),
+				const auto code = Config::UpsamplerType::Transform(RepeatCodeNTimes(PrnGenerator<Signal::NavIC_L5>::Get<UnderlyingType>(sv.id), ms_to_process),
 					static_cast<std::size_t>(ms_to_process * new_sampling_rate / 1e3));
 
 				ProcessBpsk(downsampled_signal, code, sv, signal_sampling_rate, new_sampling_rate, intermediate_frequency, dst);
@@ -381,15 +361,15 @@ namespace ugsdr {
 
 			auto intermediate_frequency = -(central_frequency - 1176.45e6);
 
-			const auto translated_signal = MixerType::Translate(signal, signal_sampling_rate, -intermediate_frequency);
+			const auto translated_signal = Config::MixerType::Translate(signal, signal_sampling_rate, -intermediate_frequency);
 			auto new_sampling_rate = AdjustSamplingRate(signal_sampling_rate, acquisition_sampling_rate_L5);
-			auto downsampled_signal = ResamplerType::Transform(translated_signal, static_cast<std::size_t>(new_sampling_rate),
+			auto downsampled_signal = Config::ResamplerType::Transform(translated_signal, static_cast<std::size_t>(new_sampling_rate),
 				static_cast<std::size_t>(signal_sampling_rate));
 
 			auto sbas_doppler_step = 10.0;
 			std::swap(sbas_doppler_step, doppler_step);
 			std::for_each(std::execution::par_unseq, sbas_sv.begin(), sbas_sv.end(), [&](auto sv) {
-				const auto code = UpsamplerType::Transform(RepeatCodeNTimes(PrnGenerator<Signal::Sbas_L5Q>::Get<UnderlyingType>(sv.id), ms_to_process),
+				const auto code = Config::UpsamplerType::Transform(RepeatCodeNTimes(PrnGenerator<Signal::Sbas_L5Q>::Get<UnderlyingType>(sv.id), ms_to_process),
 					static_cast<std::size_t>(ms_to_process * new_sampling_rate / 1e3));
 
 				ProcessBpsk<true, false>(downsampled_signal, code, sv, signal_sampling_rate, new_sampling_rate, intermediate_frequency, dst);
@@ -404,13 +384,13 @@ namespace ugsdr {
 
 			auto intermediate_frequency = -(central_frequency - 1575.42e6);
 
-			const auto translated_signal = MixerType::Translate(signal, signal_sampling_rate, -intermediate_frequency);
+			const auto translated_signal = Config::MixerType::Translate(signal, signal_sampling_rate, -intermediate_frequency);
 			auto new_sampling_rate = AdjustSamplingRate(signal_sampling_rate);
-			auto downsampled_signal = ResamplerType::Transform(translated_signal, static_cast<std::size_t>(new_sampling_rate),
+			auto downsampled_signal = Config::ResamplerType::Transform(translated_signal, static_cast<std::size_t>(new_sampling_rate),
 				static_cast<std::size_t>(signal_sampling_rate));
 			
 			std::for_each(std::execution::par_unseq, qzss_sv.begin(), qzss_sv.end(), [&](auto sv) {
-				const auto code = UpsamplerType::Transform(RepeatCodeNTimes(PrnGenerator<Signal::QzssCoarseAcquisition_L1>::Get<UnderlyingType>(sv.id), ms_to_process),
+				const auto code = Config::UpsamplerType::Transform(RepeatCodeNTimes(PrnGenerator<Signal::QzssCoarseAcquisition_L1>::Get<UnderlyingType>(sv.id), ms_to_process),
 					static_cast<std::size_t>(ms_to_process * new_sampling_rate / 1e3));
 
 				ProcessBpsk(downsampled_signal, code, sv, signal_sampling_rate, new_sampling_rate, intermediate_frequency, dst);
