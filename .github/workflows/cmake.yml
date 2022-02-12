@@ -26,7 +26,7 @@ jobs:
     - uses: actions/cache@v2
       id: positioning_signal_cache
       with:
-        path: ${{github.workspace}}/data
+        path: ${{github.workspace}}/data/GPSdata-DiscreteComponents-fs38_192-if9_55.bin
         key: ${{ runner.os }}-positioning_signal_cache
         
     - uses: actions/cache@v2
