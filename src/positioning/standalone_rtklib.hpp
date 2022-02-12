@@ -31,7 +31,7 @@ namespace ugsdr {
 			}
 
 
-			return 0;
+			return std::make_tuple(sol->rr[0], sol->rr[1], sol->rr[2], sol->dtr[0]);
 		}
 
 	public:

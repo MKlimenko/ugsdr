@@ -51,6 +51,12 @@ if (${OpenMP_FOUND})
 endif()
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 20)
+file(DOWNLOAD 
+		https://www.dropbox.com/s/gn44cfbrqjnkhfw/GPSdata-DiscreteComponents-fs38_192-if9_55.bin
+		${CMAKE_CURRENT_LIST_DIR}/../data/GPSdata-DiscreteComponents-fs38_192-if9_55.bin 
+		SHOW_PROGRESS
+		EXPECTED_MD5 f5b0f32d0f97b23060d62ea3b5dc86b2
+)
 
 enable_testing()
 add_test(NAME ${PROJECT_NAME} COMMAND ${PROJECT_NAME})
