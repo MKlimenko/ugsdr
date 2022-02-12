@@ -34,6 +34,12 @@
 #include "../src/dfe/dfe.hpp"
 #include "../src/acquisition/fse.hpp"
 
+#include "../src/tracking/tracker.hpp"
+
+#include "../src/measurements/measurement_engine.hpp"
+
+#include "../src/positioning/standalone_rtklib.hpp"
+
 #include <type_traits>
 
 namespace basic_tests {
@@ -632,4 +638,45 @@ namespace integration_tests {
 			TestAcquisition<typename TestFixture::Type>(ugsdr::FileType::Nt1065GrabberSecond, ugsdr::Signal::GlonassCivilFdma_L1);
 		}
 	}
+
+	namespace PositioningTests {
+		template <typename T>
+		class PositioningTest : public testing::Test {
+		public:
+			using Type = T;
+		};
+		using PositioningTypes = ::testing::Types<float, double>;
+		TYPED_TEST_SUITE(PositioningTest, PositioningTypes);
+
+		
+		TYPED_TEST(PositioningTest, GPSdata_DiscreteComponents) {
+			auto signal_parameters = ugsdr::SignalParametersBase<float>(SIGNAL_DATA_PATH + 
+				std::string("GPSdata-DiscreteComponents-fs38_192-if9_55.bin"), 
+				ugsdr::FileType::Real_8, 1575.42e6 + 9.55e6, 38.192e6);
+			auto digital_frontend = ugsdr::DigitalFrontend(
+				MakeChannel(signal_parameters, std::vector{ ugsdr::Signal::GpsCoarseAcquisition_L1 }, signal_parameters.GetSamplingRate())
+			);
+			auto fse = ugsdr::FastSearchEngineBase(digital_frontend, 5e3, 200);
+			auto acquisition_results = fse.Process();
+			ASSERT_FALSE(acquisition_results.empty());
+			auto tracker = ugsdr::Tracker(digital_frontend, acquisition_results);
+			tracker.Track(signal_parameters.GetNumberOfEpochs());
+
+			auto measurement_engine = ugsdr::MeasurementEngine(tracker.GetTrackingParameters());
+			auto positioning_engine = ugsdr::StandaloneRtklib(measurement_engine);
+
+			auto reference_position = std::vector{ -1288157, -4720787, 4079721};
+			auto pos_and_time = positioning_engine.EstimatePosition(0);
+			auto pos = std::vector{ std::get<0>(pos_and_time), std::get<1>(pos_and_time), std::get<2>(pos_and_time)};
+
+			for (std::size_t i = 0; i < pos.size(); ++i)
+				pos[i] -= reference_position[i];
+			auto offset = std::accumulate(pos.begin(), pos.end(), 0.0, [](const auto& sum, const auto& val) {
+				return sum + val * val;
+			});
+
+			ASSERT_LE(offset, 5);
+		}
+	}
+
 }
