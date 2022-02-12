@@ -663,7 +663,6 @@ namespace integration_tests {
 			tracker.Track(signal_parameters.GetNumberOfEpochs());
 
 			auto measurement_engine = ugsdr::MeasurementEngine(tracker.GetTrackingParameters());
-			measurement_engine.WriteRinex(1000);
 			auto positioning_engine = ugsdr::StandaloneRtklib(measurement_engine);
 
 			auto reference_position = std::vector{ -1288157, -4720787, 4079721};
