@@ -12,7 +12,61 @@
 #include <span>
 
 namespace ugsdr {
+	template <
+		typename AbsT,
+		typename CorrelatorT,
+		typename MatchedFilterT,
+		typename MixerT,
+		typename ReshapeAndSumT,
+		typename UpsamplerT
+	>
+		struct TrackingParametersConfig {
+		using AbsType = AbsT;
+		using CorrelatorType = CorrelatorT;
+		using MatchedFilterType = MatchedFilterT;
+		using MixerType = MixerT;
+		using ReshapeAndSumType = ReshapeAndSumT;
+		using UpsamplerType = UpsamplerT;
+
+		static_assert(std::is_base_of_v<Abs<AbsType>, AbsType>, "Incorrect abs provided, expected ugsdr::Abs<T>");
+		static_assert(std::is_base_of_v<Correlator<CorrelatorType>, CorrelatorType>, "Incorrect correlator provided, expected ugsdr::Correlator<T>");
+		static_assert(std::is_base_of_v<MatchedFilter<MatchedFilterType>, MatchedFilterType>, "Incorrect matched filter provided, expected ugsdr::MatchedFilter<T>");
+		static_assert(std::is_base_of_v<Mixer<MixerType>, MixerType>, "Incorrect mixer provided, expected ugsdr::Mixer<T>");
+		static_assert(std::is_base_of_v<ReshapeAndSum<ReshapeAndSumType>, ReshapeAndSumType>, "Incorrect reshape_and_sum provided, expected ugsdr::ReshapeAndSum<T>");
+		static_assert(std::is_base_of_v<Upsampler<UpsamplerType>, UpsamplerType>, "Incorrect upsampler provided, expected ugsdr::Upsampler<T>");
+	};
+
+	using DefaultTrackingParametersConfig = TrackingParametersConfig <
+#ifdef HAS_IPP
+		IppAbs,
+		IppCorrelator,
+		IppMatchedFilter,
+		IppMixer,
+		IppReshapeAndSum,
+		SequentialUpsampler
+#else
+		SequentialAbs,
+		SequentialCorrelator,
+		SequentialMatchedFilter,
+		SequentialReshapeAndSum,
+		TableMixer,
+		
+		SequentialUpsampler,
+#endif
+	>;
+
 	template <typename T>
+	constexpr bool IsTrackingParametersConfig(T val) {
+		return false;
+	}
+	template <typename ... Args>
+	constexpr bool IsTrackingParametersConfig(TrackingParametersConfig<Args...> val) {
+		return true;
+	}
+	template <typename T>
+	concept TrackingParametersConfigConcept = IsTrackingParametersConfig(T{});
+
+	template <TrackingParametersConfigConcept Config = DefaultTrackingParametersConfig, typename T = float>
 	struct TrackingParameters final {
 	private:
 		constexpr static inline double PLL_NOISE_BANDWIDTH = 25.0;
@@ -42,20 +96,6 @@ namespace ugsdr {
 				return lhs + rhs;
 			return lhs - rhs;
 		}
-
-#ifdef HAS_IPP
-		using MixerType = IppMixer;
-		using ReshapeAndSumType = IppReshapeAndSum;
-		using AbsType = IppAbs;
-		using MatchedFilterType = IppMatchedFilter;
-		using CorrelatorType = IppCorrelator;
-#else
-		using MixerType = TableMixer;
-		using ReshapeAndSumType = SequentialReshapeAndSum;
-		using AbsType = SequentialAbs;
-		using MatchedFilterType = SequentialMatchedFilter;
-		using CorrelatorType = SequentialCorrelator;
-#endif
 
 	public:
 		Sv sv;
@@ -252,13 +292,14 @@ namespace ugsdr {
 			}
 		}
 
-		template <typename Tc>
-		static auto MatchedFilterTranslated(const std::vector<std::complex<T>>& epoch, const TrackingParameters<T>& parameters, const Tc& code, double frequency_offset = 0.0) {
-			const auto translated = MixerType::Translate(epoch, parameters.sampling_rate, -parameters.carrier_frequency + frequency_offset);
+		template <TrackingParametersConfigConcept TrParamsConfig, typename Tc>
+		static auto MatchedFilterTranslated(const std::vector<std::complex<T>>& epoch, const TrackingParameters<TrParamsConfig, T>& parameters, const Tc& code, double frequency_offset = 0.0) {
+			const auto translated = Config::MixerType::Translate(epoch, parameters.sampling_rate, -parameters.carrier_frequency + frequency_offset);
 
 			auto local_code = std::vector(code.begin(), code.begin() + translated.size());
 			auto batch_size = static_cast<std::size_t>(parameters.code_period * parameters.sampling_rate / 1e3);
-			auto matched_output = ReshapeAndSumType::Transform(AbsType::Transform(MatchedFilterType::Filter(translated, local_code)), batch_size);
+			auto matched_output = Config::ReshapeAndSumType::Transform(Config::AbsType::Transform(
+				Config::MatchedFilterType::Filter(translated, local_code)), batch_size);
 
 #if 0
 			if (frequency_offset == 0.0)
@@ -275,12 +316,12 @@ namespace ugsdr {
 			return std::make_pair(*it, code_offset);
 		}
 
-		template <Signal signal, ChannelConfigConcept ChConfig>
-		static void AddSignalImpl(const AcquisitionResult<T>& acquisition, DigitalFrontend<ChConfig, T>& digital_frontend, std::vector<TrackingParameters<T>>& dst) {
+		template <Signal signal, TrackingParametersConfigConcept TrParamsConfig, ChannelConfigConcept ChConfig>
+		static void AddSignalImpl(const AcquisitionResult<T>& acquisition, DigitalFrontend<ChConfig, T>& digital_frontend, std::vector<TrackingParameters<TrParamsConfig, T>>& dst) {
 			if (!digital_frontend.HasSignal(signal))
 				return;
 
-			auto parameters = TrackingParameters<T>(acquisition, digital_frontend, signal);
+			auto parameters = TrackingParameters<TrParamsConfig, T>(acquisition, digital_frontend, signal);
 			auto samples_per_ms = static_cast<std::size_t>(digital_frontend.GetSamplingRate(signal) / 1e3);
 
 			auto ms_cnt = 3 * PrnGenerator<signal>::GetNumberOfMilliseconds();
@@ -311,16 +352,16 @@ namespace ugsdr {
 			}
 		}
 
-		template <ChannelConfigConcept ChConfig, Signal signal, Signal ... signals>
-		static void AddSignal(const AcquisitionResult<T>& acquisition, DigitalFrontend<ChConfig, T>& digital_frontend, std::vector<TrackingParameters<T>>& dst) {
+		template <ChannelConfigConcept ChConfig, TrackingParametersConfigConcept TrParamsConfig, Signal signal, Signal ... signals>
+		static void AddSignal(const AcquisitionResult<T>& acquisition, DigitalFrontend<ChConfig, T>& digital_frontend, std::vector<TrackingParameters<TrParamsConfig, T>>& dst) {
 			AddSignalImpl<signal>(acquisition, digital_frontend, dst);
 			if constexpr (sizeof...(signals) != 0)
-				AddSignal<ChConfig, signals...>(acquisition, digital_frontend, dst);
+				AddSignal<ChConfig, TrParamsConfig, signals...>(acquisition, digital_frontend, dst);
 		}
 
-		template <ChannelConfigConcept ChConfig>
-		static void AddGps(const AcquisitionResult<T>& acquisition, DigitalFrontend<ChConfig, T>& digital_frontend, std::vector<TrackingParameters<T>>& dst) {
-			AddSignal<ChConfig,
+		template <ChannelConfigConcept ChConfig, TrackingParametersConfigConcept TrParamsConfig>
+		static void AddGps(const AcquisitionResult<T>& acquisition, DigitalFrontend<ChConfig, T>& digital_frontend, std::vector<TrackingParameters<TrParamsConfig, T>>& dst) {
+			AddSignal<ChConfig, TrParamsConfig, 
 				Signal::GpsCoarseAcquisition_L1,
 				Signal::Gps_L2CM,
 				Signal::Gps_L5I,
@@ -328,17 +369,17 @@ namespace ugsdr {
 			>(acquisition, digital_frontend, dst);
 		}
 
-		template <ChannelConfigConcept ChConfig>
-		static void AddGlonass(const AcquisitionResult<T>& acquisition, DigitalFrontend<ChConfig, T>& digital_frontend, std::vector<TrackingParameters<T>>& dst) {
-			AddSignal<ChConfig,
+		template <ChannelConfigConcept ChConfig, TrackingParametersConfigConcept TrParamsConfig>
+		static void AddGlonass(const AcquisitionResult<T>& acquisition, DigitalFrontend<ChConfig, T>& digital_frontend, std::vector<TrackingParameters<TrParamsConfig, T>>& dst) {
+			AddSignal<ChConfig, TrParamsConfig,
 				Signal::GlonassCivilFdma_L1, 
 				Signal::GlonassCivilFdma_L2
 			>(acquisition, digital_frontend, dst);
 		}
 
-		template <ChannelConfigConcept ChConfig>
-		static void AddGalileo(const AcquisitionResult<T>& acquisition, DigitalFrontend<ChConfig, T>& digital_frontend, std::vector<TrackingParameters<T>>& dst) {
-			AddSignal<ChConfig,
+		template <ChannelConfigConcept ChConfig, TrackingParametersConfigConcept TrParamsConfig>
+		static void AddGalileo(const AcquisitionResult<T>& acquisition, DigitalFrontend<ChConfig, T>& digital_frontend, std::vector<TrackingParameters<TrParamsConfig, T>>& dst) {
+			AddSignal<ChConfig, TrParamsConfig,
 				Signal::Galileo_E1b,
 				Signal::Galileo_E1c, 
 				Signal::Galileo_E5aI,
@@ -351,27 +392,27 @@ namespace ugsdr {
 		}
 
 
-		template <ChannelConfigConcept ChConfig>
-		static void AddBeiDou(const AcquisitionResult<T>& acquisition, DigitalFrontend<ChConfig, T>& digital_frontend, std::vector<TrackingParameters<T>>& dst) {
+		template <ChannelConfigConcept ChConfig, TrackingParametersConfigConcept TrParamsConfig>
+		static void AddBeiDou(const AcquisitionResult<T>& acquisition, DigitalFrontend<ChConfig, T>& digital_frontend, std::vector<TrackingParameters<TrParamsConfig, T>>& dst) {
 			dst.emplace_back(acquisition, digital_frontend);
-			//AddSignal<ChConfig,
+			//AddSignal<ChConfig, TrParamsConfig,
 			//	Signal::BeiDou_B2I
 			//>(acquisition, digital_frontend, dst);
 		}
 
 
-		template <ChannelConfigConcept ChConfig>
-		static void AddNavIC(const AcquisitionResult<T>& acquisition, DigitalFrontend<ChConfig, T>& digital_frontend, std::vector<TrackingParameters<T>>& dst) {
+		template <ChannelConfigConcept ChConfig, TrackingParametersConfigConcept TrParamsConfig>
+		static void AddNavIC(const AcquisitionResult<T>& acquisition, DigitalFrontend<ChConfig, T>& digital_frontend, std::vector<TrackingParameters<TrParamsConfig, T>>& dst) {
 			dst.emplace_back(acquisition, digital_frontend);
-			//AddSignal<ChConfig,
+			//AddSignal<ChConfig, TrParamsConfig,
 			//	Signal::NavIC_S			// wish me luck finding the S-band dataset
 			//>(acquisition, digital_frontend, dst);
 		}
 
 
-		template <ChannelConfigConcept ChConfig>
-		static void AddSbas(const AcquisitionResult<T>& acquisition, DigitalFrontend<ChConfig, T>& digital_frontend, std::vector<TrackingParameters<T>>& dst) {
-			AddSignal<ChConfig,
+		template <ChannelConfigConcept ChConfig, TrackingParametersConfigConcept TrParamsConfig>
+		static void AddSbas(const AcquisitionResult<T>& acquisition, DigitalFrontend<ChConfig, T>& digital_frontend, std::vector<TrackingParameters<TrParamsConfig, T>>& dst) {
+			AddSignal<ChConfig, TrParamsConfig,
 				Signal::SbasCoarseAcquisition_L1,
 				Signal::Sbas_L5I
 			>(acquisition, digital_frontend, dst);
@@ -379,10 +420,10 @@ namespace ugsdr {
 		}
 
 
-		template <ChannelConfigConcept ChConfig>
-		static void AddQzss(const AcquisitionResult<T>& acquisition, DigitalFrontend<ChConfig, T>& digital_frontend, std::vector<TrackingParameters<T>>& dst) {
+		template <ChannelConfigConcept ChConfig, TrackingParametersConfigConcept TrParamsConfig>
+		static void AddQzss(const AcquisitionResult<T>& acquisition, DigitalFrontend<ChConfig, T>& digital_frontend, std::vector<TrackingParameters<TrParamsConfig, T>>& dst) {
 			dst.emplace_back(acquisition, digital_frontend); 
-			AddSignal<ChConfig,
+			AddSignal<ChConfig, TrParamsConfig,
 				Signal::Qzss_L1S,
 				Signal::Qzss_L2CM,
 				Signal::Qzss_L5I,
@@ -390,8 +431,8 @@ namespace ugsdr {
 			>(acquisition, digital_frontend, dst);
 		}
 
-		template <ChannelConfigConcept ChConfig>
-		static void FillTrackingParameters(const AcquisitionResult<T>& acquisition, DigitalFrontend<ChConfig, T>& digital_frontend, std::vector<TrackingParameters<T>>& dst) {
+		template <ChannelConfigConcept ChConfig, TrackingParametersConfigConcept TrParamsConfig>
+		static void FillTrackingParameters(const AcquisitionResult<T>& acquisition, DigitalFrontend<ChConfig, T>& digital_frontend, std::vector<TrackingParameters<TrParamsConfig, T>>& dst) {
 			switch (acquisition.sv_number.system) {
 			case System::Gps:
 				AddGps(acquisition, digital_frontend, dst);
@@ -439,16 +480,16 @@ namespace ugsdr {
 			auto first_batch_phase = static_cast<std::size_t>(std::ceil(2 * code_period_samples - current_code_phase));
 			auto second_batch_phase = first_batch_phase + first_batch_length;
 
-			auto first = CorrelatorType::Correlate(std::span(translated_signal.begin(), first_batch_length), 
+			auto first = Config::CorrelatorType::Correlate(std::span(translated_signal.begin(), first_batch_length),
 				std::span(full_code.begin() + first_batch_phase, first_batch_length));
-			auto second = CorrelatorType::Correlate(std::span(translated_signal.begin() + first_batch_length, second_batch_length), 
+			auto second = Config::CorrelatorType::Correlate(std::span(translated_signal.begin() + first_batch_length, second_batch_length),
 				std::span(full_code.begin() + second_batch_phase, second_batch_length));
 
 			return AddWithPhase(first, second, std::fmod(current_code_phase, samples_per_ms) / samples_per_ms);
 		}
 
 		void Pll(const std::complex<T>& current_prompt) {
-			auto new_phase_error = current_prompt.real() ? atan(current_prompt.imag() / current_prompt.real()) / (std::numbers::pi * 2.0) : 0.0;
+			auto new_phase_error = (current_prompt.real() != 0.0) ? atan(current_prompt.imag() / current_prompt.real()) / (std::numbers::pi * 2.0) : 0.0;
 			phase_residuals.push_back(new_phase_error);
 			auto cross = current_prompt.real() * previous_prompt.imag() - previous_prompt.real() * current_prompt.imag();
 			auto dot = std::abs(current_prompt.real() * previous_prompt.real() + previous_prompt.imag() * current_prompt.imag());

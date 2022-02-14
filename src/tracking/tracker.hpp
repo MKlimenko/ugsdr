@@ -95,13 +95,13 @@ namespace ugsdr {
 		}
 	};
 
-	template <ChannelConfigConcept ChConfig, typename UnderlyingType>
+	template <TrackingParametersConfigConcept TrParamsConfig = DefaultTrackingParametersConfig, ChannelConfigConcept ChConfig = DefaultChannelConfig, typename UnderlyingType = float>
 	class Tracker final {
 		DigitalFrontend<ChConfig, UnderlyingType>& digital_frontend;
 		const std::vector<AcquisitionResult<UnderlyingType>>& acquisition_results;
 
 		Codes<ChConfig, UnderlyingType> codes;
-		std::vector<TrackingParameters<UnderlyingType>> tracking_parameters;
+		std::vector<TrackingParameters<TrParamsConfig, UnderlyingType>> tracking_parameters;
 
 #ifdef HAS_IPP
 		using MatchedFilterType = IppMatchedFilter;
@@ -113,10 +113,10 @@ namespace ugsdr {
 
 		void InitTrackingParameters() {
 			for (const auto& el : acquisition_results)
-				TrackingParameters<UnderlyingType>::FillTrackingParameters(el, digital_frontend, tracking_parameters);
+				TrackingParameters<TrParamsConfig, UnderlyingType>::FillTrackingParameters(el, digital_frontend, tracking_parameters);
 		}
 
-		auto GetEpl(TrackingParameters<UnderlyingType>& parameters, double code_phase, double spacing_chips) {
+		auto GetEpl(TrackingParameters<TrParamsConfig, UnderlyingType>& parameters, double code_phase, double spacing_chips) {
 			auto& translated_signal = parameters.translated_signal;
 			MixerType::Translate(translated_signal, parameters.sampling_rate, -parameters.carrier_frequency, -parameters.carrier_phase);
 			parameters.UpdatePhase();
@@ -153,7 +153,7 @@ namespace ugsdr {
 #endif
 		}
 
-		void TrackSingleSatellite(TrackingParameters<UnderlyingType>& parameters, const SignalEpoch<UnderlyingType>& signal_epoch) {
+		void TrackSingleSatellite(TrackingParameters<TrParamsConfig, UnderlyingType>& parameters, const SignalEpoch<UnderlyingType>& signal_epoch) {
 			const auto& signal = signal_epoch.GetSubband(parameters.sv.signal);
 
 			auto copy_wrapper = GetCopyWrapper();

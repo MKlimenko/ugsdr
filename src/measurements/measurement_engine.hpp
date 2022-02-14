@@ -159,8 +159,8 @@ namespace ugsdr {
 		template <ChannelConfigConcept ChConfig, typename T>
 		MeasurementEngine(const Tracker<ChConfig, T>& tracker) : MeasurementEngine(tracker.GetTrackingParameters()) {}
 
-		template <typename T>
-		MeasurementEngine(const std::vector<TrackingParameters<T>>& tracking_results) : nav(new nav_t(), FreeNav) {
+		template <TrackingParametersConfigConcept Config, typename T>
+		MeasurementEngine(const std::vector<TrackingParameters<Config, T>>& tracking_results) : nav(new nav_t(), FreeNav) {
 			if (tracking_results.empty())
 				throw std::runtime_error("Empty tracking results");
 
