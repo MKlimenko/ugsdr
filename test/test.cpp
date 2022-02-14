@@ -627,7 +627,7 @@ namespace integration_tests {
 		}
 
 		TYPED_TEST(AcquisitionTest, real_8_gps) {
-			TestAcquisition<typename TestFixture::Type>(ugsdr::FileType::Real_8, ugsdr::Signal::GpsCoarseAcquisition_L1);
+			TestAcquisition<typename TestFixture::Type>(ugsdr::FileType::Real_8, ugsdr::Signal::GpsCoarseAcquisition_L1, 6e3);
 		}
 
 		TYPED_TEST(AcquisitionTest, nt1065_grabber_gps) {
@@ -657,7 +657,7 @@ namespace integration_tests {
 				MakeChannel(signal_parameters, std::vector{ ugsdr::Signal::GpsCoarseAcquisition_L1 }, 
 					signal_parameters.GetSamplingRate() / 4)
 			);
-			auto fse = ugsdr::FastSearchEngineBase(digital_frontend, 5e3, 200);
+			auto fse = ugsdr::FastSearchEngineBase(digital_frontend, 6e3, 200);
 			auto acquisition_results = fse.Process();
 			ASSERT_FALSE(acquisition_results.empty());
 			auto tracker = ugsdr::Tracker(digital_frontend, acquisition_results);
