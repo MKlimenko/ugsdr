@@ -681,8 +681,8 @@ namespace integration_tests {
 
 
 		TYPED_TEST(PositioningTest, TexCup) {
-			auto signal_parameters = ugsdr::SignalParametersBase<float>(SIGNAL_DATA_PATH + std::string("ntlab.bin"), ugsdr::FileType::Nt1065GrabberFirst, 1590e6, 79.5e6);
-			auto signal_parameters_gln = ugsdr::SignalParametersBase<float>(SIGNAL_DATA_PATH + std::string("ntlab.bin"), ugsdr::FileType::Nt1065GrabberSecond, 1590e6, 79.5e6);
+			auto signal_parameters = ugsdr::SignalParametersBase<typename TestFixture::Type>(SIGNAL_DATA_PATH + std::string("ntlab.bin"), ugsdr::FileType::Nt1065GrabberFirst, 1590e6, 79.5e6);
+			auto signal_parameters_gln = ugsdr::SignalParametersBase<typename TestFixture::Type>(SIGNAL_DATA_PATH + std::string("ntlab.bin"), ugsdr::FileType::Nt1065GrabberSecond, 1590e6, 79.5e6);
 
 			auto digital_frontend = ugsdr::DigitalFrontend(
 				MakeChannel(signal_parameters, std::vector{ ugsdr::Signal::GpsCoarseAcquisition_L1 }, signal_parameters.GetSamplingRate() / 10),
