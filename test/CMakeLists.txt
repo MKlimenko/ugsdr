@@ -57,6 +57,14 @@ file(DOWNLOAD
 		SHOW_PROGRESS
 		EXPECTED_MD5 f5b0f32d0f97b23060d62ea3b5dc86b2
 )
+file(DOWNLOAD 
+#		https://rnl-data.ae.utexas.edu/texcup/2019May12-rover/ntlab/ntlab.bin # full link, switch after CMake 3.24.0 is out
+		https://www.dropbox.com/s/hfdza7a2rsbh77k/ntlab.bin
+		${CMAKE_CURRENT_LIST_DIR}/../data/ntlab.bin
+#		RANGE_END 4770000000 #CMake MR !6986, merged into master, should be available in 3.24.0
+		SHOW_PROGRESS
+		EXPECTED_MD5 53bf1d8706acd413733a25daf5e646ae
+)
 
 enable_testing()
 add_test(NAME ${PROJECT_NAME} COMMAND ${PROJECT_NAME})

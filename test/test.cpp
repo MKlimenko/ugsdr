@@ -647,7 +647,6 @@ namespace integration_tests {
 		};
 		using PositioningTypes = ::testing::Types<float, double>;
 		TYPED_TEST_SUITE(PositioningTest, PositioningTypes);
-
 		
 		TYPED_TEST(PositioningTest, GPSdata_DiscreteComponents) {
 			auto signal_parameters = ugsdr::SignalParametersBase<typename TestFixture::Type>(SIGNAL_DATA_PATH +
@@ -675,7 +674,40 @@ namespace integration_tests {
 			auto offset = std::sqrt(std::accumulate(pos.begin(), pos.end(), 0.0, [](const auto& sum, const auto& val) {
 				return sum + val * val;
 			}));
-			std::cout << "Delta: " << offset << "meters" << std::endl;
+			std::cout << "Delta: " << offset << " meters" << std::endl;
+			ASSERT_LE(offset, 10);
+		}
+
+
+
+		TYPED_TEST(PositioningTest, TexCup) {
+			auto signal_parameters = ugsdr::SignalParametersBase<float>(SIGNAL_DATA_PATH + std::string("ntlab.bin"), ugsdr::FileType::Nt1065GrabberFirst, 1590e6, 79.5e6);
+			auto signal_parameters_gln = ugsdr::SignalParametersBase<float>(SIGNAL_DATA_PATH + std::string("ntlab.bin"), ugsdr::FileType::Nt1065GrabberSecond, 1590e6, 79.5e6);
+
+			auto digital_frontend = ugsdr::DigitalFrontend(
+				MakeChannel(signal_parameters, std::vector{ ugsdr::Signal::GpsCoarseAcquisition_L1 }, signal_parameters.GetSamplingRate() / 10),
+				MakeChannel(signal_parameters_gln, std::vector{ ugsdr::Signal::GlonassCivilFdma_L1 }, signal_parameters_gln.GetSamplingRate() / 10)
+			);
+
+			auto fse = ugsdr::FastSearchEngineBase(digital_frontend, 5e3, 200);
+			auto acquisition_results = fse.Process();
+			ASSERT_FALSE(acquisition_results.empty());
+			auto tracker = ugsdr::Tracker(digital_frontend, acquisition_results);
+			tracker.Track(signal_parameters.GetNumberOfEpochs());
+
+			auto measurement_engine = ugsdr::MeasurementEngine(tracker.GetTrackingParameters());
+			auto positioning_engine = ugsdr::StandaloneRtklib(measurement_engine);
+			auto reference_position = std::vector{ -741212.398, -5462378.228, 3197925.269 };	// ublox reference
+
+			auto pos_and_time = positioning_engine.EstimatePosition(signal_parameters.GetNumberOfEpochs() - 1);
+			auto pos = std::vector{ std::get<0>(pos_and_time), std::get<1>(pos_and_time), std::get<2>(pos_and_time) };
+
+			for (std::size_t i = 0; i < pos.size(); ++i)
+				pos[i] -= reference_position[i];
+			auto offset = std::sqrt(std::accumulate(pos.begin(), pos.end(), 0.0, [](const auto& sum, const auto& val) {
+				return sum + val * val;
+			}));
+			std::cout << "Delta: " << offset << " meters" << std::endl;
 			ASSERT_LE(offset, 10);
 		}
 	}
