@@ -600,7 +600,13 @@ namespace integration_tests {
 			return map.at(file_type);
 		}
 
-		template <typename T>
+		enum class AcquistionTestType {
+			MinimalFs,
+			DefaultFs,
+			FullFs
+		};
+
+		template <typename T, AcquistionTestType test_type = AcquistionTestType::DefaultFs>
 		void TestAcquisition(ugsdr::FileType file_type, ugsdr::Signal signal, double doppler_range = 5e3) {
 			auto signal_parameters = GetSignalParameters<T>(file_type);
 
@@ -608,7 +614,11 @@ namespace integration_tests {
 				MakeChannel(signal_parameters, signal, signal_parameters.GetSamplingRate())
 			);
 
-			auto fse = ugsdr::FastSearchEngineBase(digital_frontend, doppler_range, 200);
+			using FseConfig = std::conditional_t<test_type == AcquistionTestType::DefaultFs, ugsdr::DefaultFseConfig,
+				std::conditional_t<test_type == AcquistionTestType::FullFs, ugsdr::ParametricFseConfig<1e9>, ugsdr::ParametricFseConfig<2.048e6>>
+			>;
+
+			auto fse = ugsdr::FastSearchEngineBase<FseConfig, ugsdr::DefaultChannelConfig, T>(digital_frontend, doppler_range, 200);
 			auto acquisition_results = fse.Process(false);
 
 			ASSERT_FALSE(acquisition_results.empty());
@@ -618,24 +628,72 @@ namespace integration_tests {
 			TestAcquisition<typename TestFixture::Type>(ugsdr::FileType::Iq_8_plus_8, ugsdr::Signal::GpsCoarseAcquisition_L1);
 		}
 
+		TYPED_TEST(AcquisitionTest, iq_8_plus_8_gps_full_fs) {
+			TestAcquisition<typename TestFixture::Type, AcquistionTestType::FullFs>(ugsdr::FileType::Iq_8_plus_8, ugsdr::Signal::GpsCoarseAcquisition_L1);
+		}
+
+		TYPED_TEST(AcquisitionTest, iq_8_plus_8_gps_min_fs) {
+			TestAcquisition<typename TestFixture::Type, AcquistionTestType::MinimalFs>(ugsdr::FileType::Iq_8_plus_8, ugsdr::Signal::GpsCoarseAcquisition_L1);
+		}
+
 		TYPED_TEST(AcquisitionTest, iq_8_plus_8_gln) {
 			TestAcquisition<typename TestFixture::Type>(ugsdr::FileType::Iq_8_plus_8, ugsdr::Signal::GlonassCivilFdma_L1);
+		}
+
+		TYPED_TEST(AcquisitionTest, iq_8_plus_8_gln_min_fs) {
+			TestAcquisition<typename TestFixture::Type, AcquistionTestType::MinimalFs>(ugsdr::FileType::Iq_8_plus_8, ugsdr::Signal::GlonassCivilFdma_L1);
+		}
+
+		TYPED_TEST(AcquisitionTest, iq_8_plus_8_gln_full_fs) {
+			TestAcquisition<typename TestFixture::Type, AcquistionTestType::FullFs>(ugsdr::FileType::Iq_8_plus_8, ugsdr::Signal::GlonassCivilFdma_L1);
 		}
 
 		TYPED_TEST(AcquisitionTest, iq_16_plus_16_gps) {
 			TestAcquisition<typename TestFixture::Type>(ugsdr::FileType::Iq_16_plus_16, ugsdr::Signal::GpsCoarseAcquisition_L1, 15e3);
 		}
 
+		TYPED_TEST(AcquisitionTest, iq_16_plus_16_gps_full_fs) {
+			TestAcquisition<typename TestFixture::Type, AcquistionTestType::FullFs>(ugsdr::FileType::Iq_16_plus_16, ugsdr::Signal::GpsCoarseAcquisition_L1, 15e3);
+		}
+
+		TYPED_TEST(AcquisitionTest, iq_16_plus_16_gps_min_fs) {
+			TestAcquisition<typename TestFixture::Type, AcquistionTestType::MinimalFs>(ugsdr::FileType::Iq_16_plus_16, ugsdr::Signal::GpsCoarseAcquisition_L1, 15e3);
+		}
+
 		TYPED_TEST(AcquisitionTest, real_8_gps) {
 			TestAcquisition<typename TestFixture::Type>(ugsdr::FileType::Real_8, ugsdr::Signal::GpsCoarseAcquisition_L1, 6e3);
+		}
+
+		TYPED_TEST(AcquisitionTest, real_8_gps_full_fs) {
+			TestAcquisition<typename TestFixture::Type, AcquistionTestType::FullFs>(ugsdr::FileType::Real_8, ugsdr::Signal::GpsCoarseAcquisition_L1, 6e3);
+		}
+
+		TYPED_TEST(AcquisitionTest, real_8_gps_min_fs) {
+			TestAcquisition<typename TestFixture::Type, AcquistionTestType::MinimalFs>(ugsdr::FileType::Real_8, ugsdr::Signal::GpsCoarseAcquisition_L1, 6e3);
 		}
 
 		TYPED_TEST(AcquisitionTest, nt1065_grabber_gps) {
 			TestAcquisition<typename TestFixture::Type>(ugsdr::FileType::Nt1065GrabberFirst, ugsdr::Signal::GpsCoarseAcquisition_L1);
 		}
 
+		TYPED_TEST(AcquisitionTest, nt1065_grabber_gps_full_fs) {
+			TestAcquisition<typename TestFixture::Type, AcquistionTestType::FullFs>(ugsdr::FileType::Nt1065GrabberFirst, ugsdr::Signal::GpsCoarseAcquisition_L1);
+		}
+
+		TYPED_TEST(AcquisitionTest, nt1065_grabber_gps_min_fs) {
+			TestAcquisition<typename TestFixture::Type, AcquistionTestType::MinimalFs>(ugsdr::FileType::Nt1065GrabberFirst, ugsdr::Signal::GpsCoarseAcquisition_L1);
+		}
+
 		TYPED_TEST(AcquisitionTest, nt1065_grabber_gln) {
 			TestAcquisition<typename TestFixture::Type>(ugsdr::FileType::Nt1065GrabberSecond, ugsdr::Signal::GlonassCivilFdma_L1);
+		}
+
+		TYPED_TEST(AcquisitionTest, nt1065_grabber_gln_full_fs) {
+			TestAcquisition<typename TestFixture::Type, AcquistionTestType::FullFs>(ugsdr::FileType::Nt1065GrabberSecond, ugsdr::Signal::GlonassCivilFdma_L1);
+		}
+
+		TYPED_TEST(AcquisitionTest, nt1065_grabber_gln_min_fs) {
+			TestAcquisition<typename TestFixture::Type, AcquistionTestType::MinimalFs>(ugsdr::FileType::Nt1065GrabberSecond, ugsdr::Signal::GlonassCivilFdma_L1);
 		}
 	}
 

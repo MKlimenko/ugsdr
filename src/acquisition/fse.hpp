@@ -27,6 +27,7 @@
 
 namespace ugsdr {
 	template <
+		double target_sampling_rate,
 		typename MixerT,
 		typename UpsamplerT,
 		typename MatchedFilterT,
@@ -37,6 +38,8 @@ namespace ugsdr {
 		typename ResamplerT
 	>
 	struct FseConfig {
+		constexpr static double acquisition_sampling_rate = target_sampling_rate;
+
 		using MixerType = MixerT;
 		using UpsamplerType = UpsamplerT;
 		using MatchedFilterType = MatchedFilterT;
@@ -56,7 +59,10 @@ namespace ugsdr {
 		static_assert(std::is_base_of_v<Resampler<ResamplerType>, ResamplerType>, "Incorrect resampler provided, expected ugsdr::Resampler<T>");
 	};
 
-	using DefaultFseConfig = FseConfig <
+
+	template <double acquisition_sampling_rate>
+	using ParametricFseConfig = FseConfig <
+		acquisition_sampling_rate,
 #ifdef HAS_IPP
 		IppMixer,
 		SequentialUpsampler,
@@ -78,12 +84,14 @@ namespace ugsdr {
 #endif
 	>;
 
+	using DefaultFseConfig = ParametricFseConfig<8.192e6>;
+	
 	template <typename T>
 	constexpr bool IsFseConfig(T val) {
 		return false;
 	}
-	template <typename ... Args>
-	constexpr bool IsFseConfig(FseConfig<Args...> val) {
+	template <double rate, typename ... Args>
+	constexpr bool IsFseConfig(FseConfig<rate, Args...> val) {
 		return true;
 	}
 	template <typename T>
@@ -107,7 +115,7 @@ namespace ugsdr {
 		std::vector<Sv> sbas_sv;
 		std::vector<Sv> qzss_sv;
 		constexpr static inline double peak_threshold = 3.5;
-		constexpr static inline double acquisition_sampling_rate = 8.192e6;
+		constexpr static inline double acquisition_sampling_rate = Config::acquisition_sampling_rate;
 		constexpr static inline double acquisition_sampling_rate_L5 = 20.46e6;
 
 		std::mutex m;
