@@ -2,7 +2,8 @@ cmake_minimum_required (VERSION 3.16)
 
 project(ugsdr_test)
 add_executable (${PROJECT_NAME} 
-							test.cpp	
+							basic_tests.cpp	
+							integration_tests.cpp	
 							../src/prn_codes/GalileoMemoryCodes.cpp
 )
 
@@ -65,10 +66,6 @@ file(DOWNLOAD
 		SHOW_PROGRESS
 		EXPECTED_MD5 53bf1d8706acd413733a25daf5e646ae
 )
-
-if (${MSVC})
-	target_compile_options(${PROJECT_NAME} PRIVATE "/bigobj")
-endif()
 
 enable_testing()
 add_test(NAME ${PROJECT_NAME} COMMAND ${PROJECT_NAME})
