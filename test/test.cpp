@@ -618,7 +618,7 @@ namespace integration_tests {
 			}
 		};
 
-		auto GetResults(ugsdr::FileType file_type) {
+		const auto& GetResults(ugsdr::FileType file_type) {
 			std::map<ugsdr::FileType, std::vector<SimplifiedAcquisitionResults>> map{};
 			auto real_8 = std::vector<SimplifiedAcquisitionResults>{
 				// From Development and Implementation of GPS Correlator Structures in MATLAB and Simulink with Focus on SDR Applications
@@ -633,6 +633,20 @@ namespace integration_tests {
 			};
 			map[ugsdr::FileType::Real_8] = std::move(real_8);
 
+			auto nt1065_first = std::vector<SimplifiedAcquisitionResults>{
+				{ ugsdr::Sv(0, ugsdr::Signal::GpsCoarseAcquisition_L1),	1800, 	13803 },
+				{ ugsdr::Sv(3, ugsdr::Signal::GpsCoarseAcquisition_L1),	-3100,	79481 },
+				{ ugsdr::Sv(6, ugsdr::Signal::GpsCoarseAcquisition_L1),	-900,	38428 },
+				{ ugsdr::Sv(8, ugsdr::Signal::GpsCoarseAcquisition_L1),	-3700,	38271 },
+				{ ugsdr::Sv(10, ugsdr::Signal::GpsCoarseAcquisition_L1),	200,		22167 },
+				{ ugsdr::Sv(16, ugsdr::Signal::GpsCoarseAcquisition_L1),	2500,	14095 },
+				{ ugsdr::Sv(17, ugsdr::Signal::GpsCoarseAcquisition_L1),	400,	74879 },
+				{ ugsdr::Sv(27, ugsdr::Signal::GpsCoarseAcquisition_L1),	400,	77135 },
+				{ ugsdr::Sv(29, ugsdr::Signal::GpsCoarseAcquisition_L1),	900,	68055 },
+			};
+
+			map[ugsdr::FileType::Nt1065GrabberFirst] = std::move(nt1065_first);
+
 			return map.at(file_type);
 		}
 
@@ -641,7 +655,7 @@ namespace integration_tests {
 		bool VerifyResults(ugsdr::FileType file_type, const std::vector<ugsdr::AcquisitionResult<T>>& acquisition_result, double sampling_rate) {
 			const auto& results = GetResults(file_type);
 			std::size_t cnt = 0;
-			for (auto& el : results)
+			for (const auto& el : results)
 				cnt += el.Compare(acquisition_result, sampling_rate);
 
 			std::cout << "Matching acquisition result count:" << cnt << std::endl;
@@ -671,7 +685,7 @@ namespace integration_tests {
 			auto acquisition_results = fse.Process(false);
 
 			ASSERT_FALSE(acquisition_results.empty());
-			if (file_type == ugsdr::FileType::Real_8)
+			if (file_type == ugsdr::FileType::Real_8 || file_type == ugsdr::FileType::Nt1065GrabberFirst)
 				ASSERT_TRUE(VerifyResults(file_type, acquisition_results, signal_parameters.GetSamplingRate()));
 		}
 
