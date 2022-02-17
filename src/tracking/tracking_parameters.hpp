@@ -164,7 +164,7 @@ namespace ugsdr {
 			carrier_phase += 2 * std::numbers::pi_v<double> * carrier_frequency / 1000.0;
 		}
 
-		static auto GetCodePeriod(Signal signal) {
+		static std::size_t GetCodePeriod(Signal signal) {
 			switch (signal) {
 			case Signal::GpsCoarseAcquisition_L1:
 			case Signal::Gps_L5I:

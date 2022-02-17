@@ -600,6 +600,54 @@ namespace integration_tests {
 			return map.at(file_type);
 		}
 
+		struct SimplifiedAcquisitionResults {
+			ugsdr::Sv sv;
+			double doppler = 0.0;
+			double code_offset = 0.0;
+
+			template <typename T>
+			bool Compare(const std::vector<ugsdr::AcquisitionResult<T>>& acquisition_result, double sampling_rate) const {
+				auto it = std::find_if(acquisition_result.begin(), acquisition_result.end(), [this](auto& el) {
+					return static_cast<std::uint32_t>(el.sv_number) == static_cast<std::uint32_t>(sv);	// TODO: implement correct operator==
+				});
+				if (it == acquisition_result.end())
+					return false;
+				return (std::abs(doppler - it->doppler) <= 250) && 
+					(std::abs(code_offset - it->code_offset) <= 
+						sampling_rate / ugsdr::TrackingParameters<ugsdr::DefaultTrackingParametersConfig, T>::GetCodePeriod(it->sv_number));
+			}
+		};
+
+		auto GetResults(ugsdr::FileType file_type) {
+			std::map<ugsdr::FileType, std::vector<SimplifiedAcquisitionResults>> map{};
+			auto real_8 = std::vector<SimplifiedAcquisitionResults>{
+				// From Development and Implementation of GPS Correlator Structures in MATLAB and Simulink with Focus on SDR Applications
+				{ ugsdr::Sv(2, ugsdr::Signal::GpsCoarseAcquisition_L1),	0, 	34213 },
+				{ ugsdr::Sv(5, ugsdr::Signal::GpsCoarseAcquisition_L1),	6000,	28203 },
+				{ ugsdr::Sv(8, ugsdr::Signal::GpsCoarseAcquisition_L1),	-1000,	4695 },
+				{ ugsdr::Sv(14, ugsdr::Signal::GpsCoarseAcquisition_L1),	0,	36321 },
+				{ ugsdr::Sv(17, ugsdr::Signal::GpsCoarseAcquisition_L1),	2000,		20725 },
+				{ ugsdr::Sv(20, ugsdr::Signal::GpsCoarseAcquisition_L1),	3000,	13404 },
+				{ ugsdr::Sv(21, ugsdr::Signal::GpsCoarseAcquisition_L1),	0,	6289 },
+				{ ugsdr::Sv(25, ugsdr::Signal::GpsCoarseAcquisition_L1),	5000,	26828 },
+			};
+			map[ugsdr::FileType::Real_8] = std::move(real_8);
+
+			return map.at(file_type);
+		}
+
+
+		template <typename T>
+		bool VerifyResults(ugsdr::FileType file_type, const std::vector<ugsdr::AcquisitionResult<T>>& acquisition_result, double sampling_rate) {
+			const auto& results = GetResults(file_type);
+			std::size_t cnt = 0;
+			for (auto& el : results)
+				cnt += el.Compare(acquisition_result, sampling_rate);
+
+			std::cout << "Matching acquisition result count:" << cnt << std::endl;
+			return cnt >= 4;
+		}
+
 		enum class AcquistionTestType {
 			MinimalFs,
 			DefaultFs,
@@ -623,6 +671,8 @@ namespace integration_tests {
 			auto acquisition_results = fse.Process(false);
 
 			ASSERT_FALSE(acquisition_results.empty());
+			if (file_type == ugsdr::FileType::Real_8)
+				ASSERT_TRUE(VerifyResults(file_type, acquisition_results, signal_parameters.GetSamplingRate()));
 		}
 
 		TYPED_TEST(AcquisitionTest, iq_8_plus_8_gps) {

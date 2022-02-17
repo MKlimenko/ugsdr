@@ -66,5 +66,9 @@ file(DOWNLOAD
 		EXPECTED_MD5 53bf1d8706acd413733a25daf5e646ae
 )
 
+if (${MSVC})
+	target_compile_options(${PROJECT_NAME} PRIVATE "/bigobj")
+endif()
+
 enable_testing()
 add_test(NAME ${PROJECT_NAME} COMMAND ${PROJECT_NAME})
