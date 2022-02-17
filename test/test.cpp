@@ -615,7 +615,8 @@ namespace integration_tests {
 			);
 
 			using FseConfig = std::conditional_t<test_type == AcquistionTestType::DefaultFs, ugsdr::DefaultFseConfig,
-				std::conditional_t<test_type == AcquistionTestType::FullFs, ugsdr::ParametricFseConfig<1e9>, ugsdr::ParametricFseConfig<2.048e6>>
+				std::conditional_t<test_type == AcquistionTestType::FullFs, ugsdr::ParametricFseConfig<1000000000>,
+					ugsdr::ParametricFseConfig<2048000>>
 			>;
 
 			auto fse = ugsdr::FastSearchEngineBase<FseConfig, ugsdr::DefaultChannelConfig, T>(digital_frontend, doppler_range, 200);

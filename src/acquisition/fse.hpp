@@ -27,7 +27,7 @@
 
 namespace ugsdr {
 	template <
-		double target_sampling_rate,
+		auto target_sampling_rate,
 		typename MixerT,
 		typename UpsamplerT,
 		typename MatchedFilterT,
@@ -60,7 +60,7 @@ namespace ugsdr {
 	};
 
 
-	template <double acquisition_sampling_rate>
+	template <auto acquisition_sampling_rate>
 	using ParametricFseConfig = FseConfig <
 		acquisition_sampling_rate,
 #ifdef HAS_IPP
@@ -84,13 +84,13 @@ namespace ugsdr {
 #endif
 	>;
 
-	using DefaultFseConfig = ParametricFseConfig<8.192e6>;
+	using DefaultFseConfig = ParametricFseConfig<8192000>;
 	
 	template <typename T>
 	constexpr bool IsFseConfig(T val) {
 		return false;
 	}
-	template <double rate, typename ... Args>
+	template <auto rate, typename ... Args>
 	constexpr bool IsFseConfig(FseConfig<rate, Args...> val) {
 		return true;
 	}
