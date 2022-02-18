@@ -1,33 +1,13 @@
 ﻿#include "gtest/gtest.h"
 
 #include "../src/correlator/correlator.hpp"
-#include "../src/correlator/af_correlator.hpp"
-#include "../src/correlator/ipp_correlator.hpp"
-#include "../src/prn_codes/GpsL1Ca.hpp"
-#include "../src/prn_codes/GlonassOf.hpp"
-
-#include "../src/helpers/af_array_proxy.hpp"
-#include "../src/helpers/is_complex.hpp"
 
 #include "../src/matched_filter/matched_filter.hpp"
-#include "../src/matched_filter/ipp_matched_filter.hpp"
 #include "../src/matched_filter/af_matched_filter.hpp"
 
-#include "../src/mixer/af_mixer.hpp"
-#include "../src/mixer/batch_mixer.hpp"
-#include "../src/mixer/ipp_mixer.hpp"
 #include "../src/mixer/table_mixer.hpp"
 
-#include "../src/math/ipp_abs.hpp"
-#include "../src/math/ipp_conj.hpp"
-#include "../src/math/dft.hpp"
-#include "../src/math/af_dft.hpp"
-#include "../src/math/ipp_dft.hpp"
-
-#include "../src/resample/decimator.hpp"
-#include "../src/resample/ipp_decimator.hpp"
 #include "../src/resample/ipp_resampler.hpp"
-#include "../src/resample/ipp_upsampler.hpp"
 
 #include "../src/signal_parameters.hpp"
 
@@ -192,13 +172,21 @@ namespace integration_tests {
 			template <typename T>
 			bool Compare(const std::vector<ugsdr::AcquisitionResult<T>>& acquisition_result, double sampling_rate) const {
 				auto it = std::find_if(acquisition_result.begin(), acquisition_result.end(), [this](auto& el) {
-					return static_cast<std::uint32_t>(el.sv_number) == static_cast<std::uint32_t>(sv);	// TODO: implement correct operator==
+					return static_cast<std::uint32_t>(el.sv_number) == static_cast<std::uint32_t>(sv);	// TODO: implement proper operator==
 				});
 				if (it == acquisition_result.end())
 					return false;
-				return (std::abs(doppler - it->doppler) <= 250) && 
-					(std::abs(code_offset - it->code_offset) <= 
-						sampling_rate / ugsdr::TrackingParameters<ugsdr::DefaultTrackingParametersConfig, T>::GetCodePeriod(it->sv_number));
+				auto doppler_offset = std::abs(doppler - it->doppler);
+				if(doppler_offset > 400) {
+					std::cout << "Doppler mismatch. Expected: " << it->doppler << ". Got : " << doppler << std::endl;
+					return false;
+				}
+				auto code_diff = std::abs(code_offset - it->code_offset);
+				if (code_diff > sampling_rate / ugsdr::TrackingParameters<ugsdr::DefaultTrackingParametersConfig, T>::GetCodePeriod(it->sv_number)) {
+					std::cout << "Doppler mismatch. Expected: " << it->code_offset << ". Got : " << code_offset << std::endl;
+					return false;
+				}
+				return true;
 			}
 		};
 
@@ -217,7 +205,8 @@ namespace integration_tests {
 			};
 			map[ugsdr::FileType::Real_8] = std::move(real_8);
 
-			auto nt1065_first = std::vector<SimplifiedAcquisitionResults>{
+			auto nt1065_first = std::vector<SimplifiedAcquisitionResults> {
+				// From reference matlab receiver
 				{ ugsdr::Sv(0, ugsdr::Signal::GpsCoarseAcquisition_L1),	1800, 	13803 },
 				{ ugsdr::Sv(3, ugsdr::Signal::GpsCoarseAcquisition_L1),	-3100,	79481 },
 				{ ugsdr::Sv(6, ugsdr::Signal::GpsCoarseAcquisition_L1),	-900,	38428 },
