@@ -192,7 +192,7 @@ namespace integration_tests {
 
 		auto GetResults(ugsdr::FileType file_type) {
 			std::map<ugsdr::FileType, std::vector<SimplifiedAcquisitionResults>> map{};
-			auto real_8 = std::vector<SimplifiedAcquisitionResults>{
+			auto real_8 = std::vector<SimplifiedAcquisitionResults> {
 				// From Development and Implementation of GPS Correlator Structures in MATLAB and Simulink with Focus on SDR Applications
 				{ ugsdr::Sv(2, ugsdr::Signal::GpsCoarseAcquisition_L1),	0, 	34213 },
 				{ ugsdr::Sv(5, ugsdr::Signal::GpsCoarseAcquisition_L1),	6000,	28203 },
@@ -217,8 +217,15 @@ namespace integration_tests {
 				{ ugsdr::Sv(27, ugsdr::Signal::GpsCoarseAcquisition_L1),	400,	77135 },
 				{ ugsdr::Sv(29, ugsdr::Signal::GpsCoarseAcquisition_L1),	900,	68055 },
 			};
-
 			map[ugsdr::FileType::Nt1065GrabberFirst] = std::move(nt1065_first);
+
+			auto nt1065_third = std::vector<SimplifiedAcquisitionResults>();
+			for(auto el : map[ugsdr::FileType::Nt1065GrabberFirst]) {
+				el.doppler *= 1176.45 / 1575.42;
+				nt1065_third.emplace_back(el);
+			}
+
+			map[ugsdr::FileType::Nt1065GrabberThird] = std::move(nt1065_third);
 
 			return map.at(file_type);
 		}
@@ -226,12 +233,26 @@ namespace integration_tests {
 
 		template <typename T>
 		bool VerifyResults(ugsdr::FileType file_type, const std::vector<ugsdr::AcquisitionResult<T>>& acquisition_result, double sampling_rate) {
+			switch (file_type) {
+			case ugsdr::FileType::Real_8:
+			case ugsdr::FileType::Nt1065GrabberFirst:
+			case ugsdr::FileType::Nt1065GrabberThird:
+				break;
+
+			case ugsdr::FileType::Iq_8_plus_8:
+			case ugsdr::FileType::Iq_16_plus_16:
+			case ugsdr::FileType::Nt1065GrabberSecond:
+			case ugsdr::FileType::Nt1065GrabberFourth:
+			case ugsdr::FileType::BbpDdc:
+				return true;
+			}
+
 			const auto& results = GetResults(file_type);
 			std::size_t cnt = 0;
 			for (const auto& el : results)
 				cnt += el.Compare(acquisition_result, sampling_rate);
 
-			std::cout << "Matching acquisition result count:" << cnt << std::endl;
+			std::cout << "\t\tMatching acquisition result count:" << cnt << std::endl;
 			return cnt >= 4;
 		}
 
@@ -258,8 +279,7 @@ namespace integration_tests {
 			auto acquisition_results = fse.Process(false);
 
 			ASSERT_FALSE(acquisition_results.empty());
-			if (file_type == ugsdr::FileType::Real_8 || file_type == ugsdr::FileType::Nt1065GrabberFirst)
-				ASSERT_TRUE(VerifyResults(file_type, acquisition_results, signal_parameters.GetSamplingRate()));
+			ASSERT_TRUE(VerifyResults(file_type, acquisition_results, signal_parameters.GetSamplingRate()));
 		}
 
 		TYPED_TEST(AcquisitionTest, iq_8_plus_8_gps) {
@@ -320,6 +340,10 @@ namespace integration_tests {
 
 		TYPED_TEST(AcquisitionTest, nt1065_grabber_gps_min_fs) {
 			TestAcquisition<typename TestFixture::Type, AcquistionTestType::MinimalFs>(ugsdr::FileType::Nt1065GrabberFirst, ugsdr::Signal::GpsCoarseAcquisition_L1);
+		}
+
+		TYPED_TEST(AcquisitionTest, nt1065_grabber_gps_L5) {
+			TestAcquisition<typename TestFixture::Type>(ugsdr::FileType::Nt1065GrabberThird, ugsdr::Signal::Gps_L5I);
 		}
 
 		TYPED_TEST(AcquisitionTest, nt1065_grabber_gln) {
