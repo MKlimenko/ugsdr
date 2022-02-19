@@ -177,11 +177,9 @@ namespace integration_tests {
 	}
 
 	namespace AcquisitionTests {
-		enum class AcquistionTestType {
-			MinimalFs = 2048000,
-			DefaultFs = 8192000,
-			HighFs = 40960000
-		};
+		struct MinimalSamplingRate : ValueWrapper<2048000> {};
+		struct DefaultSamplingRate : ValueWrapper<8192000> {};
+		struct HighSamplingRate : ValueWrapper<40960000> {};
 
 		template <typename T>
 		class AcquisitionTest : public testing::Test {
@@ -196,14 +194,11 @@ namespace integration_tests {
 			return ::testing::Types<Args...>();
 		}
 
-		template <auto v>
-		struct SamplingRate : ValueWrapper<v> {}; // struct declaration for pretty test print
-
 		auto type_tuple = std::tuple<float, double>();
 		auto test_type_tuple = std::tuple<
-			SamplingRate<AcquistionTestType::MinimalFs>,
-			SamplingRate<AcquistionTestType::DefaultFs>,
-			SamplingRate<AcquistionTestType::HighFs>
+			MinimalSamplingRate,
+			DefaultSamplingRate,
+			HighSamplingRate
 		>();
 		auto combined_tuple = cartesian_product(type_tuple, test_type_tuple);
 		using AcquisitionTypes = decltype(ConvertToGtest(combined_tuple));
@@ -319,7 +314,7 @@ namespace integration_tests {
 			return cnt >= 4;
 		}
 
-		template <typename T, AcquistionTestType test_type = AcquistionTestType::DefaultFs>
+		template <typename T, typename TestType = DefaultSamplingRate>
 		void TestAcquisition(ugsdr::FileType file_type, const std::vector<ugsdr::Signal>& signals, double doppler_range = 5e3) {
 			auto signal_parameters = GetSignalParameters<T>(file_type);
 
@@ -327,8 +322,8 @@ namespace integration_tests {
 				MakeChannel(signal_parameters, signals, signal_parameters.GetSamplingRate())
 			);
 
-			using FseConfig = std::conditional_t<test_type == AcquistionTestType::DefaultFs, ugsdr::DefaultFseConfig,
-				ugsdr::ParametricFseConfig<static_cast<std::size_t>(test_type)>
+			using FseConfig = std::conditional_t<std::is_same_v<TestType, DefaultSamplingRate>, ugsdr::DefaultFseConfig,
+				ugsdr::ParametricFseConfig<TestType::GetValue()>
 			>;
 
 			auto fse = ugsdr::FastSearchEngineBase<FseConfig, ugsdr::DefaultChannelConfig, T>(digital_frontend, doppler_range, 200);
@@ -339,44 +334,44 @@ namespace integration_tests {
 			ASSERT_TRUE(VerifyResults(file_type, acquisition_results, signal_parameters.GetSamplingRate()));
 		}
 
-		template <typename T, AcquistionTestType test_type = AcquistionTestType::DefaultFs>
+		template <typename T, typename TestType = DefaultSamplingRate>
 		void TestAcquisition(ugsdr::FileType file_type, ugsdr::Signal signal, double doppler_range = 5e3) {
-			TestAcquisition<T, test_type>(file_type, std::vector{ signal }, doppler_range);
+			TestAcquisition<T, TestType>(file_type, std::vector{ signal }, doppler_range);
 		}
 
 		TYPED_TEST(AcquisitionTest, iq_8_plus_8_gps) {
-			TestAcquisition<typename TestFixture::FirstTupleType, TestFixture::SecondTupleType::GetValue()>(ugsdr::FileType::Iq_8_plus_8,
+			TestAcquisition<typename TestFixture::FirstTupleType, typename TestFixture::SecondTupleType>(ugsdr::FileType::Iq_8_plus_8,
 				ugsdr::Signal::GpsCoarseAcquisition_L1);
 		}
 
 		TYPED_TEST(AcquisitionTest, iq_8_plus_8_gln) {
-			TestAcquisition<typename TestFixture::FirstTupleType, TestFixture::SecondTupleType::GetValue()>(ugsdr::FileType::Iq_8_plus_8,
+			TestAcquisition<typename TestFixture::FirstTupleType, typename TestFixture::SecondTupleType>(ugsdr::FileType::Iq_8_plus_8,
 				ugsdr::Signal::GlonassCivilFdma_L1);
 		}
 
 		TYPED_TEST(AcquisitionTest, iq_16_plus_16_gps) {
-			TestAcquisition<typename TestFixture::FirstTupleType, TestFixture::SecondTupleType::GetValue()>(ugsdr::FileType::Iq_16_plus_16,
+			TestAcquisition<typename TestFixture::FirstTupleType, typename TestFixture::SecondTupleType>(ugsdr::FileType::Iq_16_plus_16,
 				ugsdr::Signal::GpsCoarseAcquisition_L1, 15e3);
 		}
 
 		TYPED_TEST(AcquisitionTest, real_8_gps) {
-			TestAcquisition<typename TestFixture::FirstTupleType, TestFixture::SecondTupleType::GetValue()>(ugsdr::FileType::Real_8,
+			TestAcquisition<typename TestFixture::FirstTupleType, typename TestFixture::SecondTupleType>(ugsdr::FileType::Real_8,
 				ugsdr::Signal::GpsCoarseAcquisition_L1, 6e3);
 		}
 
 		TYPED_TEST(AcquisitionTest, nt1065_grabber_gps) {
-			TestAcquisition<typename TestFixture::FirstTupleType, TestFixture::SecondTupleType::GetValue()>(ugsdr::FileType::Nt1065GrabberFirst,
+			TestAcquisition<typename TestFixture::FirstTupleType, typename TestFixture::SecondTupleType>(ugsdr::FileType::Nt1065GrabberFirst,
 				ugsdr::Signal::GpsCoarseAcquisition_L1);
 		}
 
 		TYPED_TEST(AcquisitionTest, nt1065_grabber_gln) {
-			TestAcquisition<typename TestFixture::FirstTupleType, TestFixture::SecondTupleType::GetValue()>(ugsdr::FileType::Nt1065GrabberSecond,
+			TestAcquisition<typename TestFixture::FirstTupleType, typename TestFixture::SecondTupleType>(ugsdr::FileType::Nt1065GrabberSecond,
 				ugsdr::Signal::GlonassCivilFdma_L1);
 		}
 
 		TYPED_TEST(AcquisitionTest, nt1065_grabber_gps_L5) {
 			// TODO: fix sampling rate for L5 acquisition
-			TestAcquisition<typename TestFixture::FirstTupleType, TestFixture::SecondTupleType::GetValue()>(ugsdr::FileType::Nt1065GrabberThird,
+			TestAcquisition<typename TestFixture::FirstTupleType, typename TestFixture::SecondTupleType>(ugsdr::FileType::Nt1065GrabberThird,
 				{ ugsdr::Signal::Gps_L5I, ugsdr::Signal::Gps_L5Q });
 		}
 	}
