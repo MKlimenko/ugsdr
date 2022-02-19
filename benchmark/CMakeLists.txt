@@ -2,7 +2,8 @@ cmake_minimum_required (VERSION 3.16)
 
 project(ugsdr_benchmark)
 add_executable (${PROJECT_NAME} 
-							benchmark.cpp	
+							benchmark.cpp
+							../src/prn_codes/GalileoMemoryCodes.cpp	
 )
 
 target_include_directories(${PROJECT_NAME} PRIVATE 

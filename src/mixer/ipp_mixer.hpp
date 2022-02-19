@@ -80,6 +80,13 @@ namespace ugsdr {
 			ippsMul_16sc_ISfs(c_exp.data(), reinterpret_cast<Ipp16sc*>(src_dst.data()), static_cast<int>(src_dst.size()), 8);
 		}
 
+		template <typename T>
+		static auto Process(const std::vector<T>& src, double sampling_freq, double frequency, double phase = 0) {
+			auto dst = src;
+			Process(dst, sampling_freq, frequency, phase);
+			return dst;
+		}
+
 	public:
 		IppMixer(double sampling_freq, double frequency, double phase) : Mixer<IppMixer>(sampling_freq, frequency, phase) {}
 

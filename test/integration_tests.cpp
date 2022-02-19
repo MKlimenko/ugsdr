@@ -20,9 +20,38 @@
 
 #include "../src/positioning/standalone_rtklib.hpp"
 
+#include <functional>
 #include <type_traits>
+#include <tuple>
+#include <utility>
+
 
 namespace integration_tests {
+	inline namespace detail {
+		constexpr std::tuple<std::tuple<>> cartesian_product() {
+			return { {} };
+		}
+
+		template<class X, class ... Y>
+		constexpr auto cartesian_product(const X& tx, const Y& ... ty) {
+			if constexpr (std::tuple_size_v<X> == 0) return std::make_tuple();
+			else return std::apply([&](const auto & ... tuples) {
+				return std::apply([&](const auto & ... xxs) {
+					const auto recursive = [&](
+						const auto& self,
+						const auto& x, const auto& ... xs)
+					{
+						auto tuple = std::make_tuple(
+							std::tuple_cat(std::make_tuple(x), tuples)...);
+						if constexpr (sizeof...(xs) == 0) return tuple;
+						else return std::tuple_cat(std::move(tuple), self(self, xs...));
+					};
+					return recursive(recursive, xxs...);
+					}, tx);
+				}, cartesian_product(ty...));
+		}
+	}
+
 	namespace SignalParametersTests {
 		template <typename T>
 		class SignalParametersTest : public testing::Test {
@@ -141,13 +170,42 @@ namespace integration_tests {
 	}
 
 	namespace AcquisitionTests {
+		enum class AcquistionTestType {
+			MinimalFs = 2048000,
+			DefaultFs = 8192000,
+			HighFs = 40960000
+		};
+
 		template <typename T>
 		class AcquisitionTest : public testing::Test {
 		public:
 			using Type = T;
+			using FirstTupleType = std::remove_reference_t<decltype(std::get<0>(T{})) > ;
+			using SecondTupleType = std::remove_reference_t<decltype(std::get<1>(T{})) > ;
 		};
-		using AcquisitionTypes = ::testing::Types<float, double>;
+
+		template <typename ... Args>
+		auto ConvertToGtest(std::tuple<Args...> tuple) {
+			return ::testing::Types<Args...>();
+		}
+
+		template <auto v>
+		struct SamplingRate {
+			constexpr static auto GetValue() {
+				return v;
+			}
+		};
+
+		auto type_tuple = std::tuple<float, double>();
+		auto test_type_tuple = std::tuple<
+			SamplingRate<AcquistionTestType::MinimalFs>,
+			SamplingRate<AcquistionTestType::DefaultFs>,
+			SamplingRate<AcquistionTestType::HighFs>
+		>();
+		auto combined_tuple = cartesian_product(type_tuple, test_type_tuple);
+		using AcquisitionTypes = decltype(ConvertToGtest(combined_tuple));
 		TYPED_TEST_SUITE(AcquisitionTest, AcquisitionTypes);
+
 
 		template <typename T>
 		auto GetSignalParameters(ugsdr::FileType file_type) {
@@ -176,11 +234,11 @@ namespace integration_tests {
 					bool same_system = sv.system == el.sv_number.system;
 
 					return same_sv && same_system;	// TODO: implement proper operator==
-				});
+					});
 				if (it == acquisition_result.end())
 					return false;
 				auto doppler_offset = std::abs(doppler - it->doppler);
-				if(doppler_offset > 400) {
+				if (doppler_offset > 400) {
 					std::cout << "Doppler mismatch. Expected: " << it->doppler << ". Got : " << doppler << std::endl;
 					return false;
 				}
@@ -195,7 +253,7 @@ namespace integration_tests {
 
 		auto GetResults(ugsdr::FileType file_type) {
 			std::map<ugsdr::FileType, std::vector<SimplifiedAcquisitionResults>> map{};
-			auto real_8 = std::vector<SimplifiedAcquisitionResults> {
+			auto real_8 = std::vector<SimplifiedAcquisitionResults>{
 				// From Development and Implementation of GPS Correlator Structures in MATLAB and Simulink with Focus on SDR Applications
 				{ ugsdr::Sv(2, ugsdr::Signal::GpsCoarseAcquisition_L1),	0, 	34213 },
 				{ ugsdr::Sv(5, ugsdr::Signal::GpsCoarseAcquisition_L1),	6000,	28203 },
@@ -208,7 +266,7 @@ namespace integration_tests {
 			};
 			map[ugsdr::FileType::Real_8] = std::move(real_8);
 
-			auto nt1065_first = std::vector<SimplifiedAcquisitionResults> {
+			auto nt1065_first = std::vector<SimplifiedAcquisitionResults>{
 				// From reference matlab receiver
 				{ ugsdr::Sv(0, ugsdr::Signal::GpsCoarseAcquisition_L1),	1800, 	13803 },
 				{ ugsdr::Sv(3, ugsdr::Signal::GpsCoarseAcquisition_L1),	-3100,	79481 },
@@ -223,7 +281,7 @@ namespace integration_tests {
 			map[ugsdr::FileType::Nt1065GrabberFirst] = std::move(nt1065_first);
 
 			auto nt1065_third = std::vector<SimplifiedAcquisitionResults>();
-			for(auto el : map[ugsdr::FileType::Nt1065GrabberFirst]) {
+			for (auto el : map[ugsdr::FileType::Nt1065GrabberFirst]) {
 				el.doppler *= 1176.45 / 1575.42;
 				nt1065_third.emplace_back(el);
 			}
@@ -259,107 +317,65 @@ namespace integration_tests {
 			return cnt >= 4;
 		}
 
-		enum class AcquistionTestType {
-			MinimalFs,
-			DefaultFs,
-			HighFs
-		};
-
 		template <typename T, AcquistionTestType test_type = AcquistionTestType::DefaultFs>
-		void TestAcquisition(ugsdr::FileType file_type, ugsdr::Signal signal, double doppler_range = 5e3) {
+		void TestAcquisition(ugsdr::FileType file_type, const std::vector<ugsdr::Signal>& signals, double doppler_range = 5e3) {
 			auto signal_parameters = GetSignalParameters<T>(file_type);
 
 			auto digital_frontend = ugsdr::DigitalFrontend(
-				MakeChannel(signal_parameters, signal, signal_parameters.GetSamplingRate())
+				MakeChannel(signal_parameters, signals, signal_parameters.GetSamplingRate())
 			);
 
 			using FseConfig = std::conditional_t<test_type == AcquistionTestType::DefaultFs, ugsdr::DefaultFseConfig,
-				std::conditional_t<test_type == AcquistionTestType::HighFs, ugsdr::ParametricFseConfig<40960000>,
-					ugsdr::ParametricFseConfig<2048000>>
+				ugsdr::ParametricFseConfig<static_cast<std::size_t>(test_type)>
 			>;
 
 			auto fse = ugsdr::FastSearchEngineBase<FseConfig, ugsdr::DefaultChannelConfig, T>(digital_frontend, doppler_range, 200);
 			auto acquisition_results = fse.Process(false);
 
-			std::cout << "Found " << acquisition_results.size() << " signals" << std::endl;
+			std::cout << "\t\tFound " << acquisition_results.size() << " signals" << std::endl;
 			ASSERT_FALSE(acquisition_results.empty());
 			ASSERT_TRUE(VerifyResults(file_type, acquisition_results, signal_parameters.GetSamplingRate()));
 		}
 
+		template <typename T, AcquistionTestType test_type = AcquistionTestType::DefaultFs>
+		void TestAcquisition(ugsdr::FileType file_type, ugsdr::Signal signal, double doppler_range = 5e3) {
+			TestAcquisition<T, test_type>(file_type, std::vector{ signal }, doppler_range);
+		}
+
 		TYPED_TEST(AcquisitionTest, iq_8_plus_8_gps) {
-			TestAcquisition<typename TestFixture::Type>(ugsdr::FileType::Iq_8_plus_8, ugsdr::Signal::GpsCoarseAcquisition_L1);
-		}
-
-		TYPED_TEST(AcquisitionTest, iq_8_plus_8_gps_full_fs) {
-			TestAcquisition<typename TestFixture::Type, AcquistionTestType::HighFs>(ugsdr::FileType::Iq_8_plus_8, ugsdr::Signal::GpsCoarseAcquisition_L1);
-		}
-
-		TYPED_TEST(AcquisitionTest, iq_8_plus_8_gps_min_fs) {
-			TestAcquisition<typename TestFixture::Type, AcquistionTestType::MinimalFs>(ugsdr::FileType::Iq_8_plus_8, ugsdr::Signal::GpsCoarseAcquisition_L1);
+			TestAcquisition<typename TestFixture::FirstTupleType, TestFixture::SecondTupleType::GetValue()>(ugsdr::FileType::Iq_8_plus_8,
+				ugsdr::Signal::GpsCoarseAcquisition_L1);
 		}
 
 		TYPED_TEST(AcquisitionTest, iq_8_plus_8_gln) {
-			TestAcquisition<typename TestFixture::Type>(ugsdr::FileType::Iq_8_plus_8, ugsdr::Signal::GlonassCivilFdma_L1);
-		}
-
-		TYPED_TEST(AcquisitionTest, iq_8_plus_8_gln_min_fs) {
-			TestAcquisition<typename TestFixture::Type, AcquistionTestType::MinimalFs>(ugsdr::FileType::Iq_8_plus_8, ugsdr::Signal::GlonassCivilFdma_L1);
-		}
-
-		TYPED_TEST(AcquisitionTest, iq_8_plus_8_gln_full_fs) {
-			TestAcquisition<typename TestFixture::Type, AcquistionTestType::HighFs>(ugsdr::FileType::Iq_8_plus_8, ugsdr::Signal::GlonassCivilFdma_L1);
+			TestAcquisition<typename TestFixture::FirstTupleType, TestFixture::SecondTupleType::GetValue()>(ugsdr::FileType::Iq_8_plus_8,
+				ugsdr::Signal::GlonassCivilFdma_L1);
 		}
 
 		TYPED_TEST(AcquisitionTest, iq_16_plus_16_gps) {
-			TestAcquisition<typename TestFixture::Type>(ugsdr::FileType::Iq_16_plus_16, ugsdr::Signal::GpsCoarseAcquisition_L1, 15e3);
-		}
-
-		TYPED_TEST(AcquisitionTest, iq_16_plus_16_gps_full_fs) {
-			TestAcquisition<typename TestFixture::Type, AcquistionTestType::HighFs>(ugsdr::FileType::Iq_16_plus_16, ugsdr::Signal::GpsCoarseAcquisition_L1, 15e3);
-		}
-
-		TYPED_TEST(AcquisitionTest, iq_16_plus_16_gps_min_fs) {
-			TestAcquisition<typename TestFixture::Type, AcquistionTestType::MinimalFs>(ugsdr::FileType::Iq_16_plus_16, ugsdr::Signal::GpsCoarseAcquisition_L1, 15e3);
+			TestAcquisition<typename TestFixture::FirstTupleType, TestFixture::SecondTupleType::GetValue()>(ugsdr::FileType::Iq_16_plus_16,
+				ugsdr::Signal::GpsCoarseAcquisition_L1, 15e3);
 		}
 
 		TYPED_TEST(AcquisitionTest, real_8_gps) {
-			TestAcquisition<typename TestFixture::Type>(ugsdr::FileType::Real_8, ugsdr::Signal::GpsCoarseAcquisition_L1, 6e3);
-		}
-
-		TYPED_TEST(AcquisitionTest, real_8_gps_full_fs) {
-			TestAcquisition<typename TestFixture::Type, AcquistionTestType::HighFs>(ugsdr::FileType::Real_8, ugsdr::Signal::GpsCoarseAcquisition_L1, 6e3);
-		}
-
-		TYPED_TEST(AcquisitionTest, real_8_gps_min_fs) {
-			TestAcquisition<typename TestFixture::Type, AcquistionTestType::MinimalFs>(ugsdr::FileType::Real_8, ugsdr::Signal::GpsCoarseAcquisition_L1, 6e3);
+			TestAcquisition<typename TestFixture::FirstTupleType, TestFixture::SecondTupleType::GetValue()>(ugsdr::FileType::Real_8,
+				ugsdr::Signal::GpsCoarseAcquisition_L1, 6e3);
 		}
 
 		TYPED_TEST(AcquisitionTest, nt1065_grabber_gps) {
-			TestAcquisition<typename TestFixture::Type>(ugsdr::FileType::Nt1065GrabberFirst, ugsdr::Signal::GpsCoarseAcquisition_L1);
-		}
-
-		TYPED_TEST(AcquisitionTest, nt1065_grabber_gps_full_fs) {
-			TestAcquisition<typename TestFixture::Type, AcquistionTestType::HighFs>(ugsdr::FileType::Nt1065GrabberFirst, ugsdr::Signal::GpsCoarseAcquisition_L1);
-		}
-
-		TYPED_TEST(AcquisitionTest, nt1065_grabber_gps_min_fs) {
-			TestAcquisition<typename TestFixture::Type, AcquistionTestType::MinimalFs>(ugsdr::FileType::Nt1065GrabberFirst, ugsdr::Signal::GpsCoarseAcquisition_L1);
-		}
-
-		TYPED_TEST(AcquisitionTest, nt1065_grabber_gps_L5) {
-			TestAcquisition<typename TestFixture::Type>(ugsdr::FileType::Nt1065GrabberThird, ugsdr::Signal::Gps_L5I);
+			TestAcquisition<typename TestFixture::FirstTupleType, TestFixture::SecondTupleType::GetValue()>(ugsdr::FileType::Nt1065GrabberFirst,
+				ugsdr::Signal::GpsCoarseAcquisition_L1);
 		}
 
 		TYPED_TEST(AcquisitionTest, nt1065_grabber_gln) {
-			TestAcquisition<typename TestFixture::Type>(ugsdr::FileType::Nt1065GrabberSecond, ugsdr::Signal::GlonassCivilFdma_L1);
+			TestAcquisition<typename TestFixture::FirstTupleType, TestFixture::SecondTupleType::GetValue()>(ugsdr::FileType::Nt1065GrabberSecond,
+				ugsdr::Signal::GlonassCivilFdma_L1);
 		}
 
-		TYPED_TEST(AcquisitionTest, nt1065_grabber_gln_full_fs) {
-			TestAcquisition<typename TestFixture::Type, AcquistionTestType::HighFs>(ugsdr::FileType::Nt1065GrabberSecond, ugsdr::Signal::GlonassCivilFdma_L1);
-		}
-
-		TYPED_TEST(AcquisitionTest, nt1065_grabber_gln_min_fs) {
-			TestAcquisition<typename TestFixture::Type, AcquistionTestType::MinimalFs>(ugsdr::FileType::Nt1065GrabberSecond, ugsdr::Signal::GlonassCivilFdma_L1);
+		TYPED_TEST(AcquisitionTest, nt1065_grabber_gps_L5) {
+			// TODO: fix sampling rate for L5 acquisition
+			TestAcquisition<typename TestFixture::FirstTupleType, TestFixture::SecondTupleType::GetValue()>(ugsdr::FileType::Nt1065GrabberThird,
+				{ ugsdr::Signal::Gps_L5I, ugsdr::Signal::Gps_L5Q });
 		}
 	}
 
@@ -422,6 +438,7 @@ namespace integration_tests {
 			auto measurement_engine = ugsdr::MeasurementEngine(tracker.GetTrackingParameters());
 			auto positioning_engine = ugsdr::StandaloneRtklib(measurement_engine);
 			auto reference_position = std::vector{ -741212.398, -5462378.228, 3197925.269 };	// ublox reference
+
 			auto pos_and_time = positioning_engine.EstimatePosition(signal_parameters.GetNumberOfEpochs() / 2);
 			auto pos = std::vector{ std::get<0>(pos_and_time), std::get<1>(pos_and_time), std::get<2>(pos_and_time) };
 

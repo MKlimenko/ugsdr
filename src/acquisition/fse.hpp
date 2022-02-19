@@ -59,11 +59,10 @@ namespace ugsdr {
 		static_assert(std::is_base_of_v<Resampler<ResamplerType>, ResamplerType>, "Incorrect resampler provided, expected ugsdr::Resampler<T>");
 	};
 
-
-	template <auto acquisition_sampling_rate>
-	using ParametricFseConfig = FseConfig <
-		acquisition_sampling_rate,
 #ifdef HAS_IPP
+	template <auto acquisition_sampling_rate>
+	using ParametricIppFseConfig = FseConfig <
+		acquisition_sampling_rate,
 		IppMixer,
 		SequentialUpsampler,
 		IppMatchedFilter,
@@ -71,8 +70,12 @@ namespace ugsdr {
 		IppReshapeAndSum,
 		IppMaxIndex,
 		IppMeanStdDev,
-		IppResampler
-#else
+		IppResampler>;
+#endif
+
+	template <auto acquisition_sampling_rate>
+	using ParametricCpuFseConfig = FseConfig <
+		acquisition_sampling_rate,
 		TableMixer,
 		SequentialUpsampler,
 		SequentialMatchedFilter,
@@ -81,8 +84,16 @@ namespace ugsdr {
 		SequentialMaxIndex,
 		SequentialMeanStdDev,
 		SequentialResampler
+	> ;
+
+	template <auto acquisition_sampling_rate>
+	using ParametricFseConfig =
+#ifdef HAS_IPP
+		ParametricIppFseConfig<
+#else
+		ParametricCpuFseConfig<
 #endif
-	>;
+		acquisition_sampling_rate>;
 
 	using DefaultFseConfig = ParametricFseConfig<8192000>;
 	
@@ -266,7 +277,7 @@ namespace ugsdr {
 			});
 		}
 
-		template <Signal signal_to_acquire>
+		template <Signal signal_to_acquire, bool coherent = true>
 		void AcquireL5(const SignalEpoch<UnderlyingType>& epoch, const std::vector<Sv>& satellites, std::vector<AcquisitionResult<UnderlyingType>>& dst) {
 			if (!digital_frontend.HasSignal(signal_to_acquire))
 				return;
@@ -287,7 +298,7 @@ namespace ugsdr {
 				const auto code = Config::UpsamplerType::Transform(RepeatCodeNTimes(PrnGenerator<signal_to_acquire>::template Get<UnderlyingType>(sv.id), ms_to_process),
 					static_cast<std::size_t>(ms_to_process * new_sampling_rate / 1e3));
 
-				ProcessBpsk(downsampled_signal, code, sv, signal_sampling_rate, new_sampling_rate, intermediate_frequency, dst);
+				ProcessBpsk<true, coherent>(downsampled_signal, code, sv, signal_sampling_rate, new_sampling_rate, intermediate_frequency, dst);
 			});
 		}
 
@@ -295,7 +306,10 @@ namespace ugsdr {
 			AcquireGoldCodesL1<Signal::GpsCoarseAcquisition_L1>(epoch, gps_sv, dst);
 			if (!dst.empty())
 				return;
-			AcquireL5<Signal::Gps_L5I>(epoch, gps_sv, dst);
+			AcquireL5<Signal::Gps_L5I, false>(epoch, gps_sv, dst);
+			if (!dst.empty())
+				return;			
+			AcquireL5<Signal::Gps_L5Q, false>(epoch, gps_sv, dst);
 		}
 
 		void ProcessGlonass(const SignalEpoch<UnderlyingType>& epoch, std::vector<AcquisitionResult<UnderlyingType>>& dst) {
@@ -444,7 +458,7 @@ namespace ugsdr {
 					ugsdr::Add(L"QZSS acquisition input signal", epoch_data.GetSubband(Signal::QzssCoarseAcquisition_L1), digital_frontend.GetSamplingRate(Signal::QzssCoarseAcquisition_L1));
 			}
 				
-			if (digital_frontend.HasSignal(Signal::GpsCoarseAcquisition_L1) || digital_frontend.HasSignal(Signal::Gps_L5I))
+			if (digital_frontend.HasSignal(Signal::GpsCoarseAcquisition_L1) || digital_frontend.HasSignal(Signal::Gps_L5I) || digital_frontend.HasSignal(Signal::Gps_L5Q))
 				ProcessGps(epoch_data, dst);
 			if (digital_frontend.HasSignal(Signal::GlonassCivilFdma_L1))
 				ProcessGlonass(epoch_data, dst);

@@ -52,7 +52,7 @@ namespace ugsdr {
 		}
 
 		template <TrackingParametersConfigConcept Config, typename T>
-		void CalculateSnr(const ugsdr::TrackingParameters<Config, T>& tracking_result) {
+		void CalculateSnr(const TrackingParameters<Config, T>& tracking_result) {
 			static thread_local std::vector<T> real(tracking_result.prompt.size());
 			static thread_local std::vector<T> imaginary(tracking_result.prompt.size());
 #ifdef HAS_IPP
@@ -72,7 +72,7 @@ namespace ugsdr {
 		}
 		
 		template <TrackingParametersConfigConcept Config, typename T, typename E>
-		Observable(const ugsdr::TrackingParameters<Config, T>& tracking_result, TimeScale& time_scale_ref, std::size_t position, E eph) :
+		Observable(const TrackingParameters<Config, T>& tracking_result, TimeScale& time_scale_ref, std::size_t position, E eph) :
 			sv(tracking_result.sv), ephemeris(std::move(eph)), time_scale(time_scale_ref), preamble_position(position) {
 			pseudorange.reserve(tracking_result.code_phases.size());
 			auto samples_to_ms_rate = 1000 / tracking_result.sampling_rate;
@@ -201,7 +201,7 @@ namespace ugsdr {
 		}
 
 		template <TrackingParametersConfigConcept Config, typename T>
-		static auto FindPreambleGps(const ugsdr::TrackingParameters<Config, T>& tracking_result, TimeScale& receiver_time_scale) -> std::optional<Observable> {
+		static auto FindPreambleGps(const TrackingParameters<Config, T>& tracking_result, TimeScale& receiver_time_scale) -> std::optional<Observable> {
 			std::vector<T> navigation_bits;
 			const auto& prompt = tracking_result.prompt;
 			navigation_bits.reserve(prompt.size());
@@ -258,7 +258,7 @@ namespace ugsdr {
 		}
 
 		template <TrackingParametersConfigConcept Config, typename T>
-		static auto FindPreambleGlonass(const ugsdr::TrackingParameters<Config, T>& tracking_result, TimeScale& receiver_time_scale) -> std::optional<Observable> {
+		static auto FindPreambleGlonass(const TrackingParameters<Config, T>& tracking_result, TimeScale& receiver_time_scale) -> std::optional<Observable> {
 			std::vector<T> navigation_bits;
 			const auto& prompt = tracking_result.prompt;
 			navigation_bits.reserve(prompt.size());
@@ -313,7 +313,7 @@ namespace ugsdr {
 		}
 		
 		template <TrackingParametersConfigConcept Config, typename T>
-		static std::optional<Observable> FindPreamble(const ugsdr::TrackingParameters<Config, T>& tracking_result, TimeScale& receiver_time_scale) {
+		static std::optional<Observable> FindPreamble(const TrackingParameters<Config, T>& tracking_result, TimeScale& receiver_time_scale) {
 			switch (tracking_result.sv.system) {
 			case (System::Gps):
 				return FindPreambleGps(tracking_result, receiver_time_scale);
@@ -346,7 +346,7 @@ namespace ugsdr {
 		std::size_t preamble_position = std::numeric_limits<std::size_t>::max();
 
 		template <TrackingParametersConfigConcept Config, typename T>
-		static void MakeObservable(const ugsdr::TrackingParameters<Config, T>& tracking_result, TimeScale& receiver_time_scale, std::vector<Observable>& observables) {
+		static void MakeObservable(const TrackingParameters<Config, T>& tracking_result, TimeScale& receiver_time_scale, std::vector<Observable>& observables) {
 			auto previous_satellite = std::find_if(observables.begin(), observables.end(), [sv = tracking_result.sv](Observable& obs) {
 				return (sv.system == obs.sv.system) && (sv.id == obs.sv.id) && (sv.signal != obs.sv.signal);
 			});

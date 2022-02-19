@@ -3,7 +3,7 @@ cmake_minimum_required (VERSION 3.16)
 project(ugsdr_test)
 add_executable (${PROJECT_NAME} 
 							basic_tests.cpp	
-							integration_tests.cpp	
+							integration_tests.cpp
 							../src/prn_codes/GalileoMemoryCodes.cpp
 )
 

@@ -27,6 +27,12 @@ namespace ugsdr {
 				});
 		}
 
+		template <typename UnderlyingType>
+		static auto Process(const std::vector<std::complex<UnderlyingType>>& src, double sampling_freq, double frequency, double phase = 0) {
+			auto dst = src;
+			Process(dst, sampling_freq, frequency, phase);
+			return dst;
+		}
 	public:
 		BatchMixer(double sampling_freq, double frequency, double phase) : Mixer<BatchMixer>(sampling_freq, frequency, phase) {}
 

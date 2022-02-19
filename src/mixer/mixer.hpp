@@ -40,14 +40,12 @@ namespace ugsdr {
 		}
 
 		template <typename UnderlyingType>
-		static auto Translate(const std::vector<std::complex<UnderlyingType>>& src_dst, double sampling_freq, double frequency, double phase = 0) {
-			auto dst = src_dst;
+		static auto Translate(const std::vector<std::complex<UnderlyingType>>& src, double sampling_freq, double frequency, double phase = 0) {
 			if (frequency < 0)
 				frequency = sampling_freq + frequency;
 
 			FixPhase(phase);
-			MixerImpl::Process(dst, sampling_freq, frequency, phase);
-			return dst;
+			return MixerImpl::Process(src, sampling_freq, frequency, phase);
 		}
 
 		template <typename UnderlyingType>
@@ -86,6 +84,12 @@ namespace ugsdr {
 			}
 		}
 
+		template <typename UnderlyingType>
+		static auto Process(const std::vector<std::complex<UnderlyingType>>& src, double sampling_freq, double frequency, double phase = 0) {
+			auto dst = src;
+			Pricess(dst, sampling_freq, frequency, phase);
+			return dst;
+		}
 	public:
 		SequentialMixer(double sampling_freq, double frequency, double phase) : Mixer<SequentialMixer>(sampling_freq, frequency, phase) {}
 	};

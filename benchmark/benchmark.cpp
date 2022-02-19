@@ -23,6 +23,8 @@
 
 #include "../src/helpers/af_array_proxy.hpp"
 
+#include "../src/acquisition/fse.hpp"
+
 #include <execution>
 #include <random>
 
@@ -260,7 +262,7 @@ namespace dft {
 }
 #endif
 
-#if 1
+#if 0
 namespace matched_filter {
     constexpr auto max_range = 2048 << 8;
 
@@ -448,6 +450,65 @@ namespace correlator {
     }
     BENCHMARK_TEMPLATE(AfCorr, float)->CORR_BENCHMARK_OPTIONS;
     //BENCHMARK_TEMPLATE(AfCorr, double)->CORR_BENCHMARK_OPTIONS;
+}
+#endif
+
+#if 1
+namespace acquisition {
+#define ACQ_BENCHMARK_OPTIONS Unit(benchmark::kMillisecond)->Repetitions(10)/*->MinTime(1.0);*/
+
+    template <ugsdr::FseConfigConcept FseConfig, typename T>
+    void TestAcquisition(double doppler_range = 5e3) {
+        auto signal_parameters = ugsdr::SignalParametersBase<T>(SIGNAL_DATA_PATH + std::string("nt1065_grabber.bin"), ugsdr::FileType::Nt1065GrabberFirst, 1590e6, 79.5e6);
+
+
+        auto digital_frontend = ugsdr::DigitalFrontend(
+            MakeChannel(signal_parameters, ugsdr::Signal::GpsCoarseAcquisition_L1, signal_parameters.GetSamplingRate())
+        );
+        
+        auto fse = ugsdr::FastSearchEngineBase<FseConfig, ugsdr::DefaultChannelConfig, T>(digital_frontend, doppler_range, 200);
+        auto acquisition_results = fse.Process(false);
+    }
+
+    template <typename T>
+    static void CpuAcquisition(benchmark::State& state) {
+        for (auto _ : state)
+            TestAcquisition<ugsdr::ParametricCpuFseConfig<8192000>, T>();
+    }
+    //BENCHMARK_TEMPLATE(CpuAcquisition, float)->ACQ_BENCHMARK_OPTIONS;
+    //BENCHMARK_TEMPLATE(CpuAcquisition, double)->ACQ_BENCHMARK_OPTIONS;
+
+#ifdef HAS_IPP
+    template <typename T>
+    static void IppAcquisition(benchmark::State& state) {
+        for (auto _ : state)
+            TestAcquisition<ugsdr::ParametricIppFseConfig<8192000>, T>();
+    }
+    BENCHMARK_TEMPLATE(IppAcquisition, float)->ACQ_BENCHMARK_OPTIONS;
+    BENCHMARK_TEMPLATE(IppAcquisition, double)->ACQ_BENCHMARK_OPTIONS;
+#endif
+
+#ifdef HAS_ARRAYFIRE
+    //template <typename T>
+    //static void AfAcquisition(benchmark::State& state) {
+    //    using AfConfig = ugsdr::FseConfig<
+    //        8192000,
+    //        ugsdr::AfMixer,
+    //        ugsdr::IppUpsampler,
+    //        ugsdr::AfMatchedFilter,
+    //        ugsdr::IppAbs,
+    //        ugsdr::IppReshapeAndSum,
+    //        ugsdr::IppMaxIndex,
+    //        ugsdr::IppMeanStdDev,
+    //        ugsdr::IppResampler
+    //    >;
+
+    //    for (auto _ : state)
+    //        TestAcquisition<AfConfig, T>();
+    //}
+    //BENCHMARK_TEMPLATE(AfAcquisition, float)->ACQ_BENCHMARK_OPTIONS;
+    //BENCHMARK_TEMPLATE(AfAcquisition, double)->ACQ_BENCHMARK_OPTIONS;
+#endif
 }
 #endif
 
