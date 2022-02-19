@@ -262,7 +262,7 @@ namespace integration_tests {
 		enum class AcquistionTestType {
 			MinimalFs,
 			DefaultFs,
-			FullFs
+			HighFs
 		};
 
 		template <typename T, AcquistionTestType test_type = AcquistionTestType::DefaultFs>
@@ -274,13 +274,14 @@ namespace integration_tests {
 			);
 
 			using FseConfig = std::conditional_t<test_type == AcquistionTestType::DefaultFs, ugsdr::DefaultFseConfig,
-				std::conditional_t<test_type == AcquistionTestType::FullFs, ugsdr::ParametricFseConfig<1000000000>,
+				std::conditional_t<test_type == AcquistionTestType::HighFs, ugsdr::ParametricFseConfig<40960000>,
 					ugsdr::ParametricFseConfig<2048000>>
 			>;
 
 			auto fse = ugsdr::FastSearchEngineBase<FseConfig, ugsdr::DefaultChannelConfig, T>(digital_frontend, doppler_range, 200);
 			auto acquisition_results = fse.Process(false);
 
+			std::cout << "Found " << acquisition_results.size() << " signals" << std::endl;
 			ASSERT_FALSE(acquisition_results.empty());
 			ASSERT_TRUE(VerifyResults(file_type, acquisition_results, signal_parameters.GetSamplingRate()));
 		}
@@ -290,7 +291,7 @@ namespace integration_tests {
 		}
 
 		TYPED_TEST(AcquisitionTest, iq_8_plus_8_gps_full_fs) {
-			TestAcquisition<typename TestFixture::Type, AcquistionTestType::FullFs>(ugsdr::FileType::Iq_8_plus_8, ugsdr::Signal::GpsCoarseAcquisition_L1);
+			TestAcquisition<typename TestFixture::Type, AcquistionTestType::HighFs>(ugsdr::FileType::Iq_8_plus_8, ugsdr::Signal::GpsCoarseAcquisition_L1);
 		}
 
 		TYPED_TEST(AcquisitionTest, iq_8_plus_8_gps_min_fs) {
@@ -306,7 +307,7 @@ namespace integration_tests {
 		}
 
 		TYPED_TEST(AcquisitionTest, iq_8_plus_8_gln_full_fs) {
-			TestAcquisition<typename TestFixture::Type, AcquistionTestType::FullFs>(ugsdr::FileType::Iq_8_plus_8, ugsdr::Signal::GlonassCivilFdma_L1);
+			TestAcquisition<typename TestFixture::Type, AcquistionTestType::HighFs>(ugsdr::FileType::Iq_8_plus_8, ugsdr::Signal::GlonassCivilFdma_L1);
 		}
 
 		TYPED_TEST(AcquisitionTest, iq_16_plus_16_gps) {
@@ -314,7 +315,7 @@ namespace integration_tests {
 		}
 
 		TYPED_TEST(AcquisitionTest, iq_16_plus_16_gps_full_fs) {
-			TestAcquisition<typename TestFixture::Type, AcquistionTestType::FullFs>(ugsdr::FileType::Iq_16_plus_16, ugsdr::Signal::GpsCoarseAcquisition_L1, 15e3);
+			TestAcquisition<typename TestFixture::Type, AcquistionTestType::HighFs>(ugsdr::FileType::Iq_16_plus_16, ugsdr::Signal::GpsCoarseAcquisition_L1, 15e3);
 		}
 
 		TYPED_TEST(AcquisitionTest, iq_16_plus_16_gps_min_fs) {
@@ -326,7 +327,7 @@ namespace integration_tests {
 		}
 
 		TYPED_TEST(AcquisitionTest, real_8_gps_full_fs) {
-			TestAcquisition<typename TestFixture::Type, AcquistionTestType::FullFs>(ugsdr::FileType::Real_8, ugsdr::Signal::GpsCoarseAcquisition_L1, 6e3);
+			TestAcquisition<typename TestFixture::Type, AcquistionTestType::HighFs>(ugsdr::FileType::Real_8, ugsdr::Signal::GpsCoarseAcquisition_L1, 6e3);
 		}
 
 		TYPED_TEST(AcquisitionTest, real_8_gps_min_fs) {
@@ -338,7 +339,7 @@ namespace integration_tests {
 		}
 
 		TYPED_TEST(AcquisitionTest, nt1065_grabber_gps_full_fs) {
-			TestAcquisition<typename TestFixture::Type, AcquistionTestType::FullFs>(ugsdr::FileType::Nt1065GrabberFirst, ugsdr::Signal::GpsCoarseAcquisition_L1);
+			TestAcquisition<typename TestFixture::Type, AcquistionTestType::HighFs>(ugsdr::FileType::Nt1065GrabberFirst, ugsdr::Signal::GpsCoarseAcquisition_L1);
 		}
 
 		TYPED_TEST(AcquisitionTest, nt1065_grabber_gps_min_fs) {
@@ -354,7 +355,7 @@ namespace integration_tests {
 		}
 
 		TYPED_TEST(AcquisitionTest, nt1065_grabber_gln_full_fs) {
-			TestAcquisition<typename TestFixture::Type, AcquistionTestType::FullFs>(ugsdr::FileType::Nt1065GrabberSecond, ugsdr::Signal::GlonassCivilFdma_L1);
+			TestAcquisition<typename TestFixture::Type, AcquistionTestType::HighFs>(ugsdr::FileType::Nt1065GrabberSecond, ugsdr::Signal::GlonassCivilFdma_L1);
 		}
 
 		TYPED_TEST(AcquisitionTest, nt1065_grabber_gln_min_fs) {
@@ -421,8 +422,7 @@ namespace integration_tests {
 			auto measurement_engine = ugsdr::MeasurementEngine(tracker.GetTrackingParameters());
 			auto positioning_engine = ugsdr::StandaloneRtklib(measurement_engine);
 			auto reference_position = std::vector{ -741212.398, -5462378.228, 3197925.269 };	// ublox reference
-
-			auto pos_and_time = positioning_engine.EstimatePosition(signal_parameters.GetNumberOfEpochs() - 1);
+			auto pos_and_time = positioning_engine.EstimatePosition(signal_parameters.GetNumberOfEpochs() / 2);
 			auto pos = std::vector{ std::get<0>(pos_and_time), std::get<1>(pos_and_time), std::get<2>(pos_and_time) };
 
 			for (std::size_t i = 0; i < pos.size(); ++i)
@@ -431,7 +431,7 @@ namespace integration_tests {
 				return sum + val * val;
 			}));
 			std::cout << "Delta: " << offset << " meters" << std::endl;
-			ASSERT_LE(offset, 10);
+			ASSERT_LE(offset, 20);
 		}
 	}
 
