@@ -28,6 +28,13 @@
 
 namespace integration_tests {
 	inline namespace detail {
+		template <auto v>
+		struct ValueWrapper {
+			constexpr static auto GetValue() {
+				return v;
+			}
+		};
+
 		constexpr std::tuple<std::tuple<>> cartesian_product() {
 			return { {} };
 		}
@@ -190,11 +197,7 @@ namespace integration_tests {
 		}
 
 		template <auto v>
-		struct SamplingRate {
-			constexpr static auto GetValue() {
-				return v;
-			}
-		};
+		struct SamplingRate : ValueWrapper<v> {}; // struct declaration for pretty test print
 
 		auto type_tuple = std::tuple<float, double>();
 		auto test_type_tuple = std::tuple<
@@ -205,7 +208,6 @@ namespace integration_tests {
 		auto combined_tuple = cartesian_product(type_tuple, test_type_tuple);
 		using AcquisitionTypes = decltype(ConvertToGtest(combined_tuple));
 		TYPED_TEST_SUITE(AcquisitionTest, AcquisitionTypes);
-
 
 		template <typename T>
 		auto GetSignalParameters(ugsdr::FileType file_type) {
