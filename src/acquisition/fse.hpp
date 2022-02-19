@@ -282,7 +282,8 @@ namespace ugsdr {
 			auto downsampled_signal = Config::ResamplerType::Transform(translated_signal, static_cast<std::size_t>(new_sampling_rate),
 				static_cast<std::size_t>(signal_sampling_rate));
 
-			std::for_each(std::execution::par_unseq, satellites.begin(), satellites.end(), [&](auto sv) {
+			std::for_each(std::execution::par_unseq, satellites.begin(), satellites.end(), [&](Sv sv) {
+				sv.signal = signal_to_acquire;
 				const auto code = Config::UpsamplerType::Transform(RepeatCodeNTimes(PrnGenerator<signal_to_acquire>::template Get<UnderlyingType>(sv.id), ms_to_process),
 					static_cast<std::size_t>(ms_to_process * new_sampling_rate / 1e3));
 

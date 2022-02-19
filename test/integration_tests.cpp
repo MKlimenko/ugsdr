@@ -172,7 +172,10 @@ namespace integration_tests {
 			template <typename T>
 			bool Compare(const std::vector<ugsdr::AcquisitionResult<T>>& acquisition_result, double sampling_rate) const {
 				auto it = std::find_if(acquisition_result.begin(), acquisition_result.end(), [this](auto& el) {
-					return static_cast<std::uint32_t>(el.sv_number) == static_cast<std::uint32_t>(sv);	// TODO: implement proper operator==
+					bool same_sv = sv.id == el.sv_number.id;
+					bool same_system = sv.system == el.sv_number.system;
+
+					return same_sv && same_system;	// TODO: implement proper operator==
 				});
 				if (it == acquisition_result.end())
 					return false;

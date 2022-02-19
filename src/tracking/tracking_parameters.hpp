@@ -208,6 +208,8 @@ namespace ugsdr {
 		void AdaptAcquisitionData(const AcquisitionResult<T>& acquisition, DigitalFrontend<ChConfig, T>& digital_frontend) {
 			code_period = GetCodePeriod(sv.signal);
 
+			auto central_frequency = digital_frontend.GetCentralFrequency(acquisition.sv_number);
+
 			switch (sv.signal) {
 			case Signal::GpsCoarseAcquisition_L1:
 			case Signal::NavIC_L5:
@@ -248,7 +250,7 @@ namespace ugsdr {
 				base_code_frequency = 10.23e6;
 				code_phase = std::fmod(code_phase * sampling_rate / digital_frontend.GetSamplingRate(acquisition.GetAcquiredSignalType()),
 					code_period * sampling_rate / 1e3);
-				carrier_frequency *= 1176.45e6 / 1575.42e6;
+				carrier_frequency *= 1176.45e6 / central_frequency;
 				break;
 			case Signal::Galileo_E5bI:
 			case Signal::Galileo_E5bQ:
