@@ -7,6 +7,7 @@
 #include "is_complex.hpp"
 
 #include <arrayfire.h>
+#include <concepts>
 #include <optional>
 #include <span>
 #include <variant>
@@ -229,6 +230,8 @@ namespace ugsdr {
 		}
 	};
 
+	template <typename T>
+	concept AfProxyConcept = std::is_same_v<T, ArrayProxy>;
 }
 
 #pragma pack(pop)

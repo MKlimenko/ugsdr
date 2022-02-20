@@ -1,5 +1,7 @@
 #pragma once
 
+#include  "../common.hpp"
+
 #include <complex>
 #include <numeric>
 #include <span>
@@ -11,7 +13,7 @@ namespace ugsdr {
 	protected:
 	public:
 
-		template <typename T1, typename T2>
+		template <Container T1, Container T2>
 		static auto Correlate(const T1& signal, const T2& code) {
 			return CorrelatorImpl::Process(signal, code);
 		}

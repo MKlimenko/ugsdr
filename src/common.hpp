@@ -1,7 +1,9 @@
 #pragma once
 
+#include <complex>
 #include <cstdint>
 #include <cstring>
+#include <span>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -13,6 +15,11 @@
 #ifdef HAS_SIGNAL_PLOT
 #include "signalsviewermdi.hpp"
 #endif
+
+#ifdef HAS_ARRAYFIRE
+#include "helpers/af_array_proxy.hpp"
+#endif
+
 
 namespace ugsdr {
 	constexpr std::size_t gps_sv_count = 32;
@@ -310,4 +317,32 @@ namespace ugsdr {
 	template <typename ...Args>
 	void Add(Args&&... args) {}
 #endif
+
+	template <typename T>
+	struct IsContainer: std::false_type {};
+	template <typename T>
+	struct IsContainer<std::vector<T>> : std::true_type {};
+	template <typename T>
+	struct IsContainer<std::span<T>> : std::true_type {};
+
+	template <typename T>
+	struct IsComplexContainer : std::false_type {};
+	template <typename T>
+	struct IsComplexContainer<std::vector<std::complex<T>>> : std::true_type {};
+	template <typename T>
+	struct IsComplexContainer<std::span<std::complex<T>>> : std::true_type {};
+
+	template <typename T>
+	concept Container = IsContainer<T>::value
+#ifdef HAS_ARRAYFIRE
+		|| AfProxyConcept<T>
+#endif
+		;
+
+	template <typename T>
+	concept ComplexContainer = IsComplexContainer<T>::value
+#ifdef HAS_ARRAYFIRE
+		|| AfProxyConcept<T>
+#endif
+		;
 }
