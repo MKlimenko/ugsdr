@@ -12,10 +12,10 @@ namespace ugsdr {
 	class MaxIndex {
 	protected:
 	public:
-		template <typename T>
+		template <typename T, typename Tsz = std::size_t>
 		struct Result {
 			T value{};
-			std::size_t index{};
+			Tsz index{};
 		};
 
 		template <Container T>

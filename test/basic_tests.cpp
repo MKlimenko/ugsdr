@@ -25,6 +25,8 @@
 #include "../src/math/dft.hpp"
 #include "../src/math/af_dft.hpp"
 #include "../src/math/ipp_dft.hpp"
+#include "../src/math/af_max_index.hpp"
+#include "../src/math/ipp_max_index.hpp"
 
 #include "../src/resample/decimator.hpp"
 #include "../src/resample/ipp_decimator.hpp"
@@ -338,7 +340,6 @@ namespace basic_tests {
 			}
 #endif
 		}
-
 		namespace Dft {
 			template <typename T>
 			class DftTest : public testing::Test {
@@ -382,6 +383,42 @@ namespace basic_tests {
 #ifdef HAS_ARRAYFIRE
 			TYPED_TEST(DftTest, af_dft) {
 				TestPeak<ugsdr::AfDft, typename TestFixture::Type>();
+			}
+#endif
+		}
+		namespace MaxIndex {
+			template <typename T>
+			class MaxIndexTest : public testing::Test {
+			public:
+				using Type = T;
+			};
+			using MaxIndexTypes = ::testing::Types<float, double>;
+			TYPED_TEST_SUITE(MaxIndexTest, MaxIndexTypes);
+
+			template <typename MaxIndexType, typename T>
+			void TestMaxIndex() {
+				std::vector<T> data(1000);
+				std::iota(data.begin(), data.end(), static_cast<T>(0));
+
+				auto result = MaxIndexType::Transform(data);
+
+				ASSERT_EQ(result.value, data.size() - 1);
+				ASSERT_EQ(result.index, data.size() - 1);
+			}
+
+			TYPED_TEST(MaxIndexTest, sequential_max_index) {
+				TestMaxIndex<ugsdr::SequentialMaxIndex, typename TestFixture::Type>();
+			}
+
+#ifdef HAS_IPP
+			TYPED_TEST(MaxIndexTest, ipp_max_index) {
+				TestMaxIndex<ugsdr::IppMaxIndex, typename TestFixture::Type>();
+			}
+#endif
+
+#ifdef HAS_ARRAYFIRE
+			TYPED_TEST(MaxIndexTest, af_max_index) {
+				TestMaxIndex<ugsdr::AfMaxIndex, typename TestFixture::Type>();
 			}
 #endif
 		}
