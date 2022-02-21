@@ -33,7 +33,9 @@
 #include "../src/math/ipp_reshape_and_sum.hpp"
 
 #include "../src/resample/decimator.hpp"
+#include "../src/resample/af_decimator.hpp"
 #include "../src/resample/ipp_decimator.hpp"
+#include "../src/resample/af_resampler.hpp"
 #include "../src/resample/ipp_resampler.hpp"
 #include "../src/resample/ipp_upsampler.hpp"
 
@@ -594,6 +596,12 @@ namespace basic_tests {
 #ifdef HAS_IPP
 		TYPED_TEST(ResampleTest, ipp_upsampler) {
 			TestUpsampler<ugsdr::IppUpsampler, typename TestFixture::Type>();
+		}
+#endif
+
+#ifdef HAS_ARRAYFIRE
+		TYPED_TEST(ResampleTest, af_decimator) {
+			TestDecimator<ugsdr::AfDecimator, typename TestFixture::Type>();
 		}
 #endif
 	}

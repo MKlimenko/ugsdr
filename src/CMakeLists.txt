@@ -90,6 +90,8 @@ add_executable (${PROJECT_NAME}
 							prn_codes/SbasL5Q.hpp
 							prn_codes/Weil.hpp
 							resample/decimator.hpp 
+							resample/af_decimator.hpp 
+							resample/af_resampler.hpp 
 							resample/ipp_decimator.hpp 
 							resample/ipp_resampler.hpp 
 							resample/ipp_upsampler.hpp 

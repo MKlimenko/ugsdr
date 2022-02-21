@@ -18,6 +18,7 @@
 #include "../mixer/table_mixer.hpp"
 #include "../prn_codes/codegen_wrapper.hpp"
 #include "../resample/upsampler.hpp"
+#include "../resample/af_resampler.hpp"
 #include "../resample/ipp_resampler.hpp"
 
 #include <concepts>
