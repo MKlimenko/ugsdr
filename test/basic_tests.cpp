@@ -27,6 +27,8 @@
 #include "../src/math/ipp_dft.hpp"
 #include "../src/math/af_max_index.hpp"
 #include "../src/math/ipp_max_index.hpp"
+#include "../src/math/af_mean_stddev.hpp"
+#include "../src/math/ipp_mean_stddev.hpp"
 
 #include "../src/resample/decimator.hpp"
 #include "../src/resample/ipp_decimator.hpp"
@@ -44,6 +46,7 @@
 
 #include "../src/positioning/standalone_rtklib.hpp"
 
+#include <random>
 #include <type_traits>
 
 namespace basic_tests {
@@ -419,6 +422,49 @@ namespace basic_tests {
 #ifdef HAS_ARRAYFIRE
 			TYPED_TEST(MaxIndexTest, af_max_index) {
 				TestMaxIndex<ugsdr::AfMaxIndex, typename TestFixture::Type>();
+			}
+#endif
+		}
+		namespace MeanStdDev {
+			template <typename T>
+			class MeanStdDevTest : public testing::Test {
+			public:
+				using Type = T;
+			};
+			using MeanStdDevTypes = ::testing::Types<float, double>;
+			TYPED_TEST_SUITE(MeanStdDevTest, MeanStdDevTypes);
+
+			template <typename MeanStdDevType, typename T>
+			void TestMeanStdDev() {
+				std::vector<T> data(1000000);
+				std::random_device rd;
+				std::mt19937 mt(rd());
+
+				auto mean = static_cast<T>(0);
+				auto sigma = static_cast<T>(1);
+				auto dist = std::normal_distribution<T>(mean, sigma);
+				for (auto& el : data)
+					el = dist(mt);
+
+				auto result = MeanStdDevType::Calculate(data);
+
+				ASSERT_NEAR(result.mean, mean, 0.01);
+				ASSERT_NEAR(result.sigma, sigma, 0.01);
+			}
+
+			TYPED_TEST(MeanStdDevTest, sequential_max_index) {
+				TestMeanStdDev<ugsdr::SequentialMeanStdDev, typename TestFixture::Type>();
+			}
+
+#ifdef HAS_IPP
+			TYPED_TEST(MeanStdDevTest, ipp_max_index) {
+				TestMeanStdDev<ugsdr::IppMeanStdDev, typename TestFixture::Type>();
+			}
+#endif
+
+#ifdef HAS_ARRAYFIRE
+			TYPED_TEST(MeanStdDevTest, af_max_index) {
+				TestMeanStdDev<ugsdr::AfMeanStdDev, typename TestFixture::Type>();
 			}
 #endif
 		}

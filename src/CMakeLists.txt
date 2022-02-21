@@ -31,6 +31,7 @@ add_executable (${PROJECT_NAME}
 							math/af_conj.hpp
 							math/af_dft.hpp
 							math/af_max_index.hpp
+							math/af_mean_stddev.hpp
 							math/conj.hpp
 							math/dft.hpp
 							math/ipp_abs.hpp

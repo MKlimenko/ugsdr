@@ -12,6 +12,7 @@
 #include "../math/af_max_index.hpp"
 #include "../math/ipp_max_index.hpp"
 #include "../math/ipp_reshape_and_sum.hpp"
+#include "../math/af_mean_stddev.hpp"
 #include "../math/ipp_mean_stddev.hpp"
 #include "../mixer/ipp_mixer.hpp"
 #include "../mixer/table_mixer.hpp"
