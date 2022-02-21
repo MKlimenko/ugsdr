@@ -1,5 +1,7 @@
 #pragma once
 
+#include "../common.hpp"
+
 #include <algorithm>
 #include <complex>
 #include <execution>
@@ -16,19 +18,18 @@ namespace ugsdr {
 			std::size_t index{};
 		};
 
-		template <typename T>
-		static Result<T> Transform(const std::vector<T>& src) {
+		template <Container T>
+		static auto Transform(const T& src) {
 			return MaxIndexImpl::Process(src);
 		}
 	};
 
 	class SequentialMaxIndex : public MaxIndex<SequentialMaxIndex> {
-	private:
 	protected:
 		friend class MaxIndex<SequentialMaxIndex>;
 
 		template <typename T>
-		static MaxIndex::Result<T> Process(const std::vector<T>& src_dst) {
+		static Result<T> Process(const std::vector<T>& src_dst) {
 			T max_value{};
 			int max_index{};
 

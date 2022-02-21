@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../common.hpp"
 #include "../helpers/is_complex.hpp"
 
 #include <cmath>
@@ -11,8 +12,8 @@ namespace ugsdr {
 	class Decimator {
 	protected:
 	public:
-		template <typename T>
-		static void Transform(std::vector<T>& src_dst, std::size_t decimation_ratio) {
+		template <Container T>
+		static void Transform(T& src_dst, std::size_t decimation_ratio) {
 			DecimatorImpl::Process(src_dst, decimation_ratio);
 		}
 
@@ -23,9 +24,11 @@ namespace ugsdr {
 			return dst;
 		}
 
-		template <typename T>
-		static auto Transform(const std::vector<T>& src_dst, std::size_t decimation_ratio) {
-			return Transform(std::span(src_dst), decimation_ratio);
+		template <Container T>
+		static auto Transform(const T& src, std::size_t decimation_ratio) {
+			auto dst = src;
+			DecimatorImpl::Process(dst, decimation_ratio);
+			return dst;
 		}
 	};
 

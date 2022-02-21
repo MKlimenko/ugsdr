@@ -1,5 +1,7 @@
 #pragma once
 
+#include "../common.hpp"
+
 #include <complex>
 #include <vector>
 
@@ -14,8 +16,8 @@ namespace ugsdr {
 			T sigma{};
 		};
 
-		template <typename T>
-		static auto Calculate(const std::vector<T>& src) {
+		template <Container T>
+		static auto Calculate(const T& src) {
 			return StdDevImpl::Process(src);
 		}
 	};

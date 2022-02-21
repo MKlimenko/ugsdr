@@ -18,6 +18,8 @@
 #include "../src/mixer/ipp_mixer.hpp"
 #include "../src/mixer/table_mixer.hpp"
 
+#include "../src/math/af_abs.hpp"
+#include "../src/math/af_conj.hpp"
 #include "../src/math/ipp_abs.hpp"
 #include "../src/math/ipp_conj.hpp"
 #include "../src/math/dft.hpp"
@@ -276,7 +278,7 @@ namespace basic_tests {
 			void TestAbs() {
 				const std::vector<std::complex<T>> data(1000, { 1, -1 });
 
-				auto result = AbsType::Transform(data);
+				auto result = static_cast<std::vector<T>>(AbsType::Transform(data));
 
 				ASSERT_EQ(result.size(), data.size());
 				for (auto& el : result)
@@ -290,6 +292,12 @@ namespace basic_tests {
 #ifdef HAS_IPP
 			TYPED_TEST(AbsTest, ipp_abs) {
 				TestAbs<ugsdr::IppAbs, typename TestFixture::Type>();
+			}
+#endif
+
+#ifdef HAS_ARRAYFIRE
+			TYPED_TEST(AbsTest, af_abs) {
+				TestAbs<ugsdr::AfAbs, typename TestFixture::Type>();
 			}
 #endif
 		}
@@ -307,6 +315,20 @@ namespace basic_tests {
 				const std::vector<std::complex<typename TestFixture::Type>> data(1000, { 1, 1 });
 
 				auto result = ugsdr::IppConj::Transform(data);
+
+				ASSERT_EQ(result.size(), data.size());
+				for (auto& el : result) {
+					ASSERT_DOUBLE_EQ(el.real(), 1);
+					ASSERT_DOUBLE_EQ(el.imag(), -1);
+				}
+			}
+#endif
+
+#ifdef HAS_ARRAYFIRE
+			TYPED_TEST(ConjTest, af_conj) {
+				const std::vector<std::complex<typename TestFixture::Type>> data(1000, { 1, 1 });
+
+				auto result = static_cast<std::vector<std::complex<typename TestFixture::Type>>>(ugsdr::AfConj::Transform(data));
 
 				ASSERT_EQ(result.size(), data.size());
 				for (auto& el : result) {

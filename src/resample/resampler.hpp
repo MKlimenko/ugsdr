@@ -1,5 +1,7 @@
 #pragma once
 
+#include "../common.hpp"
+
 #include <cmath>
 #include <vector>
 #include "decimator.hpp"
@@ -10,13 +12,13 @@ namespace ugsdr {
 	class Resampler {
 	protected:
 	public:
-		template <typename T>
-		static void Transform(std::vector<T>& src_dst, std::size_t new_sampling_rate, std::size_t old_sampling_rate) {
+		template <Container T>
+		static void Transform(T& src_dst, std::size_t new_sampling_rate, std::size_t old_sampling_rate) {
 			ResamplerImpl::Process(src_dst, new_sampling_rate, old_sampling_rate);
 		}
 
-		template <typename T>
-		static auto Transform(const std::vector<T>& src_dst, std::size_t new_sampling_rate, std::size_t old_sampling_rate) {
+		template <Container T>
+		static auto Transform(const T& src_dst, std::size_t new_sampling_rate, std::size_t old_sampling_rate) {
 			auto dst = src_dst;
 			ResamplerImpl::Process(dst, new_sampling_rate, old_sampling_rate);
 			return dst;

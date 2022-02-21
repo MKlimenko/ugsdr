@@ -1,5 +1,7 @@
 #pragma once
 
+#include "../common.hpp"
+
 #include <cmath>
 #include <complex>
 #include <execution>
@@ -28,8 +30,8 @@ namespace ugsdr {
 			mixer_frequency(frequency),
 			mixer_phase(phase) {}
 
-		template <typename UnderlyingType>
-		static void Translate(std::vector<std::complex<UnderlyingType>>& src_dst, double sampling_freq, double frequency, double phase = 0) {
+		template <ComplexContainer T>
+		static void Translate(T& src_dst, double sampling_freq, double frequency, double phase = 0) {
 			FixPhase(phase);
 			if (std::abs(frequency) == 0.0)
 				return;
@@ -39,8 +41,8 @@ namespace ugsdr {
 			MixerImpl::Process(src_dst, sampling_freq, frequency, phase);
 		}
 
-		template <typename UnderlyingType>
-		static auto Translate(const std::vector<std::complex<UnderlyingType>>& src, double sampling_freq, double frequency, double phase = 0) {
+		template <ComplexContainer T>
+		static auto Translate(const T& src, double sampling_freq, double frequency, double phase = 0) {
 			if (frequency < 0)
 				frequency = sampling_freq + frequency;
 
@@ -48,8 +50,8 @@ namespace ugsdr {
 			return MixerImpl::Process(src, sampling_freq, frequency, phase);
 		}
 
-		template <typename UnderlyingType>
-		void Translate(std::vector<std::complex<UnderlyingType>>& src_dst) {
+		template <ComplexContainer T>
+		void Translate(T& src_dst) {
 			Translate(src_dst, sampling_rate, mixer_frequency, mixer_phase);
 			auto phase_mod = std::fmod(mixer_frequency / 1000.0, 1.0);
 			if (phase_mod < 0)

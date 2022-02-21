@@ -27,6 +27,8 @@ add_executable (${PROJECT_NAME}
 							matched_filter/ipp_matched_filter.hpp
 							matched_filter/matched_filter.hpp 
 							math/abs.hpp
+							math/af_abs.hpp
+							math/af_conj.hpp
 							math/af_dft.hpp
 							math/conj.hpp
 							math/dft.hpp

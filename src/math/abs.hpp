@@ -1,5 +1,7 @@
 #pragma once
 
+#include "../common.hpp"
+
 #include <complex>
 #include <vector>
 
@@ -8,8 +10,8 @@ namespace ugsdr {
 	class Abs {
 	protected:
 	public:
-		template <typename UnderlyingType>
-		static auto Transform(const std::vector<std::complex<UnderlyingType>>& src) {
+		template <ComplexContainer T>
+		static auto Transform(const T& src) {
 			return AbsImpl::Process(src);
 		}
 	};

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "../common.hpp"
+
 #include <cmath>
 #include <vector>
 
@@ -8,14 +10,14 @@ namespace ugsdr {
 	class Upsampler {
 	protected:
 	public:
-		template <typename T>
-		static void Transform(std::vector<T>& src_dst, std::size_t samples) {
+		template <Container T>
+		static void Transform(T& src_dst, std::size_t samples) {
 			UpsamplerImpl::Process(src_dst, samples);
 		}
 
-		template <typename T>
-		static auto Transform(const std::vector<T>& src_dst, std::size_t samples) {
-			auto dst = src_dst;
+		template <Container T>
+		static auto Transform(const T& src, std::size_t samples) {
+			auto dst = src;
 			UpsamplerImpl::Process(dst, samples);
 			return dst;
 		}

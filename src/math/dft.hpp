@@ -1,11 +1,6 @@
 #pragma once
 
-#include <complex>
-#include <mutex>
-#include <numbers>
-#include <numeric>
-#include <vector>
-
+#include "../common.hpp"
 #include "../helpers/is_complex.hpp"
 
 #ifdef HAS_FFTW
@@ -13,24 +8,24 @@
 #include "../../external/type_map/include/type_map.hpp"
 #endif
 
+#include <complex>
+#include <mutex>
+#include <numbers>
+#include <numeric>
+#include <vector>
+
 namespace ugsdr {
 	template <typename DftImpl>
 	class DiscreteFourierTransform {
 	protected:
 	public:
-		// TODO: Add real-to-complex and real-to-real transforms (when required)
-		template <typename UnderlyingType>
-		static void Transform(std::vector<std::complex<UnderlyingType>>& src_dst, bool is_inverse = false) {
-			DftImpl::Process(src_dst, is_inverse);
-		}
-
-		template <typename T>
+		template <Container T>
 		static void Transform(T& src_dst, bool is_inverse = false) {
 			DftImpl::Process(src_dst, is_inverse);
 		}
 		
-		template <typename UnderlyingType>
-		static auto Transform(const std::vector<UnderlyingType>& src, bool is_inverse = false) {
+		template <Container T>
+		static auto Transform(const T& src, bool is_inverse = false) {
 			return DftImpl::Process(src, is_inverse);
 		}
 	};

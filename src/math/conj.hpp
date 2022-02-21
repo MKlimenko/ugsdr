@@ -1,5 +1,7 @@
 #pragma once
 
+#include "../common.hpp"
+
 #include <complex>
 #include <vector>
 
@@ -8,16 +10,14 @@ namespace ugsdr {
 	class ComplexConjugate {
 	protected:
 	public:
-		template <typename UnderlyingType>
-		static void Transform(std::vector<std::complex<UnderlyingType>>& src_dst) {
+		template <ComplexContainer T>
+		static void Transform(T& src_dst) {
 			ConjImpl::Process(src_dst);
 		}
 
-		template <typename UnderlyingType>
-		static auto Transform(const std::vector<std::complex<UnderlyingType>>& src) {
-			auto dst = src;
-			ConjImpl::Process(dst);
-			return dst;
+		template <ComplexContainer T>
+		static auto Transform(const T& src) {
+			return ConjImpl::Process(src);
 		}
 	};
 
@@ -31,6 +31,11 @@ namespace ugsdr {
 				el = std::conj(el);
 		}
 
-	public:
+		template <typename UnderlyingType>
+		static auto Process(const std::vector<std::complex<UnderlyingType>>& src) {
+			auto dst = src;
+			Process(dst);
+			return dst;
+		}
 	};
 }
