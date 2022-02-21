@@ -41,6 +41,7 @@ namespace ugsdr {
 				for (std::size_t j = 0; j < block_size; ++j)
 					src[j] += src[j + i * block_size];
 			}
+			src.resize(block_size);
 		}
 
 		template <typename T>

@@ -29,6 +29,8 @@
 #include "../src/math/ipp_max_index.hpp"
 #include "../src/math/af_mean_stddev.hpp"
 #include "../src/math/ipp_mean_stddev.hpp"
+#include "../src/math/af_reshape_and_sum.hpp"
+#include "../src/math/ipp_reshape_and_sum.hpp"
 
 #include "../src/resample/decimator.hpp"
 #include "../src/resample/ipp_decimator.hpp"
@@ -448,8 +450,8 @@ namespace basic_tests {
 
 				auto result = MeanStdDevType::Calculate(data);
 
-				ASSERT_NEAR(result.mean, mean, 0.01);
-				ASSERT_NEAR(result.sigma, sigma, 0.01);
+				ASSERT_NEAR(static_cast<T>(result.mean), mean, 0.01);
+				ASSERT_NEAR(static_cast<T>(result.sigma), sigma, 0.01);
 			}
 
 			TYPED_TEST(MeanStdDevTest, sequential_max_index) {
@@ -465,6 +467,40 @@ namespace basic_tests {
 #ifdef HAS_ARRAYFIRE
 			TYPED_TEST(MeanStdDevTest, af_max_index) {
 				TestMeanStdDev<ugsdr::AfMeanStdDev, typename TestFixture::Type>();
+			}
+#endif
+		}
+		namespace ReshapeAndSum {
+			template <typename T>
+			class ReshapeAndSumTest : public testing::Test {
+			public:
+				using Type = T;
+			};
+			using ReshapeAndSumTypes = ::testing::Types<float, double>;
+			TYPED_TEST_SUITE(ReshapeAndSumTest, ReshapeAndSumTypes);
+
+			template <typename ReshapeAndSumType, typename T>
+			void TestReshapeAndSum() {
+				const std::vector<T> data(10000, static_cast<T>(1));
+				auto result = static_cast<std::vector<T>>(ReshapeAndSumType::Transform(data, 1000));
+
+				ASSERT_EQ(result.size(), 1000);
+				ASSERT_TRUE(std::all_of(result.begin(), result.end(), [](auto& val) { return val == static_cast<T>(10); }));
+			}
+
+			TYPED_TEST(ReshapeAndSumTest, sequential_max_index) {
+				TestReshapeAndSum<ugsdr::SequentialReshapeAndSum, typename TestFixture::Type>();
+			}
+
+#ifdef HAS_IPP
+			TYPED_TEST(ReshapeAndSumTest, ipp_max_index) {
+				TestReshapeAndSum<ugsdr::IppReshapeAndSum, typename TestFixture::Type>();
+			}
+#endif
+
+#ifdef HAS_ARRAYFIRE
+			TYPED_TEST(ReshapeAndSumTest, af_max_index) {
+				TestReshapeAndSum<ugsdr::AfReshapeAndSum, typename TestFixture::Type>();
 			}
 #endif
 		}
