@@ -92,6 +92,7 @@ add_executable (${PROJECT_NAME}
 							resample/decimator.hpp 
 							resample/af_decimator.hpp 
 							resample/af_resampler.hpp 
+							resample/af_upsampler.hpp 
 							resample/ipp_decimator.hpp 
 							resample/ipp_resampler.hpp 
 							resample/ipp_upsampler.hpp 

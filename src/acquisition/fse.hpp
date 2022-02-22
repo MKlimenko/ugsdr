@@ -19,6 +19,7 @@
 #include "../mixer/table_mixer.hpp"
 #include "../prn_codes/codegen_wrapper.hpp"
 #include "../resample/upsampler.hpp"
+#include "../resample/af_upsampler.hpp"
 #include "../resample/af_resampler.hpp"
 #include "../resample/ipp_resampler.hpp"
 #include "../mixer/af_mixer.hpp"
@@ -84,7 +85,7 @@ namespace ugsdr {
 	using ParametricAfFseConfig = FseConfig<
 		acquisition_sampling_rate,
 		AfMixer,
-		SequentialUpsampler,
+		AfUpsampler,
 		AfMatchedFilter,
 		AfAbs,
 		AfReshapeAndSum,
