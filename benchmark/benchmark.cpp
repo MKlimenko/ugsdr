@@ -489,25 +489,25 @@ namespace acquisition {
 #endif
 
 #ifdef HAS_ARRAYFIRE
-    //template <typename T>
-    //static void AfAcquisition(benchmark::State& state) {
-    //    using AfConfig = ugsdr::FseConfig<
-    //        8192000,
-    //        ugsdr::AfMixer,
-    //        ugsdr::IppUpsampler,
-    //        ugsdr::AfMatchedFilter,
-    //        ugsdr::IppAbs,
-    //        ugsdr::IppReshapeAndSum,
-    //        ugsdr::IppMaxIndex,
-    //        ugsdr::IppMeanStdDev,
-    //        ugsdr::IppResampler
-    //    >;
+    template <typename T>
+    static void AfAcquisition(benchmark::State& state) {
+        using AfConfig = ugsdr::FseConfig<
+            8192000,
+            ugsdr::AfMixer,
+            ugsdr::SequentialUpsampler,
+            ugsdr::AfMatchedFilter,
+            ugsdr::AfAbs,
+            ugsdr::AfReshapeAndSum,
+            ugsdr::AfMaxIndex,
+            ugsdr::AfMeanStdDev,
+            ugsdr::AfResampler
+        >;
 
-    //    for (auto _ : state)
-    //        TestAcquisition<AfConfig, T>();
-    //}
-    //BENCHMARK_TEMPLATE(AfAcquisition, float)->ACQ_BENCHMARK_OPTIONS;
-    //BENCHMARK_TEMPLATE(AfAcquisition, double)->ACQ_BENCHMARK_OPTIONS;
+        for (auto _ : state)
+            TestAcquisition<AfConfig, T>();
+    }
+    BENCHMARK_TEMPLATE(AfAcquisition, float)->ACQ_BENCHMARK_OPTIONS;
+    BENCHMARK_TEMPLATE(AfAcquisition, double)->ACQ_BENCHMARK_OPTIONS;
 #endif
 }
 #endif

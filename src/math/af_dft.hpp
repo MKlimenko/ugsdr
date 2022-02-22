@@ -30,6 +30,12 @@ namespace ugsdr {
 				af::fftInPlace(src);
 		}
 
+		static auto Process(const ArrayProxy& src, bool is_inverse = false) {
+			auto dst = src;
+			Process(dst, is_inverse);
+			return dst;
+		}
+
 		template <typename T>
 		static auto Process(const std::vector<T>& src, bool is_inverse = false) {
 			auto af_src = ArrayProxy(src);

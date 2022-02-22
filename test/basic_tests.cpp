@@ -542,6 +542,25 @@ namespace basic_tests {
 			}
 		}
 
+		template <typename AccumulatorImpl, typename T>
+		void TestAccumulator() {
+			const auto data = GetSlope<T>();
+
+			auto decimation_ratio = 10;
+			auto result = AccumulatorImpl::Transform(data, decimation_ratio);
+
+			for (std::size_t i = 0; i < result.size(); ++i) {
+				auto val = (data[i * decimation_ratio] + data[(i + 1) * decimation_ratio - 1]) /
+					static_cast<ugsdr::underlying_t<T>>(2.0);
+				if constexpr (ugsdr::is_complex_v<T>) {
+					ASSERT_NEAR(result[i].real(), val.real(), 1e-4);
+					ASSERT_NEAR(result[i].imag(), val.imag(), 1e-4);
+				}
+				else
+					ASSERT_NEAR(result[i], val, 1e-4);
+			}
+		}
+
 		template <typename UpsamplerImpl, typename T>
 		void TestUpsampler() {
 			const auto data = GetSlope<T>();
@@ -571,21 +590,7 @@ namespace basic_tests {
 		}
 
 		TYPED_TEST(ResampleTest, ipp_accumulator) {
-			const auto data = GetSlope<typename TestFixture::Type>();
-
-			auto decimation_ratio = 10;
-			auto result = ugsdr::IppAccumulator::Transform(data, decimation_ratio);
-
-			for (std::size_t i = 0; i < result.size(); ++i) {
-				auto val = (data[i * decimation_ratio] + data[(i + 1) * decimation_ratio - 1]) /
-					static_cast<ugsdr::underlying_t<typename TestFixture::Type>>(2.0);
-				if constexpr (ugsdr::is_complex_v<typename TestFixture::Type>) {
-					ASSERT_NEAR(result[i].real(), val.real(), 1e-4);
-					ASSERT_NEAR(result[i].imag(), val.imag(), 1e-4);
-				}
-				else
-					ASSERT_NEAR(result[i], val, 1e-4);
-			}
+			TestAccumulator<ugsdr::IppAccumulator, typename TestFixture::Type>();
 		}
 #endif
 
@@ -602,6 +607,9 @@ namespace basic_tests {
 #ifdef HAS_ARRAYFIRE
 		TYPED_TEST(ResampleTest, af_decimator) {
 			TestDecimator<ugsdr::AfDecimator, typename TestFixture::Type>();
+		}
+		TYPED_TEST(ResampleTest, af_accumulator) {
+			TestAccumulator<ugsdr::AfAccumulator, typename TestFixture::Type>();
 		}
 #endif
 	}

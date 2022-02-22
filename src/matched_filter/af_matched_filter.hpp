@@ -41,6 +41,19 @@ namespace ugsdr {
 			return ArrayProxy(af::conjg(ir_spectrum));
 		}
 
+		static void ProcessOptimized(ArrayProxy& src_dst, const ArrayProxy& impulse_response) {
+			DftImpl::Transform(src_dst);
+
+			src_dst = ArrayProxy(src_dst * static_cast<af::array>(impulse_response));
+			DftImpl::Transform(src_dst, true);
+		}
+
+		static auto ProcessOptimized(const ArrayProxy& src, const ArrayProxy& impulse_response) {
+			auto dst = src;
+			ProcessOptimized(dst, impulse_response);
+			return dst;
+		}
+
 		template <ComplexContainer T1, Container T2>
 		static auto ProcessOptimized(const T1& src, const T2& impulse_response) {
 			auto src_spectrum = DftImpl::Transform(src);

@@ -6,14 +6,14 @@
 #include "mixer.hpp"
 #include "../helpers/af_array_proxy.hpp"
 
+#include <string>
 namespace ugsdr {
 	class AfMixer: public Mixer<AfMixer> {
 	protected:
 		friend class Mixer<AfMixer>;
 
-		template <typename T>
-		static auto Process(const std::vector<T>& src_dst, double sampling_freq, double frequency, double phase = 0) {
-			double scale = 1.0;
+		template <Container T>
+		static auto Process(const T& src_dst, double sampling_freq, double frequency, double phase = 0) {
 			auto signal = ArrayProxy(src_dst);
 			auto triarg = ArrayProxy(af::iota(src_dst.size()) * frequency / sampling_freq * 2 * std::numbers::pi + phase);
 			auto sine = ArrayProxy(af::sin(triarg));

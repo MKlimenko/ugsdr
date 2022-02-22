@@ -11,6 +11,7 @@
 #include "../math/ipp_abs.hpp"
 #include "../math/af_max_index.hpp"
 #include "../math/ipp_max_index.hpp"
+#include "../math/af_reshape_and_sum.hpp"
 #include "../math/ipp_reshape_and_sum.hpp"
 #include "../math/af_mean_stddev.hpp"
 #include "../math/ipp_mean_stddev.hpp"
@@ -20,6 +21,7 @@
 #include "../resample/upsampler.hpp"
 #include "../resample/af_resampler.hpp"
 #include "../resample/ipp_resampler.hpp"
+#include "../mixer/af_mixer.hpp"
 
 #include <concepts>
 #include <cstring>
@@ -75,6 +77,21 @@ namespace ugsdr {
 		IppMaxIndex,
 		IppMeanStdDev,
 		IppResampler>;
+#endif
+
+#ifdef HAS_ARRAYFIRE
+	template <auto acquisition_sampling_rate>
+	using ParametricAfFseConfig = FseConfig<
+		acquisition_sampling_rate,
+		AfMixer,
+		SequentialUpsampler,
+		AfMatchedFilter,
+		AfAbs,
+		AfReshapeAndSum,
+		AfMaxIndex,
+		AfMeanStdDev,
+		AfResampler
+	>;
 #endif
 
 	template <auto acquisition_sampling_rate>
@@ -180,8 +197,8 @@ namespace ugsdr {
 			}
 		}
 
-		template <bool reshape = true, bool coherent = true, typename T = int>
-		auto GetOneMsPeak(const std::vector<std::complex<T>>& signal, double new_sampling_rate) {
+		template <bool reshape = true, bool coherent = true, typename Q = float, ComplexContainer T = std::vector<std::complex<Q>>>
+		auto GetOneMsPeak(const T& signal, double new_sampling_rate) {
 			const auto samples_per_ms = static_cast<std::size_t>(new_sampling_rate / 1e3);
 			
 			if constexpr (!reshape) {
@@ -221,22 +238,22 @@ namespace ugsdr {
 			return signal_sampling_rate;
 		}
 
-		template <bool reshape = true, bool coherent = true>
-		void ProcessBpsk(const std::vector<std::complex<UnderlyingType>>& signal, const std::vector<UnderlyingType>& code,
-			Sv sv, double signal_sampling_rate, double new_sampling_rate, double intermediate_frequency, 
+		template <bool reshape = true, bool coherent = true, Container T1 = std::vector<UnderlyingType>, Container T2 = std::vector<UnderlyingType>>
+		void ProcessBpsk(const T1& signal, const T2& code, Sv sv, double signal_sampling_rate, 
+			double new_sampling_rate, double intermediate_frequency, 
 			std::vector<AcquisitionResult<UnderlyingType>>& dst) {
 			AcquisitionResult<UnderlyingType> tmp, max_result;
 			auto ratio = signal_sampling_rate / new_sampling_rate;
-
 			auto code_spectrum = Config::MatchedFilterType::PrepareCodeSpectrum(code);
 			
 			for (double doppler_frequency = -doppler_range;
 						doppler_frequency <= doppler_range;
 						doppler_frequency += doppler_step) {
 				const auto translated_signal = Config::MixerType::Translate(signal, new_sampling_rate, -doppler_frequency);
+
 				auto matched_output = Config::MatchedFilterType::FilterOptimized(translated_signal, code_spectrum);
 				auto peak_one_ms = GetOneMsPeak<reshape, coherent>(matched_output, new_sampling_rate);
-				
+
 				auto max_index = Config::MaxIndexType::Transform(peak_one_ms);
 				auto mean_sigma = Config::MeanStdDevType::Calculate(peak_one_ms);
 				tmp.level = max_index.value;
@@ -265,7 +282,7 @@ namespace ugsdr {
 			const auto& signal = epoch.GetSubband(signal_to_acquire);
 			auto signal_sampling_rate = digital_frontend.GetSamplingRate(signal_to_acquire);
 			auto central_frequency = digital_frontend.GetCentralFrequency(signal_to_acquire);
-			
+
 			auto intermediate_frequency = -(central_frequency - 1575.42e6);
 
 			const auto translated_signal = Config::MixerType::Translate(signal, signal_sampling_rate, -intermediate_frequency);

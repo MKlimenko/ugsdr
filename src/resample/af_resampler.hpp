@@ -4,16 +4,14 @@
 
 #ifdef HAS_ARRAYFIRE
 
+#include "af_decimator.hpp"
 #include "arrayfire.h"
 #include "../helpers/af_array_proxy.hpp"
 #include <type_traits>
 
 namespace ugsdr {
 	class AfResampler: public Resampler<AfResampler> {
-	protected:
-		friend class Resampler<AfResampler>;
-
-		static void Process(ArrayProxy& src_dst, std::size_t new_sampling_rate, std::size_t old_sampling_rate) {
+		static void Upsample(ArrayProxy& src_dst, std::size_t samples) {
 			auto iota_type = af::dtype::f32;
 
 			switch (static_cast<af::array>(src_dst).type()) {
@@ -25,12 +23,22 @@ namespace ugsdr {
 				break;
 			}
 
-			double ratio = static_cast<double>(new_sampling_rate) / static_cast<double>(old_sampling_rate);
 			auto points = ArrayProxy(
-				af::iota(src_dst.size() * ratio, af::dim4(1), iota_type) / ratio
+				af::iota(samples, af::dim4(1), iota_type) * static_cast<double>(src_dst.size()) / samples
 			);
+			src_dst = ArrayProxy(
+				af::approx1(src_dst, points, af::interpType::AF_INTERP_NEAREST)
+			);
+		}
 
-			src_dst = af::approx1(src_dst, points);
+	protected:
+		friend class Resampler<AfResampler>;
+
+		static void Process(ArrayProxy& src_dst, std::size_t new_sampling_rate, std::size_t old_sampling_rate) {
+			auto lcm = std::lcm(new_sampling_rate, old_sampling_rate);
+			auto new_samples = lcm * src_dst.size() / old_sampling_rate;
+			Upsample(src_dst, new_samples);
+			AfAccumulator::Transform(src_dst, lcm / new_sampling_rate);
 		}
 
 		template <Container T>
