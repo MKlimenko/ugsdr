@@ -14,6 +14,7 @@
 #include "../src/matched_filter/af_matched_filter.hpp"
 
 #include "../src/digital_filter/fir.hpp"
+#include "../src/digital_filter/ipp_fir.hpp"
 
 #include "../src/mixer/af_mixer.hpp"
 #include "../src/mixer/batch_mixer.hpp"
@@ -197,29 +198,33 @@ namespace basic_tests {
 
 				auto low_index = static_cast<std::size_t>(freq_low / 1e3);
 				auto high_index = static_cast<std::size_t>(freq_high / 1e3);
-				ASSERT_NEAR(post[low_index] / 1.000224, pre[low_index], static_cast<ugsdr::underlying_t<T>>(5.0));
+				ASSERT_NEAR(post[low_index] / 1.00044, pre[low_index], static_cast<ugsdr::underlying_t<T>>(5.0));
 				ASSERT_NEAR(post[high_index], pre[high_index] * 0.042898, static_cast<ugsdr::underlying_t<T>>(5.0));
 			}
 
-#ifdef HAS_IPP
-			TYPED_TEST(FirTest, sequential_fir) {
-				TestFir<ugsdr::SequentialFir, ugsdr::IppAbs, ugsdr::IppDft, typename TestFixture::Type>();
-			}
-
-			TYPED_TEST(FirTest, sequential_fir_reenter) {
-				TestFirMultiple<ugsdr::SequentialFir, ugsdr::IppAbs, ugsdr::IppDft, typename TestFixture::Type>();
-			}
-#endif
-
 //#ifdef HAS_IPP
-//			TYPED_TEST(FirTest, ipp_fir) {
-//				TestAbs<ugsdr::IppFir, typename TestFixture::Type>();
+//			TYPED_TEST(FirTest, sequential_fir) {
+//				TestFir<ugsdr::SequentialFir, ugsdr::IppAbs, ugsdr::IppDft, typename TestFixture::Type>();
+//			}
+//
+//			TYPED_TEST(FirTest, sequential_fir_reenter) {
+//				TestFirMultiple<ugsdr::SequentialFir, ugsdr::IppAbs, ugsdr::IppDft, typename TestFixture::Type>();
 //			}
 //#endif
 //
+//#ifdef HAS_IPP
+//			TYPED_TEST(FirTest, ipp_fir) {
+//				TestFir<ugsdr::IppFir, ugsdr::IppAbs, ugsdr::IppDft, typename TestFixture::Type>();
+//			}
+//
+//			TYPED_TEST(FirTest, ipp_fir_reenter) {
+//				TestFirMultiple<ugsdr::IppFir, ugsdr::IppAbs, ugsdr::IppDft, typename TestFixture::Type>();
+//			}
+//#endif
+
 //#ifdef HAS_ARRAYFIRE
 //			TYPED_TEST(FirTest, af_fir) {
-//				TestAbs<ugsdr::AfFir, typename TestFixture::Type>();
+//				TestFir<ugsdr::AfFir, typename TestFixture::Type>();
 //			}
 //#endif
 		}
