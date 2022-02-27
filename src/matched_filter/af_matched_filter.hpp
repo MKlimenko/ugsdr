@@ -16,6 +16,7 @@ namespace ugsdr {
 		friend class MatchedFilter<AfMatchedFilter>;
 
 		template <ComplexContainer T1, Container T2>
+		[[nodiscard]]
 		static auto Process(const T1& src, const T2& impulse_response) {
 			auto src_spectrum = DftImpl::Transform(src);
 			auto ir_spectrum = DftImpl::Transform(impulse_response);
@@ -36,6 +37,7 @@ namespace ugsdr {
 		}
 
 		template <Container T>
+		[[nodiscard]]
 		static auto Prepare(const T& impulse_response) {
 			auto ir_spectrum = DftImpl::Transform(impulse_response);
 			return ArrayProxy(af::conjg(ir_spectrum));
@@ -48,6 +50,7 @@ namespace ugsdr {
 			DftImpl::Transform(src_dst, true);
 		}
 
+		[[nodiscard]]
 		static auto ProcessOptimized(const ArrayProxy& src, const ArrayProxy& impulse_response) {
 			auto dst = src;
 			ProcessOptimized(dst, impulse_response);
@@ -55,6 +58,7 @@ namespace ugsdr {
 		}
 
 		template <ComplexContainer T1, Container T2>
+		[[nodiscard]]
 		static auto ProcessOptimized(const T1& src, const T2& impulse_response) {
 			auto src_spectrum = DftImpl::Transform(src);
 

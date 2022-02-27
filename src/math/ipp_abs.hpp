@@ -13,6 +13,7 @@
 namespace ugsdr {
 	class IppAbs : public Abs<IppAbs> {
 	private:
+		[[nodiscard]]
 		static auto GetAbsWrapper() {
 			static auto abs_wrapper = plusifier::FunctionWrapper(
 				ippsAbs_32fc_A11, ippsAbs_64fc_A26);
@@ -24,6 +25,7 @@ namespace ugsdr {
 		friend class Abs<IppAbs>;
 
 		template <typename UnderlyingType>
+		[[nodiscard]]
 		static auto Process(const std::vector<std::complex<UnderlyingType>>& src_dst) {
 			std::vector<UnderlyingType> dst(src_dst.size());
 			auto abs_wrapper = GetAbsWrapper();

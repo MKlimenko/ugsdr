@@ -28,6 +28,7 @@ private:
 		auto command = LR"("%DS-5_Visualizer%\DS-5_Visualizer.exe" 1 )" + std::filesystem::absolute(filename).wstring() + L" ";
 	}
 public:
+	[[nodiscard]]
 	static auto& GetHelper() {
 		static VisualizerHelper helper;
 		return helper;

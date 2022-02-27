@@ -31,6 +31,8 @@
 #include "../src/math/ipp_mean_stddev.hpp"
 #include "../src/math/af_reshape_and_sum.hpp"
 #include "../src/math/ipp_reshape_and_sum.hpp"
+#include "../src/math/stft.hpp"
+#include "../src/math/ipp_stft.hpp"
 
 #include "../src/resample/decimator.hpp"
 #include "../src/resample/af_decimator.hpp"
@@ -505,6 +507,119 @@ namespace basic_tests {
 				TestReshapeAndSum<ugsdr::AfReshapeAndSum, typename TestFixture::Type>();
 			}
 #endif
+		}
+
+		namespace Stft {
+			template <typename T>
+			class StftTest : public testing::Test {
+			public:
+				using Type = T;
+			};
+			using StftTypes = ::testing::Types<float, double>;
+			TYPED_TEST_SUITE(StftTest, StftTypes);
+
+			template <typename T>
+			auto GetSine(double sine_freq, double fs) {
+				std::vector<std::complex<T>> vec(static_cast<std::size_t>(fs / 1e3));
+				for (std::size_t i = 0; i < vec.size(); ++i)
+					vec[i] = std::exp(std::complex<T>(0, 2 * std::numbers::pi * i * sine_freq / fs));
+
+				return vec;
+			}
+
+			template <typename T>
+			auto GetChirp(double chirp_start, double chirp_end, double chirp_period, double fs) {
+				std::vector<std::complex<T>> vec(static_cast<std::size_t>(fs / 1e3));
+				auto chirpiness = (chirp_end - chirp_start) / chirp_period;
+				auto samples_per_chirp = static_cast<std::size_t>(ceil(chirp_period * fs));
+				for (std::size_t i = 0; i < vec.size(); ++i) {
+					auto current_time = (i % samples_per_chirp) / fs;
+					vec[i] = std::exp(std::complex<T>(0, 2 * std::numbers::pi * (chirpiness * current_time * current_time / 2.0 + chirp_start * current_time)));
+				}
+
+				return vec;
+			}
+
+			template <typename StftType, typename AbsType, typename MaxIndexType, typename T>
+			void TestPeak() {
+				auto sampling_rate = 50e6;
+				auto tone_freq = 1e6;
+				const auto data = GetSine<T>(tone_freq, sampling_rate);
+				auto result = StftType::Transform(data);
+
+				std::map<double, std::atomic<double>> freq_to_percent_map;
+
+				std::for_each(result.begin(), result.end(), [&freq_to_percent_map, &sampling_rate, &result](auto& el) {
+					auto max_pos = MaxIndexType::Transform(AbsType::Transform(el));
+					freq_to_percent_map[max_pos.index * sampling_rate / el.size()] += 100.0 / result.size();
+				});
+
+				auto max_freq_offset = sampling_rate / result[0].size() / 2;
+
+				bool peak_found = false;
+				for (auto& [frequency, bins] : freq_to_percent_map) {
+					if (std::abs(frequency - tone_freq) <= max_freq_offset) {
+						ASSERT_GE(bins, 95.0);
+						peak_found = true;
+					}
+					else
+						ASSERT_LT(bins, 1.0);
+				}
+				ASSERT_TRUE(peak_found);
+			}
+
+			template <typename StftType, typename AbsType, typename MaxIndexType, typename T>
+			void TestChirp() {
+				auto sampling_rate = 50e6;
+				auto chirp_start = 1e6;
+				auto chirp_end = 10e6;
+				auto chirp_period = 20e-6;
+				const auto data = GetChirp<T>(chirp_start, chirp_end, chirp_period, sampling_rate);
+				auto result = StftType::Transform(data);
+
+				std::map<double, std::atomic<double>> freq_to_percent_map;
+
+				std::for_each(result.begin(), result.end(), [&freq_to_percent_map, &sampling_rate, &result](auto& el) {
+					auto max_pos = MaxIndexType::Transform(AbsType::Transform(el));
+					freq_to_percent_map[max_pos.index * sampling_rate / el.size()] += 100.0 / result.size();
+				});
+
+				auto number_of_bins = result[0].size();
+				auto frequency_step = sampling_rate / static_cast<double>(number_of_bins);
+				auto max_freq_offset = frequency_step / 2;
+				auto occupied_bins = (chirp_end - chirp_start) / frequency_step;
+
+				for (auto& [frequency, bins] : freq_to_percent_map) {
+					auto delta_start = std::abs(frequency - chirp_start);
+					auto delta_end = std::abs(frequency - chirp_end);
+					if ((frequency - max_freq_offset >= chirp_start) || (frequency - max_freq_offset <= chirp_end))
+						ASSERT_GE(bins, 100.0 / occupied_bins / 2);
+					else
+						ASSERT_LT(bins, 1.0);
+				}
+			}
+
+			template <typename StftType, typename AbsType, typename MaxIndexType, typename T>
+			void Test() {
+				TestPeak<StftType, AbsType, MaxIndexType, T>();
+				TestChirp<StftType, AbsType, MaxIndexType, T>();
+			}
+
+			TYPED_TEST(StftTest, sequential_stft) {
+				Test<ugsdr::SequentialStft, ugsdr::SequentialAbs, ugsdr::SequentialMaxIndex, typename TestFixture::Type>();
+			}
+
+#ifdef HAS_IPP
+			TYPED_TEST(StftTest, ipp_stft) {
+				Test<ugsdr::IppStft, ugsdr::IppAbs, ugsdr::IppMaxIndex, typename TestFixture::Type>();
+			}
+#endif
+//
+//#ifdef HAS_ARRAYFIRE
+//			TYPED_TEST(StftTest, af_stft) {
+//				TestPeak<ugsdr::AfStft, typename TestFixture::Type>();
+//			}
+//#endif
 		}
 	}
 

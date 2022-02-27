@@ -13,13 +13,15 @@ namespace ugsdr {
 	private:
 		using DftImpl = ugsdr::IppDft;
 
+		[[nodiscard]]
 		static auto GetMulByConjWrapper() {
 			static auto mul_by_conj_wrapper = plusifier::FunctionWrapper(
 				ippsMulByConj_32fc_A11, ippsMulByConj_64fc_A26);
 
 			return mul_by_conj_wrapper;
 		}
-		
+
+		[[nodiscard]]
 		static auto GetConjWrapper() {
 			static auto conj_wrapper = plusifier::FunctionWrapper(
 				ippsConj_32fc_I, ippsConj_64fc_I
@@ -28,6 +30,7 @@ namespace ugsdr {
 			return conj_wrapper;
 		}
 
+		[[nodiscard]]
 		static auto GetMulWrapper() {
 			static auto mul_wrapper = plusifier::FunctionWrapper(
 				ippsMul_32fc_I, ippsMul_64fc_I
@@ -58,6 +61,7 @@ namespace ugsdr {
 		}
 
 		template <typename UnderlyingType, typename T>
+		[[nodiscard]]
 		static auto Process(const std::vector<std::complex<UnderlyingType>>& src_dst, const std::vector<T>& impulse_response) {
 			auto dst = src_dst;
 			Process(dst, impulse_response);
@@ -65,6 +69,7 @@ namespace ugsdr {
 		}
 
 		template <typename T>
+		[[nodiscard]]
 		static auto Prepare(const std::vector<T>& impulse_response) {
 			auto ir_spectrum = DftImpl::Transform(impulse_response);
 			auto conj_wrapper = GetConjWrapper();
@@ -85,6 +90,7 @@ namespace ugsdr {
 		}
 
 		template <typename UnderlyingType, typename T>
+		[[nodiscard]]
 		static auto ProcessOptimized(const std::vector<std::complex<UnderlyingType>>& src_dst, const T& impulse_response) {
 			const auto dst = src_dst;
 			ProcessOptimized(dst, impulse_response);

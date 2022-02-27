@@ -11,6 +11,7 @@ namespace ugsdr {
 	protected:
 	public:
 		template <ComplexContainer T>
+		[[nodiscard]]
 		static auto Transform(const T& src) {
 			return AbsImpl::Process(src);
 		}
@@ -21,6 +22,7 @@ namespace ugsdr {
 		friend class Abs<SequentialAbs>;
 
 		template <typename UnderlyingType>
+		[[nodiscard]]
 		static auto Process(const std::vector<std::complex<UnderlyingType>>& src) {
 			auto dst = std::vector<UnderlyingType>(src.size());
 			for (std::size_t i = 0; i < src.size(); ++i) {

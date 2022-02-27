@@ -94,6 +94,7 @@ namespace ugsdr {
 		typename Config::MixerType mixer;
 		typename Config::ResamplerType resampler;
 
+		[[nodiscard]]
 		static auto CentralFrequency(Signal signal) {
 			switch (signal) {
 			case Signal::GpsCoarseAcquisition_L1:
@@ -133,7 +134,8 @@ namespace ugsdr {
 				throw std::runtime_error("Unexpected signal");
 			}
 		}
-		
+
+		[[nodiscard]]
 		static auto CentralFrequency(const std::vector<Signal>& signals) {
 			if (signals.empty())
 				throw std::runtime_error("Channel can\'t be empty signalwise");
@@ -147,7 +149,8 @@ namespace ugsdr {
 
 			return central_frequencies[0];
 		}
-		
+
+		[[nodiscard]]
 		static auto MixerFrequency(SignalParametersBase<UnderlyingType>& signal_params, Signal signal) {
 			return signal_params.GetCentralFrequency() - CentralFrequency(signal);
 		}

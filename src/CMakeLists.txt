@@ -41,9 +41,11 @@ add_executable (${PROJECT_NAME}
 							math/ipp_max_index.hpp
 							math/ipp_mean_stddev.hpp
 							math/ipp_reshape_and_sum.hpp
+							math/ipp_stft.hpp
 							math/max_index.hpp
 							math/mean_stddev.hpp
 							math/reshape_and_sum.hpp
+							math/stft.hpp
 							measurements/measurement_engine.hpp
 							measurements/observable.hpp
 							measurements/timescale.hpp

@@ -10,6 +10,7 @@
 namespace ugsdr {
 	class IppCorrelator : public Correlator<IppCorrelator> {
 	private:
+		[[nodiscard]]
 		static auto GetDotWrapper() {
 			static auto dot_wrapper = plusifier::FunctionWrapper(
 				ippsDotProd_32f32fc, ippsDotProd_32fc, ippsDotProd_64f64fc, ippsDotProd_64fc
@@ -22,6 +23,7 @@ namespace ugsdr {
 		friend class Correlator<IppCorrelator>;
 
 		template <typename UnderlyingType, typename T>
+		[[nodiscard]]
 		static auto Process(const std::span<const std::complex<UnderlyingType>>& signal, const std::span<const T>& code) {
 			if (signal.size() != code.size())
 				throw std::runtime_error("Size mismatch");

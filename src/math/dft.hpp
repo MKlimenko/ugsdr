@@ -25,6 +25,7 @@ namespace ugsdr {
 		}
 		
 		template <Container T>
+		[[nodiscard]]
 		static auto Transform(const T& src, bool is_inverse = false) {
 			return DftImpl::Process(src, is_inverse);
 		}

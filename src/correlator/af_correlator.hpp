@@ -11,6 +11,7 @@ namespace ugsdr {
 	protected:
 		friend class Correlator<AfCorrelator>;
 
+		[[nodiscard]]
 		static auto Process(const ArrayProxy& signal, const ArrayProxy& code) {
 			if (signal.size() != code.size())
 				throw std::runtime_error("Size mismatch");
