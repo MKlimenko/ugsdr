@@ -7,14 +7,59 @@
 #include "ipp.h"
 #include "../../external/plusifier/Plusifier.hpp"
 #include "../helpers/ipp_complex_type_converter.hpp"
+#include "../helpers/is_complex.hpp"
 
 #include <type_traits>
 
 namespace ugsdr {
 	template <typename T, typename WeightsContainer, typename StateContainer/* = std::vector<T>, typename StateContainer = std::vector<T>*/>
 	class IppFir : public Fir<IppFir<T, WeightsContainer, StateContainer>> {
+		template <typename Ty>
+		struct TypeToSpec {
+			using IppSpecMap = mk::TypeMap<
+				mk::TypePair<float, IppsFIRSpec_32f>,
+				mk::TypePair<std::complex<float>, IppsFIRSpec_32fc>,
+				mk::TypePair<double, IppsFIRSpec_64f>,
+				mk::TypePair<std::complex<double>, IppsFIRSpec_64fc>
+			>;
+
+			using Type = IppSpecMap::GetTypeByType<Ty>;
+		};
+
+		template <typename Ty>
+		constexpr static IppDataType GetIppDataType() {
+			using IppDataTypeMap = mk::TypeMap<
+				mk::TypeValuePair<float, IppDataType::ipp32f>,
+				mk::TypeValuePair<std::complex<float>, IppDataType::ipp32fc>,
+				mk::TypeValuePair<double, IppDataType::ipp64f>,
+				mk::TypeValuePair<std::complex<double>, IppDataType::ipp64fc>
+			>;
+
+			return IppDataTypeMap::GetValueByType<Ty>();
+		}
+
+		[[nodiscard]]
+		static auto GetFirWrapper() {
+			static auto fir_wrapper = plusifier::FunctionWrapper(
+				ippsFIRSR_32f,
+				ippsFIRSR_32fc,
+				ippsFIRSR_64f,
+				ippsFIRSR_64fc
+			);
+
+			return fir_wrapper;
+		}
+
+		using IppType = std::conditional_t<is_complex_v<T>,
+			typename IppTypeToComplex<underlying_t<T>>::Type,
+			T
+		>;
+
 		StateContainer state;
 		WeightsContainer weights;
+		std::vector<Ipp8u> buf;
+		std::vector<Ipp8u> fir_spec;
+		using FirSpec = typename TypeToSpec<T>::Type;
 
 	protected:
 		friend class Fir<IppFir<T, WeightsContainer, StateContainer>>;
@@ -27,11 +72,10 @@ namespace ugsdr {
 		template <typename Ty>
 		void Process(std::vector<Ty>& src_dst) {
 			VerifyType<Ty>();
-			for (std::size_t i = 0; i < src_dst.size(); ++i) {
-				std::rotate(state.rbegin(), state.rbegin() + 1, state.rend());
-				state[0] = src_dst[i];
-				src_dst[i] = std::inner_product(state.begin(), state.end(), weights.begin(), Ty{});
-			}
+			auto fir = GetFirWrapper();
+			fir(reinterpret_cast<const IppType*>(src_dst.data()), reinterpret_cast<IppType*>(src_dst.data()), 
+				static_cast<int>(src_dst.size()), reinterpret_cast<FirSpec*>(fir_spec.data()),
+				reinterpret_cast<IppType*>(state.data()), reinterpret_cast<IppType*>(state.data()), buf.data());
 		}
 
 		template <typename Ty>
@@ -42,9 +86,30 @@ namespace ugsdr {
 			Process(dst);
 			return dst;
 		}
+		
+		[[nodiscard]]
+		static auto GetFirInitWrapper() {
+			static auto firinit_wrapper = plusifier::FunctionWrapper(
+				ippsFIRSRInit_32f,
+				ippsFIRSRInit_32fc,
+				ippsFIRSRInit_64f,
+				ippsFIRSRInit_64fc
+			);
+
+			return firinit_wrapper;
+		}
+
 	public:
-		IppFir(std::vector<T> weights) : state(weights.size()), weights(std::move(weights)) {
-			//ippsFIRSRGetSize(static_cast<int>(weights.size()))
+		IppFir(std::vector<T> inp_weights) : state(inp_weights.size()), weights(std::move(inp_weights)) {
+			int spec_size = 0;
+			int buf_size = 0;
+			ippsFIRSRGetSize(static_cast<int>(weights.size()), GetIppDataType<T>(), &spec_size, &buf_size);
+			fir_spec.resize(spec_size);
+			buf.resize(buf_size);
+
+			auto fir_init = GetFirInitWrapper();
+			fir_init(reinterpret_cast<const IppType*>(weights.data()), static_cast<int>(weights.size()), ippAlgAuto,
+				reinterpret_cast<FirSpec*>(fir_spec.data()));
 		}
 	};
 

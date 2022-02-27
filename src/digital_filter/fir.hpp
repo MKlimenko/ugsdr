@@ -59,7 +59,7 @@ namespace ugsdr {
 			return dst;
 		}
 	public:
-		SequentialFir(std::vector<T> weights) : state(weights.size()), weights(std::move(weights)) {}
+		SequentialFir(std::vector<T> inp_weights) : state(inp_weights.size()), weights(std::move(inp_weights)) {}
 	};
 
 	template<typename T>
