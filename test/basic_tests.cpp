@@ -13,6 +13,8 @@
 #include "../src/matched_filter/ipp_matched_filter.hpp"
 #include "../src/matched_filter/af_matched_filter.hpp"
 
+#include "../src/digital_filter/fir.hpp"
+
 #include "../src/mixer/af_mixer.hpp"
 #include "../src/mixer/batch_mixer.hpp"
 #include "../src/mixer/ipp_mixer.hpp"
@@ -117,6 +119,110 @@ namespace basic_tests {
 			}
 		}
 #endif
+	}
+
+	namespace DigitalFilterTests {
+		namespace Fir {
+			template <typename T>
+			class FirTest : public testing::Test {
+			public:
+				using Type = T;
+			};
+			using FirTypes = ::testing::Types<float, double, std::complex<float>, std::complex<double>>;
+			TYPED_TEST_SUITE(FirTest, FirTypes);
+
+			template <typename T>
+			auto GetSine(double sine_freq, double fs) {
+				std::vector<T> vec(static_cast<std::size_t>(fs / 1e3));
+				for (std::size_t i = 0; i < vec.size(); ++i)
+					if constexpr (ugsdr::is_complex_v<T>)
+						vec[i] = std::exp(T(0, 2 * std::numbers::pi * i * sine_freq / fs));
+					else
+						vec[i] = static_cast<T>(std::cos(2 * std::numbers::pi * i * sine_freq / fs));
+
+				return vec;
+			}
+
+			template <typename T>
+			auto GetData(double fs, double freq_low, double freq_high) {
+				auto dst = GetSine<T>(freq_low, fs);
+				auto harmonic = GetSine<T>(freq_high, fs);
+				std::transform(dst.begin(), dst.end(), harmonic.begin(), dst.begin(), std::plus<T>{});
+
+				return dst;
+			}
+
+			template <typename T>
+			auto GetWeights() {
+				std::vector<T> dst(32, static_cast<T>(1.0 / 32 / 0.45022));
+				return dst;
+			}
+
+			template <typename T, typename F>
+			auto Process(const std::vector<T>& data, F& fir) {
+				return fir.Filter(data);
+			}
+
+			template <template <typename, typename, typename> typename FirType, typename AbsType, typename DftType, typename T>
+			void TestFir() {
+				auto fs = 50e6;
+				auto freq_low = 1e6;
+				auto freq_high = 20e6;
+
+				const auto data = GetData<T>(fs, freq_low, freq_high);
+				auto weights = GetWeights<T>();
+				auto fir = FirType(weights);
+				const auto result = Process(data, fir);
+				auto pre = AbsType::Transform(DftType::Transform(data));
+				auto post = AbsType::Transform(DftType::Transform(result));
+
+				auto low_index = static_cast<std::size_t>(freq_low / 1e3);
+				auto high_index = static_cast<std::size_t>(freq_high / 1e3);
+				ASSERT_NEAR(post[low_index], pre[low_index], static_cast<ugsdr::underlying_t<T>>(5.0));
+				ASSERT_NEAR(post[high_index], pre[high_index] * 0.0428916, static_cast<ugsdr::underlying_t<T>>(5.0));
+			}
+			template <template <typename, typename, typename> typename FirType, typename AbsType, typename DftType, typename T>
+			void TestFirMultiple() {
+				auto fs = 50e6;
+				auto freq_low = 1e6;
+				auto freq_high = 20e6;
+
+				const auto data = GetData<T>(fs, freq_low, freq_high);
+				auto weights = GetWeights<T>();
+				auto fir = FirType(weights);
+				const auto result_first = Process(data, fir);
+				const auto result = Process(data, fir);
+				auto pre = AbsType::Transform(DftType::Transform(data));
+				auto post = AbsType::Transform(DftType::Transform(result));
+
+				auto low_index = static_cast<std::size_t>(freq_low / 1e3);
+				auto high_index = static_cast<std::size_t>(freq_high / 1e3);
+				ASSERT_NEAR(post[low_index] / 1.000224, pre[low_index], static_cast<ugsdr::underlying_t<T>>(5.0));
+				ASSERT_NEAR(post[high_index], pre[high_index] * 0.042898, static_cast<ugsdr::underlying_t<T>>(5.0));
+			}
+
+#ifdef HAS_IPP
+			TYPED_TEST(FirTest, sequential_fir) {
+				TestFir<ugsdr::SequentialFir, ugsdr::IppAbs, ugsdr::IppDft, typename TestFixture::Type>();
+			}
+
+			TYPED_TEST(FirTest, sequential_fir_reenter) {
+				TestFirMultiple<ugsdr::SequentialFir, ugsdr::IppAbs, ugsdr::IppDft, typename TestFixture::Type>();
+			}
+#endif
+
+//#ifdef HAS_IPP
+//			TYPED_TEST(FirTest, ipp_fir) {
+//				TestAbs<ugsdr::IppFir, typename TestFixture::Type>();
+//			}
+//#endif
+//
+//#ifdef HAS_ARRAYFIRE
+//			TYPED_TEST(FirTest, af_fir) {
+//				TestAbs<ugsdr::AfFir, typename TestFixture::Type>();
+//			}
+//#endif
+		}
 	}
 
 	namespace HelpersTests {
@@ -312,6 +418,7 @@ namespace basic_tests {
 			}
 #endif
 		}
+
 		namespace Conj {
 			template <typename T>
 			class ConjTest : public testing::Test {
