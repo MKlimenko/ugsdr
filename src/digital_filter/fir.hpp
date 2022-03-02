@@ -14,6 +14,10 @@ namespace ugsdr {
 			return static_cast<FirImpl&>(*this);
 		}
 
+		const auto& GetImpl() const {
+			return static_cast<const FirImpl&>(*this);
+		}
+
 	public:
 		template <Container T>
 		void Filter(T& src_dst) {
@@ -25,6 +29,17 @@ namespace ugsdr {
 		auto Filter(const T& src) {
 			return GetImpl().Process(src);
 		}
+		
+		template <Container T>
+		void UpdateWeights(const T& filter_coefficients) {
+			GetImpl().Update(filter_coefficients);
+		}
+
+		[[nodiscard]]
+		const auto& GetWeigts() const {
+			return GetImpl().Weights();
+		}
+
 	};
 
 	template <typename T, typename WeightsContainer, typename StateContainer/* = std::vector<T>, typename StateContainer = std::vector<T>*/>
@@ -58,7 +73,18 @@ namespace ugsdr {
 			Process(dst);
 			return dst;
 		}
+
+		void Update(const WeightsContainer& filter_coefficients) {
+			weights = filter_coefficients;
+		}
+
+		[[nodiscard]]
+		const auto& Weights() const {
+			return weights;
+		}
+
 	public:
+		SequentialFir(std::size_t filter_order) : state(filter_order), weights(filter_order) {}
 		SequentialFir(std::vector<T> inp_weights) : state(inp_weights.size()), weights(std::move(inp_weights)) {}
 	};
 

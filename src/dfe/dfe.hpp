@@ -6,6 +6,7 @@
 #include "../resample/ipp_resampler.hpp"
 #include "../mixer/table_mixer.hpp"
 #include "../resample/resampler.hpp"
+#include "../antijamming/narrowband.hpp"
 
 #include <algorithm>
 #include <execution>
@@ -93,6 +94,7 @@ namespace ugsdr {
 		SignalParametersBase<UnderlyingType>& signal_parameters;
 		typename Config::MixerType mixer;
 		typename Config::ResamplerType resampler;
+		NarrowbandSuppressor<std::complex<UnderlyingType>> narrowband_suppressor;
 
 		[[nodiscard]]
 		static auto CentralFrequency(Signal signal) {
@@ -161,7 +163,8 @@ namespace ugsdr {
 		Channel(SignalParametersBase<UnderlyingType>& signal_params, const std::vector<Signal>& signals, double new_sampling_rate) :
 			subbands(signals.begin(), signals.end()), sampling_rate(new_sampling_rate), central_frequency(CentralFrequency(signals)), 
 			spectrum_inversion((signal_params.GetCentralFrequency() - central_frequency) > 1),	// to avoid -0.0
-			signal_parameters(signal_params), mixer(signal_parameters.GetSamplingRate(), signal_parameters.GetCentralFrequency() - central_frequency, 0) {}
+			signal_parameters(signal_params), mixer(signal_parameters.GetSamplingRate(), signal_parameters.GetCentralFrequency() - central_frequency, 0),
+			narrowband_suppressor(new_sampling_rate) {}
 		
 		auto GetNumberOfEpochs() const {
 			return signal_parameters.GetNumberOfEpochs();
@@ -173,10 +176,15 @@ namespace ugsdr {
 
 			mixer.Translate(current_vector);
 			resampler.Transform(current_vector, static_cast<std::size_t>(sampling_rate), static_cast<std::size_t>(signal_parameters.GetSamplingRate()));
+			narrowband_suppressor.Process(current_vector);
 		}
 
 		void GetEpoch(std::size_t epoch_offset, SignalEpoch<UnderlyingType>& epoch_data) {
 			GetSeveralEpochs(epoch_offset, 1, epoch_data);
+		}
+
+		auto GetImpulseResponse() const {
+			return narrowband_suppressor.GetImpulseResponse();
 		}
 	};
 
@@ -233,6 +241,14 @@ namespace ugsdr {
 		auto GetSpectrumInversion(Signal signal) const {
 			auto it = GetChannel(signal);
 			return it->spectrum_inversion;
+		}
+
+		auto GetImpulseResponses() const {
+			std::vector<std::vector<std::complex<UnderlyingType>>> dst;
+			for (auto& el : channels)
+				dst.push_back(el.GetImpulseResponse());
+
+			return dst;
 		}
 
 	private:
