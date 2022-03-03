@@ -71,7 +71,8 @@ namespace ugsdr {
 
 		template <typename Ty>
 		void Process(std::vector<Ty>& src_dst) {
-			src_dst = Process(const_cast<const std::vector<Ty>&>(src_dst));
+			const auto src = src_dst;
+			src_dst = Process(src);
 		}
 
 		template <typename Ty>

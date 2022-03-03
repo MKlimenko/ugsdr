@@ -28,13 +28,16 @@ namespace ugsdr {
 			std::size_t frequency_bin = 0.0;
 			double frequency = 0.0;
 			double jammer_to_noise = 0.0;
+
+			DetectionResult() = default;
+			DetectionResult(std::size_t bin, double freq, double j_n_ratio) : frequency_bin(bin), frequency(freq), jammer_to_noise(j_n_ratio) {}
 		};
 
 	private:
 #ifdef HAS_IPP
 		using AbsType = IppAbs;
 		using DftType = IppDft;
-		using FirType = IppFir<T, std::vector<T>, std::vector<T>>;
+		using FirType = SequentialFir<T, std::vector<T>, std::vector<T>>;
 		using MaxIndexType = IppMaxIndex;
 		using MeanStdDevType = IppMeanStdDev;
 #else
@@ -165,10 +168,10 @@ namespace ugsdr {
 		}
 
 		void Process(std::vector<T>& src_dst) {
-			bool is_same = DetectInterference(src_dst);
-			if (!is_same)
-				UpdateImpulseResponse();
-			fir.Filter(src_dst);
+			//bool is_same = DetectInterference(src_dst);
+			//if (!is_same)
+				//UpdateImpulseResponse();
+			//fir.Filter(src_dst);
 		}
 
 		const auto& GetDetectionResults() const {
