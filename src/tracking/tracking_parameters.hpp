@@ -326,7 +326,9 @@ namespace ugsdr {
 			auto parameters = TrackingParameters<TrParamsConfig, T>(acquisition, digital_frontend, signal);
 			auto samples_per_ms = static_cast<std::size_t>(digital_frontend.GetSamplingRate(signal) / 1e3);
 
-			auto ms_cnt = 3 * PrnGenerator<signal>::GetNumberOfMilliseconds();
+			auto number_of_milliseconds = PrnGenerator<signal>::GetNumberOfMilliseconds();
+			auto samples_period = samples_per_ms * number_of_milliseconds;
+			auto ms_cnt = 3 * number_of_milliseconds;
 
 			const auto& epoch = digital_frontend.GetSeveralEpochs(0, ms_cnt).GetSubband(signal);
 			auto code = SequentialUpsampler::Transform(PrnGenerator<signal>::template Get<T>(parameters.sv.id), samples_per_ms * GetCodePeriod(signal));
@@ -336,7 +338,7 @@ namespace ugsdr {
 			auto [correlator_value, code_offset] = MatchedFilterTranslated(epoch, parameters, code);
 			auto [correlator_value_offset, tmp] = MatchedFilterTranslated(epoch, parameters, code, 4e6);
 
-			auto code_offset_mod = code_offset % samples_per_ms;
+			auto code_offset_mod = static_cast<std::ptrdiff_t>((code_offset + samples_period) % samples_per_ms);
 			if (code_offset_mod > samples_per_ms / 2)
 				code_offset_mod -= static_cast<std::ptrdiff_t>(samples_per_ms);
 #if 0
