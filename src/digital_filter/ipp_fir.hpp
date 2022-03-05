@@ -71,19 +71,19 @@ namespace ugsdr {
 
 		template <typename Ty>
 		void Process(std::vector<Ty>& src_dst) {
-			VerifyType<Ty>();
-			auto fir = GetFirWrapper();
-			fir(reinterpret_cast<const IppType*>(src_dst.data()), reinterpret_cast<IppType*>(src_dst.data()), 
-				static_cast<int>(src_dst.size()), reinterpret_cast<FirSpec*>(fir_spec.data()),
-				reinterpret_cast<IppType*>(state.data()), reinterpret_cast<IppType*>(state.data()), buf.data());
+			const auto src = src_dst;
+			src_dst = Process(src);
 		}
 
 		template <typename Ty>
 		[[nodiscard]]
 		auto Process(const std::vector<Ty>& src) {
 			VerifyType<Ty>();
+			auto fir = GetFirWrapper();
 			auto dst = src;
-			Process(dst);
+			fir(reinterpret_cast<const IppType*>(src.data()), reinterpret_cast<IppType*>(dst.data()),
+				static_cast<int>(src.size()), reinterpret_cast<FirSpec*>(fir_spec.data()),
+				reinterpret_cast<IppType*>(state.data()), reinterpret_cast<IppType*>(state.data()), buf.data());
 			return dst;
 		}
 		
@@ -99,8 +99,14 @@ namespace ugsdr {
 			return firinit_wrapper;
 		}
 
-	public:
-		IppFir(std::vector<T> inp_weights) : state(inp_weights.size()), weights(std::move(inp_weights)) {
+		void Update(const WeightsContainer& filter_coefficients) {
+			weights = filter_coefficients;
+			auto fir_init = GetFirInitWrapper();
+			fir_init(reinterpret_cast<const IppType*>(weights.data()), static_cast<int>(weights.size()), ippAlgAuto,
+				reinterpret_cast<FirSpec*>(fir_spec.data()));
+		}
+
+		void Init() {
 			int spec_size = 0;
 			int buf_size = 0;
 			ippsFIRSRGetSize(static_cast<int>(weights.size()), GetIppDataType<T>(), &spec_size, &buf_size);
@@ -109,7 +115,20 @@ namespace ugsdr {
 
 			auto fir_init = GetFirInitWrapper();
 			fir_init(reinterpret_cast<const IppType*>(weights.data()), static_cast<int>(weights.size()), ippAlgAuto,
-				reinterpret_cast<FirSpec*>(fir_spec.data()));
+				reinterpret_cast<FirSpec*>(fir_spec.data()));			
+		}
+
+		[[nodiscard]]
+		const auto& Weights() const {
+			return weights;
+		}
+
+	public:
+		IppFir(std::vector<T> inp_weights) : state(inp_weights.size()), weights(std::move(inp_weights)) {
+			Init();
+		}
+		IppFir(std::size_t weights_size) : state(weights_size), weights(weights_size) {
+			Init();
 		}
 	};
 
