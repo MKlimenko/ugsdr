@@ -48,7 +48,7 @@ namespace ugsdr {
 		using MeanStdDevType = SequentialMeanStdDev
 #endif
 
-		const double j_s_threshold = 30.0;
+		const double j_s_threshold = 20.0;
 		double fs = 0.0;
 		std::size_t max_inreference_cnt = 8;
 		std::size_t filter_size = 128;
@@ -154,6 +154,16 @@ namespace ugsdr {
 			fir.UpdateWeights(ir);
 		}
 
+		void FilterInFreqencyDomain(std::vector<T>& src_dst) {
+			DftType::Transform(src_dst);
+
+			for(auto&el:detection_results) {
+				auto idx = static_cast<std::size_t>(el.frequency / fs * src_dst.size());
+				NullRegion(idx, null_window_size, src_dst);
+			}
+			DftType::Transform(src_dst, true);
+		}
+
 	public:
 		NarrowbandSuppressor(double sampling_rate) : fs(sampling_rate),
 			filter_size(static_cast<std::size_t>(std::ceil(128.0 / 2.048e6 * fs))),
@@ -168,6 +178,9 @@ namespace ugsdr {
 		}
 
 		void Process(std::vector<T>& src_dst) {
+			bool is_same = DetectInterference(src_dst);
+			if (!detection_results.empty())
+				FilterInFreqencyDomain(src_dst);
 			//bool is_same = DetectInterference(src_dst);
 			//if (!is_same)
 				//UpdateImpulseResponse();
