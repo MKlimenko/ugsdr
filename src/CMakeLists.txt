@@ -13,6 +13,7 @@ add_executable (${PROJECT_NAME}
 							correlator/ipp_correlator.hpp
 							dfe/dfe.hpp
 							digital_filter/fir.hpp
+							digital_filter/ipp_customized_fir.hpp
 							digital_filter/ipp_fir.hpp
 							ephemeris/Ephemeris.hpp
 							ephemeris/GalileoEphemeris.hpp

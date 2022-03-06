@@ -14,19 +14,32 @@
 #include <vector>
 
 namespace ugsdr {
+	enum class InterferenceMitigation {
+		Disabled,
+		NarrowbandTemporal,
+		NarrowbandFrequency,
+	};
+
 	template <
+		InterferenceMitigation Approach,
 		typename MixerT,
 		typename ResamplerT
 	>
 	struct ChannelConfig {
+		constexpr static inline auto interference_mitigation = Approach;
 		using MixerType = MixerT;
 		using ResamplerType = ResamplerT;
 
 		static_assert(std::is_base_of_v<Mixer<MixerType>, MixerType>, "Incorrect mixer provided, expected ugsdr::Mixer<T>");
 		static_assert(std::is_base_of_v<Resampler<ResamplerType>, ResamplerType>, "Incorrect resampler provided, expected ugsdr::Resampler<T>");
+
+		constexpr static bool IsNarrowbandEnbaled() {
+			return Approach == InterferenceMitigation::NarrowbandFrequency || Approach == InterferenceMitigation::NarrowbandTemporal;
+		}
 	};
 
 	using DefaultChannelConfig = ChannelConfig <
+		InterferenceMitigation::NarrowbandFrequency,
 #ifdef HAS_IPP
 		IppMixer,
 		IppResampler
@@ -40,8 +53,8 @@ namespace ugsdr {
 	constexpr bool IsChannelConfig(T val) {
 		return false;
 	}
-	template <typename ... Args>
-	constexpr bool IsChannelConfig(ChannelConfig<Args...> val) {
+	template <InterferenceMitigation interfernece_mitigation, typename ... Args>
+	constexpr bool IsChannelConfig(ChannelConfig<interfernece_mitigation, Args...> val) {
 		return true;
 	}
 	template <typename T>
@@ -176,7 +189,8 @@ namespace ugsdr {
 
 			mixer.Translate(current_vector);
 			resampler.Transform(current_vector, static_cast<std::size_t>(sampling_rate), static_cast<std::size_t>(signal_parameters.GetSamplingRate()));
-			narrowband_suppressor.Process(current_vector);
+			if constexpr (Config::IsNarrowbandEnbaled())
+				narrowband_suppressor.template Process<Config::interference_mitigation == InterferenceMitigation::NarrowbandFrequency>(current_vector);
 		}
 
 		void GetEpoch(std::size_t epoch_offset, SignalEpoch<UnderlyingType>& epoch_data) {

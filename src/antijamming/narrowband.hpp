@@ -8,7 +8,7 @@
 #include "../math/mean_stddev.hpp"
 
 #ifdef HAS_IPP
-#include "../digital_filter/ipp_fir.hpp"
+#include "../digital_filter/ipp_customized_fir.hpp"
 #include "../math/ipp_abs.hpp"
 #include "../math/ipp_dft.hpp"
 #include "../math/ipp_max_index.hpp"
@@ -37,7 +37,7 @@ namespace ugsdr {
 #ifdef HAS_IPP
 		using AbsType = IppAbs;
 		using DftType = IppDft;
-		using FirType = SequentialFir<T, std::vector<T>, std::vector<T>>;
+		using FirType = IppCustomizedFir<T, std::vector<T>, std::vector<T>>;
 		using MaxIndexType = IppMaxIndex;
 		using MeanStdDevType = IppMeanStdDev;
 #else
@@ -151,7 +151,7 @@ namespace ugsdr {
 			}
 			auto ir = DftType::Transform(const_cast<const std::vector<std::complex<underlying_t<T>>>&>(frequency_response), true);
 			std::transform(ir.begin(), ir.end(), ir_window.begin(), ir.begin(), std::multiplies<T>{});
-			fir.UpdateWeights(ir);
+			//fir.UpdateWeights(ir);
 		}
 
 		void FilterInFreqencyDomain(std::vector<T>& src_dst) {
@@ -177,14 +177,16 @@ namespace ugsdr {
 			fir.UpdateWeights(ir_placeholder);
 		}
 
+		template <bool use_frequency_domain>
 		void Process(std::vector<T>& src_dst) {
 			bool is_same = DetectInterference(src_dst);
-			if (!detection_results.empty())
-				FilterInFreqencyDomain(src_dst);
-			//bool is_same = DetectInterference(src_dst);
-			//if (!is_same)
-				//UpdateImpulseResponse();
-			//fir.Filter(src_dst);
+			if constexpr (use_frequency_domain)
+			FilterInFreqencyDomain(src_dst);
+			else {
+				if (!is_same)
+					UpdateImpulseResponse();
+				fir.Filter(src_dst);
+			}
 		}
 
 		const auto& GetDetectionResults() const {
