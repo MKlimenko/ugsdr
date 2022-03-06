@@ -334,6 +334,32 @@ namespace integration_tests {
 			ASSERT_TRUE(VerifyResults(file_type, acquisition_results, signal_parameters.GetSamplingRate()));
 		}
 
+		template <bool enable_mitigation, typename T, typename TestType = DefaultSamplingRate>
+		void TestJammedAcquisition() {
+			auto signal_parameters = ugsdr::SignalParametersBase<T>(SIGNAL_DATA_PATH + std::string("ra4_signal.bin"), ugsdr::FileType::Real_8, 1590e6, 53e6);
+
+			constexpr auto mitigation_type = enable_mitigation ? ugsdr::InterferenceMitigation::NarrowbandFrequency :
+				ugsdr::InterferenceMitigation::Disabled;
+
+			using ChannelConfig = ugsdr::ParametricChannelConfig<mitigation_type>;
+
+			auto digital_frontend = ugsdr::DigitalFrontend(
+				MakeChannel<ChannelConfig>(signal_parameters, ugsdr::Signal::GpsCoarseAcquisition_L1, signal_parameters.GetSamplingRate())
+			);
+
+			using FseConfig = std::conditional_t<std::is_same_v<TestType, DefaultSamplingRate>, ugsdr::DefaultFseConfig,
+				ugsdr::ParametricFseConfig<TestType::GetValue()>
+			>;
+
+			auto fse = ugsdr::FastSearchEngineBase<FseConfig, ugsdr::ParametricChannelConfig<mitigation_type>, T>(digital_frontend, 5e3, 200);
+			auto acquisition_results = fse.Process(false);
+
+			std::cout << "\t\tFound " << acquisition_results.size() << " signals" << std::endl;
+			// there are at least 5 GPS signals in the jammed amungo dataset
+			ASSERT_EQ(enable_mitigation, acquisition_results.size() >= 5);
+		}
+
+
 		template <typename T, typename TestType = DefaultSamplingRate>
 		void TestAcquisition(ugsdr::FileType file_type, ugsdr::Signal signal, double doppler_range = 5e3) {
 			TestAcquisition<T, TestType>(file_type, std::vector{ signal }, doppler_range);
@@ -373,6 +399,14 @@ namespace integration_tests {
 			// TODO: fix sampling rate for L5 acquisition
 			TestAcquisition<typename TestFixture::FirstTupleType, typename TestFixture::SecondTupleType>(ugsdr::FileType::Nt1065GrabberThird,
 				{ ugsdr::Signal::Gps_L5I, ugsdr::Signal::Gps_L5Q });
+		}
+
+		TYPED_TEST(AcquisitionTest, amungo_jammed_gps) {
+			TestJammedAcquisition<false, typename TestFixture::FirstTupleType, typename TestFixture::SecondTupleType>();
+		}
+
+		TYPED_TEST(AcquisitionTest, amungo_jammed_gps_mitigated) {
+			TestJammedAcquisition<true, typename TestFixture::FirstTupleType, typename TestFixture::SecondTupleType>();
 		}
 	}
 

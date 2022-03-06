@@ -38,8 +38,9 @@ namespace ugsdr {
 		}
 	};
 
-	using DefaultChannelConfig = ChannelConfig <
-		InterferenceMitigation::NarrowbandFrequency,
+	template <InterferenceMitigation MitigationType>
+	using ParametricChannelConfig = ChannelConfig <
+		MitigationType,
 #ifdef HAS_IPP
 		IppMixer,
 		IppResampler
@@ -48,6 +49,8 @@ namespace ugsdr {
 		SequentialResampler
 #endif
 	>;
+
+	using DefaultChannelConfig = ParametricChannelConfig<InterferenceMitigation::Disabled>;
 
 	template <typename T>
 	constexpr bool IsChannelConfig(T val) {
@@ -288,6 +291,12 @@ namespace ugsdr {
 		}
 	};
 
+	template <ChannelConfigConcept Config, typename UnderlyingType>
+	DigitalFrontend(std::vector<Channel<Config, UnderlyingType>> input_channels)->DigitalFrontend<Config, UnderlyingType>;
+
+	template <ChannelConfigConcept Config, typename UnderlyingType>
+	DigitalFrontend(Channel<Config, UnderlyingType> channel)->DigitalFrontend<Config, UnderlyingType>;
+	
 	template <ChannelConfigConcept Config, typename T, typename ... Args>
 	auto MakeChannel(SignalParametersBase<T>& signal_parameters, Args&&...args) {
 		return Channel<Config, T>(signal_parameters, args...);
