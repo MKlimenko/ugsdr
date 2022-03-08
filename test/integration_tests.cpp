@@ -448,9 +448,7 @@ namespace integration_tests {
 			std::cout << "Delta: " << offset << " meters" << std::endl;
 			ASSERT_LE(offset, 10);
 		}
-
-
-
+		
 		TYPED_TEST(PositioningTest, TexCup) {
 			auto signal_parameters = ugsdr::SignalParametersBase<typename TestFixture::Type>(SIGNAL_DATA_PATH + std::string("ntlab.bin"), ugsdr::FileType::Nt1065GrabberFirst, 1590e6, 79.5e6);
 			auto signal_parameters_gln = ugsdr::SignalParametersBase<typename TestFixture::Type>(SIGNAL_DATA_PATH + std::string("ntlab.bin"), ugsdr::FileType::Nt1065GrabberSecond, 1590e6, 79.5e6);
