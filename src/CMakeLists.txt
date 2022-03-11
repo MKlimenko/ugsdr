@@ -7,7 +7,9 @@ add_executable (${PROJECT_NAME}
 							common.hpp
 							signal_parameters.hpp
 							acquisition/acquisition_result.hpp 
-							acquisition/fse.hpp 
+							acquisition/fse.hpp
+							antijamming/additional_signal_generator.hpp
+							antijamming/narrowband.hpp
 							correlator/af_correlator.hpp
 							correlator/correlator.hpp
 							correlator/ipp_correlator.hpp

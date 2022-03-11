@@ -6,6 +6,7 @@
 #include "../resample/ipp_resampler.hpp"
 #include "../mixer/table_mixer.hpp"
 #include "../resample/resampler.hpp"
+#include "../antijamming/additional_signal_generator.hpp"
 #include "../antijamming/narrowband.hpp"
 
 #include <algorithm>
@@ -111,6 +112,7 @@ namespace ugsdr {
 		typename Config::MixerType mixer;
 		typename Config::ResamplerType resampler;
 		NarrowbandSuppressor<std::complex<UnderlyingType>> narrowband_suppressor;
+		AdditionalSignalGenerator<UnderlyingType>* signal_generator_ptr = nullptr;
 
 		[[nodiscard]]
 		static auto CentralFrequency(Signal signal) {
@@ -174,13 +176,15 @@ namespace ugsdr {
 		}
 
 	public:
-		Channel(SignalParametersBase<UnderlyingType>& signal_params, Signal signal, double new_sampling_rate) : Channel(signal_params, std::vector{signal}, new_sampling_rate) {}
+		Channel(SignalParametersBase<UnderlyingType>& signal_params, Signal signal, double new_sampling_rate, 
+			AdditionalSignalGenerator<UnderlyingType>* generator_ptr = nullptr) : Channel(signal_params, std::vector{signal}, new_sampling_rate, generator_ptr) {}
 
-		Channel(SignalParametersBase<UnderlyingType>& signal_params, const std::vector<Signal>& signals, double new_sampling_rate) :
+		Channel(SignalParametersBase<UnderlyingType>& signal_params, const std::vector<Signal>& signals, double new_sampling_rate,
+			AdditionalSignalGenerator<UnderlyingType>* generator_ptr = nullptr) :
 			subbands(signals.begin(), signals.end()), sampling_rate(new_sampling_rate), central_frequency(CentralFrequency(signals)), 
 			spectrum_inversion((signal_params.GetCentralFrequency() - central_frequency) > 1),	// to avoid -0.0
 			signal_parameters(signal_params), mixer(signal_parameters.GetSamplingRate(), signal_parameters.GetCentralFrequency() - central_frequency, 0),
-			narrowband_suppressor(new_sampling_rate) {}
+			narrowband_suppressor(new_sampling_rate), signal_generator_ptr(generator_ptr) {}
 		
 		auto GetNumberOfEpochs() const {
 			return signal_parameters.GetNumberOfEpochs();
@@ -189,6 +193,9 @@ namespace ugsdr {
 		void GetSeveralEpochs(std::size_t epoch_offset, std::size_t epoch_cnt, SignalEpoch<UnderlyingType>& epoch_data) {
 			auto& current_vector = epoch_data.GetSubband(subbands[0]);
 			signal_parameters.GetSeveralMs(epoch_offset, epoch_cnt, current_vector);
+
+			if (signal_generator_ptr)
+				signal_generator_ptr->AddSignal(current_vector);
 
 			mixer.Translate(current_vector);
 			resampler.Transform(current_vector, static_cast<std::size_t>(sampling_rate), static_cast<std::size_t>(signal_parameters.GetSamplingRate()));
@@ -299,11 +306,11 @@ namespace ugsdr {
 	
 	template <ChannelConfigConcept Config, typename T, typename ... Args>
 	auto MakeChannel(SignalParametersBase<T>& signal_parameters, Args&&...args) {
-		return Channel<Config, T>(signal_parameters, args...);
+		return Channel<Config, T>(signal_parameters, std::forward<Args>(args)...);
 	}
 
 	template <typename T, typename ... Args>
 	auto MakeChannel(SignalParametersBase<T>& signal_parameters, Args&&...args) {
-		return Channel<DefaultChannelConfig, T>(signal_parameters, args...);
+		return Channel<DefaultChannelConfig, T>(signal_parameters, std::forward<Args>(args)...);
 	}
 }

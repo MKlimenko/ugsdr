@@ -12,6 +12,8 @@
 #include "../src/math/af_dft.hpp"
 #include "../src/math/ipp_dft.hpp"
 
+#include "../src/math/ipp_stft.hpp"
+
 #include "../src/helpers/ipp_complex_type_converter.hpp"
 
 #include "../src/matched_filter/matched_filter.hpp"
@@ -454,6 +456,30 @@ namespace correlator {
 #endif
 
 #if 1
+namespace stft {
+    constexpr auto max_range = 2048 << 8;
+
+#define STFT_BENCHMARK_OPTIONS RangeMultiplier(2)->Range(2048, max_range)->Complexity()->Unit(benchmark::TimeUnit::kMicrosecond)
+
+    template <typename T>
+    static void Ipp(benchmark::State& state) {
+        using StftType = ugsdr::ShortTimeFourierTransform<ugsdr::IppStft>;
+
+        const std::vector<std::complex<T>> vec(state.range());
+
+        for (auto _ : state) {
+            auto dst = StftType::Transform(vec);
+            benchmark::DoNotOptimize(dst);
+        }
+        state.SetComplexityN(state.range());
+    }
+    BENCHMARK_TEMPLATE(Ipp, float)->STFT_BENCHMARK_OPTIONS;
+    BENCHMARK_TEMPLATE(Ipp, double)->STFT_BENCHMARK_OPTIONS;
+}
+#endif
+
+
+#if 0
 namespace acquisition {
 #define ACQ_BENCHMARK_OPTIONS Unit(benchmark::kMillisecond)->Repetitions(10)/*->MinTime(1.0);*/
 
