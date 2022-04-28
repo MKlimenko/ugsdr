@@ -39,7 +39,8 @@ namespace ugsdr {
 			double jammer_to_noise = 0.0;
 
 			DetectionResult() = default;
-			DetectionResult(std::size_t bin, double freq, double j_n_ratio) : frequency_bin(bin), frequency(freq), jammer_to_noise(j_n_ratio) {}
+			DetectionResult(InterferenceType type, std::size_t bin, double freq, double j_n_ratio) : interference_type(type),
+				frequency_bin(bin), frequency(freq), jammer_to_noise(j_n_ratio) {}
 		};
 
 	private:
@@ -68,6 +69,7 @@ namespace ugsdr {
 		};
 
 		const double j_s_threshold = 25.0;
+		const double probability_threshold = 0.9;
 		double fs = 0.0;
 		std::size_t max_inreference_cnt = 8;
 		std::size_t null_window_size = 3;
@@ -136,19 +138,46 @@ namespace ugsdr {
 			mean_number_of_jammers /= intermediate_results.size();
 
 			for(std::size_t i = 0; i < mean_number_of_jammers; ++i) {
-				std::map<double, double> freq_occupation;
+				std::map<double, std::pair<double, InternalDetectionResult>> freq_occupation; // mapping frequency to count and internal_results
 				double current_quantity = 0;
 				for (auto& el : intermediate_results) {
 					if (el.size() <= i)
 						continue;
+					// todo: refactor, not the best way to do it
 					const auto& current_jammer_info = el[i];
-					freq_occupation[current_jammer_info.frequency] += 1;
+					freq_occupation[current_jammer_info.frequency].first += 1;
+					freq_occupation[current_jammer_info.frequency].second.frequency = el[i].frequency;
+					freq_occupation[current_jammer_info.frequency].second.frequency_bin = el[i].frequency_bin;
+					freq_occupation[current_jammer_info.frequency].second.jammer_to_noise += el[i].jammer_to_noise;
 					++current_quantity;
 				}
-				for (auto& [freq, cnt] : freq_occupation)
-					cnt /= current_quantity;
+				for (auto& [freq, cur_info] : freq_occupation) {
+					cur_info.first /= current_quantity;
+					cur_info.second.jammer_to_noise /= current_quantity;
+				}
 
-				auto a = 5;
+				std::size_t cnt_wideband = 0;
+				auto* wideband_ptr = &freq_occupation.begin()->second.second;
+				for (auto& el : freq_occupation) {
+					// narrowband
+					auto probability = el.second.first;
+					if (probability >= probability_threshold) {
+						const auto& internal_result = el.second.second;
+						dst.emplace_back(DetectionResult::InterferenceType::Narrowband, internal_result.frequency_bin,
+							internal_result.frequency, internal_result.jammer_to_noise);
+						break;
+					}
+					// wideband
+					if (probability >= probability_threshold / static_cast<double>(freq_occupation.size())) {
+						++cnt_wideband;
+						wideband_ptr = &el.second.second;
+					}
+					
+				}
+
+				if (cnt_wideband >= static_cast<std::size_t>(freq_occupation.size() * probability_threshold))
+					dst.emplace_back(DetectionResult::InterferenceType::Wideband, wideband_ptr->frequency_bin,
+						wideband_ptr->frequency, wideband_ptr->jammer_to_noise);
 			}
 
 			return dst;
@@ -162,7 +191,7 @@ namespace ugsdr {
 		const auto& Process(const std::vector<T>& src_dst) {
 			auto stft = StftType::Transform(src_dst);
 			auto intermediate_results = IntermediateDetection(stft);
-			auto d = AnalyzeStftData(intermediate_results);
+			detection_results = AnalyzeStftData(intermediate_results);
 			// stft
 			// get indexes
 			//

@@ -39,8 +39,8 @@ void GenerateSignals(CSignalsViewer * sv) {
 	//auto signal_parameters = ugsdr::SignalParametersBase<float>(R"(D:\Git\antijamming\models\data\msos804a\alligator_downsampled.bin)", 
 	//	ugsdr::FileType::Iq_8_plus_8, 1575.42e6, 200e6);
 
-	auto narrowband_interference = std::make_unique<ugsdr::AdditionalTone<float>>(13.58e6, signal_parameters.GetSamplingRate(), 100);
-	//auto narrowband_interference = std::make_unique<ugsdr::AdditionalChirp<float>>(0, 20e6, signal_parameters.GetSamplingRate(), 20e-6, 100);
+	//auto narrowband_interference = std::make_unique<ugsdr::AdditionalTone<float>>(13.58e6, signal_parameters.GetSamplingRate(), 100);
+	auto narrowband_interference = std::make_unique<ugsdr::AdditionalChirp<float>>(0, 20e6, signal_parameters.GetSamplingRate(), 20e-6, 100);
 
 	auto digital_frontend = ugsdr::DigitalFrontend(
 		MakeChannel(signal_parameters, std::vector{ ugsdr::Signal::GpsCoarseAcquisition_L1 }, signal_parameters.GetSamplingRate(), narrowband_interference.get())
