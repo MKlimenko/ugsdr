@@ -50,7 +50,7 @@ namespace ugsdr {
 #endif
 	>;
 
-	using DefaultChannelConfig = ParametricChannelConfig<InterferenceMitigation::Enabled>;
+	using DefaultChannelConfig = ParametricChannelConfig<InterferenceMitigation::Disabled>;
 
 	template <typename T>
 	constexpr bool IsChannelConfig(T val) {
