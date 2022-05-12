@@ -103,12 +103,13 @@ namespace ugsdr {
 		}
 		
 		template <typename Ty>
-		static void NullRegion(std::size_t index, std::size_t null_size, std::vector<Ty>& magnitude) {
-			for (std::ptrdiff_t i = index - null_size; i <= index + null_size; ++i) {
-				if (i < 0 || i >= magnitude.size())
-					continue;
-				magnitude[i] = 0;
-			}
+		static void NullRegion(std::size_t index, std::size_t null_size, std::vector<Ty>& data) {
+			auto start = (index - null_size + data.size()) % data.size();
+			auto finish = (index + null_size + data.size()) % data.size();
+			if (finish < start)
+				finish += data.size();
+			for (std::ptrdiff_t i = start; i <= finish; ++i)
+				data[i % data.size()] = 0;
 		}
 
 		template <typename Ty>

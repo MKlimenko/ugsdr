@@ -23,10 +23,25 @@ namespace ugsdr {
 		}
 
 		template <typename T>
+		constexpr static auto GenerateDetectionWindow(std::size_t window_size) {
+			std::vector<underlying_t<T>> detection_window(window_size);
+			constexpr std::array<double, 4> a = { 0.3635819, 0.4891775, 0.1365995, 0.0106411 };
+
+			for (std::size_t i = 0; i < window_size; ++i)
+				for (std::size_t j = 0; j < a.size(); ++j)
+					detection_window[i] += a[j] * std::pow(-1, j) * cos(2.0 * j * std::numbers::pi * i / (window_size - 1));
+
+			return detection_window;
+		}
+
+		template <typename T>
 		static void ApplyWindow(std::vector<T>& vec) {
 			auto window_wrapper = GetWindowWrapper();
-			using IppType = typename IppTypeToComplex<underlying_t<T>>::Type;
-			window_wrapper(reinterpret_cast<IppType*>(vec.data()), static_cast<int>(vec.size()));
+			//using IppType = typename IppTypeToComplex<underlying_t<T>>::Type;
+			//window_wrapper(reinterpret_cast<IppType*>(vec.data()), static_cast<int>(vec.size()));
+			auto window = GenerateDetectionWindow<T>(vec.size());
+			for (std::size_t i = 0; i < vec.size(); ++i)
+				vec[i] *= window[i];
 		}
 
 		template <typename T>

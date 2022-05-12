@@ -46,11 +46,10 @@ void GenerateSignals(CSignalsViewer * sv) {
 		MakeChannel(signal_parameters, std::vector{ ugsdr::Signal::GpsCoarseAcquisition_L1 }, signal_parameters.GetSamplingRate(), narrowband_interference.get())
 		//MakeChannel(signal_parameters, std::vector{ ugsdr::Signal::GpsCoarseAcquisition_L1 }, signal_parameters.GetSamplingRate())
 	);
+#if 0
 
-	
-	ugsdr::JammingDetector<std::complex<float>> detector(signal_parameters.GetSamplingRate());
-	auto q = detector.Process(digital_frontend.GetEpoch(0).GetSubband(ugsdr::Signal::GpsCoarseAcquisition_L1));
-
+	//ugsdr::JammingDetector<std::complex<float>> detector(signal_parameters.GetSamplingRate());
+	//auto q = detector.Process(digital_frontend.GetEpoch(0).GetSubband(ugsdr::Signal::GpsCoarseAcquisition_L1));
 
 	//auto signal = digital_frontend.GetEpoch(0).GetSubband(ugsdr::Signal::GpsCoarseAcquisition_L1);
 	//ugsdr::Add(signal);
@@ -65,7 +64,7 @@ void GenerateSignals(CSignalsViewer * sv) {
 		ugsdr::Add(stft[i]);
 
 	return;
-
+#endif
 #if 1
 	auto fse = ugsdr::FastSearchEngineBase(digital_frontend, 5e3, 200);
 	auto acquisition_results = fse.Process(true);
