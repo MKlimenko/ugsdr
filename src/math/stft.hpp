@@ -3,6 +3,10 @@
 #include "../common.hpp"
 #include "dft.hpp"
 
+#ifdef HAS_IPP
+#include "ipp_dft.hpp"
+#endif
+
 #include <type_traits>
 #include <utility>
 
@@ -19,7 +23,7 @@ namespace ugsdr {
 		// container of containers
 		template <Container T>
 		requires IsContainer<std::remove_reference_t<decltype(std::declval<T>()[0])>>::value
-		static auto Transform(const T& src, std::size_t window_length, std::size_t overlap_length) {
+		static auto Transform(const T& src, std::size_t window_length = 128, std::size_t overlap_length = 96) {
 			return StftImpl::Process(src, window_length, overlap_length);
 		}
 	};
