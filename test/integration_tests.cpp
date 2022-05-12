@@ -337,11 +337,8 @@ namespace integration_tests {
 		template <bool enable_mitigation, typename T, typename TestType = DefaultSamplingRate>
 		void TestJammedAcquisition() {
 			auto signal_parameters = ugsdr::SignalParametersBase<T>(SIGNAL_DATA_PATH + std::string("ra4_signal.bin"), ugsdr::FileType::Real_8, 1590e6, 53e6);
-
-			constexpr auto mitigation_type = enable_mitigation ? ugsdr::InterferenceMitigation::NarrowbandFrequency :
-				ugsdr::InterferenceMitigation::Disabled;
-
-			using ChannelConfig = ugsdr::ParametricChannelConfig<mitigation_type>;
+			constexpr auto enable = enable_mitigation ? ugsdr::InterferenceMitigation::Enabled : ugsdr::InterferenceMitigation::Disabled;
+			using ChannelConfig = ugsdr::ParametricChannelConfig<enable>;
 
 			auto digital_frontend = ugsdr::DigitalFrontend(
 				MakeChannel<ChannelConfig>(signal_parameters, ugsdr::Signal::GpsCoarseAcquisition_L1, signal_parameters.GetSamplingRate())
@@ -351,7 +348,7 @@ namespace integration_tests {
 				ugsdr::ParametricFseConfig<TestType::GetValue()>
 			>;
 
-			auto fse = ugsdr::FastSearchEngineBase<FseConfig, ugsdr::ParametricChannelConfig<mitigation_type>, T>(digital_frontend, 5e3, 200);
+			auto fse = ugsdr::FastSearchEngineBase<FseConfig, ugsdr::ParametricChannelConfig<enable>, T>(digital_frontend, 5e3, 200);
 			auto acquisition_results = fse.Process(false);
 
 			std::cout << "\t\tFound " << acquisition_results.size() << " signals" << std::endl;

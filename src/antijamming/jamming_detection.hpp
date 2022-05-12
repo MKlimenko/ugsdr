@@ -19,6 +19,7 @@
 
 #include <array>
 #include <cmath>
+#include <map>
 #include <numbers>
 #include <vector>
 
@@ -41,6 +42,10 @@ namespace ugsdr {
 			DetectionResult() = default;
 			DetectionResult(InterferenceType type, std::size_t bin, double freq, double j_n_ratio) : interference_type(type),
 				frequency_bin(bin), frequency(freq), jammer_to_noise(j_n_ratio) {}
+
+			bool is_wideband() const {
+				return interference_type == InterferenceType::Wideband;
+			}
 		};
 
 	private:
@@ -68,13 +73,15 @@ namespace ugsdr {
 			InternalDetectionResult(std::size_t bin, double freq, double j_n_ratio) : frequency_bin(bin), frequency(freq), jammer_to_noise(j_n_ratio) {}
 		};
 
-		const double j_s_threshold = 25.0;
+		const double j_s_threshold = 6.0;
 		const double probability_threshold = 0.9;
 		double fs = 0.0;
 		std::size_t max_inreference_cnt = 8;
 		std::size_t null_window_size = 3;
 		std::vector<underlying_t<T>> detection_window;
 		std::vector<DetectionResult> detection_results;
+		std::vector<std::vector<std::complex<underlying_t<T>>>> stft;
+		std::vector<std::vector<InternalDetectionResult>> intermediate;
 
 		auto GetWindowedSignal(const std::vector<T>& src_dst) {
 			std::vector<T> windowed_signal;
@@ -104,12 +111,12 @@ namespace ugsdr {
 			}
 		}
 
-
 		template <typename Ty>
 		auto IntermediateDetection(const std::vector<std::vector<std::complex<Ty>>>& stft_results) {
-			std::vector<std::vector<InternalDetectionResult>> intermediate(stft_results.size());
-
-			std::for_each(std::execution::par_unseq, stft_results.begin(), stft_results.end(), [&stft_results, &intermediate, this](auto& current_subvector) {
+			intermediate.clear();
+			intermediate.resize(stft_results.size());
+		
+			std::for_each(stft_results.begin(), stft_results.end(), [&stft_results, this](auto& current_subvector) {
 				auto& jammer_candidates = intermediate[std::distance(stft_results.data(), &current_subvector)];
 				auto magnitude = AbsType::Transform(current_subvector);
 				for (std::size_t i = 0; i < max_inreference_cnt; ++i) {
@@ -125,8 +132,6 @@ namespace ugsdr {
 					return val.jammer_to_noise < j_s_threshold;
 				}), jammer_candidates.end());
 			});
-
-			return intermediate;
 		}
 
 		auto AnalyzeStftData(const std::vector<std::vector<InternalDetectionResult>>& intermediate_results) const {
@@ -182,24 +187,28 @@ namespace ugsdr {
 
 			return dst;
 		}
-		
 
 	public:
 		JammingDetector(double sampling_rate) : fs(sampling_rate),
 			detection_window(GenerateDetectionWindow(static_cast<std::size_t>(fs / 1e3))) {}
 
 		const auto& Process(const std::vector<T>& src_dst) {
-			auto stft = StftType::Transform(src_dst);
-			auto intermediate_results = IntermediateDetection(stft);
-			detection_results = AnalyzeStftData(intermediate_results);
-			// stft
-			// get indexes
-			//
+			stft = StftType::Transform(src_dst);
+			IntermediateDetection(stft);
+			detection_results = AnalyzeStftData(intermediate);
 			return detection_results;
 		}
 
 		const auto& GetDetectionResults() const {
 			return detection_results;
+		}
+
+		auto& GetStft() {
+			return stft;
+		}
+
+		const auto& GetIntermediateResults() {
+			return intermediate;
 		}
 	};
 }

@@ -44,6 +44,7 @@ void GenerateSignals(CSignalsViewer * sv) {
 
 	auto digital_frontend = ugsdr::DigitalFrontend(
 		MakeChannel(signal_parameters, std::vector{ ugsdr::Signal::GpsCoarseAcquisition_L1 }, signal_parameters.GetSamplingRate(), narrowband_interference.get())
+		//MakeChannel(signal_parameters, std::vector{ ugsdr::Signal::GpsCoarseAcquisition_L1 }, signal_parameters.GetSamplingRate())
 	);
 
 	
@@ -60,7 +61,7 @@ void GenerateSignals(CSignalsViewer * sv) {
 	auto partial_data = digital_frontend.GetEpoch(0).GetSubband(ugsdr::Signal::GpsCoarseAcquisition_L1);
 	ugsdr::Add(partial_data, signal_parameters.GetSamplingRate());
 	auto stft = ugsdr::IppStft::Transform(partial_data);
-	for (std::size_t i = 0; i < 10; ++i)
+	for (std::size_t i = 0; i < 3; ++i)
 		ugsdr::Add(stft[i]);
 
 	return;

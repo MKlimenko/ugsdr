@@ -3,6 +3,10 @@
 #include "../common.hpp"
 #include "dft.hpp"
 
+#ifdef HAS_IPP
+#include "ipp_dft.hpp"
+#endif
+
 #include <type_traits>
 #include <utility>
 

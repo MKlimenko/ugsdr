@@ -69,3 +69,9 @@ file(DOWNLOAD
 
 enable_testing()
 add_test(NAME ${PROJECT_NAME} COMMAND ${PROJECT_NAME})
+
+if (MSVC)
+  add_definitions(/bigobj)
+else ()
+  add_definitions(-Wa,-mbig-obj)
+endif ()
