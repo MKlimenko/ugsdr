@@ -70,12 +70,13 @@ namespace ugsdr {
 		void FilterWideband(std::vector<T>& src_dst) {
 			auto& stft_data = detector.GetStft();
 			const auto& intermediate_detection = detector.GetIntermediateResults();
-			for (std::size_t i = 0; i < stft_data.size(); ++i) {
-				auto& current_subvector = stft_data[i];
+
+			std::for_each(std::execution::par_unseq, stft_data.begin(), stft_data.end(), [this](auto& current_subvector) {
 				for (auto& el : current_subvector)
 					if (std::abs(el) >= j_s_absolute_threshold)
 						el = 0;
-			}
+			});
+
 			auto initial_size = src_dst.size();
 			src_dst = StftType::Transform(stft_data);
 			

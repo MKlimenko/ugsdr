@@ -53,7 +53,8 @@ endif()
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 20)
 file(DOWNLOAD 
-		http://agamenon.tsc.uah.es/Asignaturas/it/rd/apuntes/GPSdata-DiscreteComponents-fs38_192-if9_55.bin
+#		http://agamenon.tsc.uah.es/Asignaturas/it/rd/apuntes/GPSdata-DiscreteComponents-fs38_192-if9_55.bin	# original link doesn't seem to work after 22Q2
+		https://onedrive.live.com/download?cid=11492625001FE073&resid=11492625001FE073%21425&authkey=AFqDC_U7wJS5aUg
 		${CMAKE_CURRENT_LIST_DIR}/../data/GPSdata-DiscreteComponents-fs38_192-if9_55.bin 
 		SHOW_PROGRESS
 		EXPECTED_MD5 f5b0f32d0f97b23060d62ea3b5dc86b2
