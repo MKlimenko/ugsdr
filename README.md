@@ -66,6 +66,9 @@ Some of the following requirements may be loosened in the future to provide a mo
 
 There's still a lot to do, but some of the major steps are the following:
 
+- [ ] Add antijamming and antispoofing modes
+  - [x] Narrow- and wideband mitigation
+  - [ ] Antispoofind
 - [ ] Add the single-pass receiver (realtime-friendly)
 - [ ] Add the missing (B1C, B2I etc) and perspective (L1C, L1OC etc) signals 
 - [ ] Improve the acquisition (add fine acquisition step and bit boundary detection)
@@ -74,5 +77,4 @@ There's still a lot to do, but some of the major steps are the following:
 - [ ] Add high-precision positioning modes (RTK, PPP etc)
 - [ ] Add sensor fusion approaches (GNSS/IMU, GNSS/Video etc)
 - [ ] Add specialized positioning modes (Snapshot positioning)
-- [ ] Add antijamming and antispoofing modes
 - [ ] TBD

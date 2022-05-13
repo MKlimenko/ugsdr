@@ -147,7 +147,7 @@ namespace ugsdr {
 		std::vector<Sv> navic_sv;
 		std::vector<Sv> sbas_sv;
 		std::vector<Sv> qzss_sv;
-		constexpr static inline double peak_threshold = 3.5;
+		constexpr static inline double peak_threshold = 3.3;
 		constexpr static inline double acquisition_sampling_rate = Config::acquisition_sampling_rate;
 		constexpr static inline double acquisition_sampling_rate_L5 = 20.46e6;
 

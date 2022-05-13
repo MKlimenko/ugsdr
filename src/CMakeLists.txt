@@ -7,12 +7,16 @@ add_executable (${PROJECT_NAME}
 							common.hpp
 							signal_parameters.hpp
 							acquisition/acquisition_result.hpp 
-							acquisition/fse.hpp 
+							acquisition/fse.hpp
+							antijamming/additional_signal_generator.hpp
+							antijamming/jamming_detection.hpp
+							antijamming/jse.hpp
 							correlator/af_correlator.hpp
 							correlator/correlator.hpp
 							correlator/ipp_correlator.hpp
 							dfe/dfe.hpp
 							digital_filter/fir.hpp
+							digital_filter/ipp_customized_fir.hpp
 							digital_filter/ipp_fir.hpp
 							ephemeris/Ephemeris.hpp
 							ephemeris/GalileoEphemeris.hpp

@@ -14,6 +14,7 @@
 #include "../src/matched_filter/af_matched_filter.hpp"
 
 #include "../src/digital_filter/fir.hpp"
+#include "../src/digital_filter/ipp_customized_fir.hpp"
 #include "../src/digital_filter/ipp_fir.hpp"
 
 #include "../src/mixer/af_mixer.hpp"
@@ -219,6 +220,14 @@ namespace basic_tests {
 
 			TYPED_TEST(FirTest, ipp_fir_reenter) {
 				TestFirMultiple<ugsdr::IppFir, ugsdr::IppAbs, ugsdr::IppDft, typename TestFixture::Type>();
+			}
+
+			TYPED_TEST(FirTest, ipp_customized_fir) {
+				TestFir<ugsdr::IppCustomizedFir, ugsdr::IppAbs, ugsdr::IppDft, typename TestFixture::Type>();
+			}
+
+			TYPED_TEST(FirTest, ipp_customized_fir_reenter) {
+				TestFirMultiple<ugsdr::IppCustomizedFir, ugsdr::IppAbs, ugsdr::IppDft, typename TestFixture::Type>();
 			}
 #endif
 

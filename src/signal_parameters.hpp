@@ -291,6 +291,23 @@ namespace ugsdr {
 		auto GetNumberOfEpochs() const {
 			return number_of_epochs;
 		}
+
+		auto IsDataReal() const {
+			switch (file_type) {
+			case FileType::Iq_8_plus_8:
+			case FileType::Iq_16_plus_16:
+			case FileType::BbpDdc:
+				return false;
+			case FileType::Real_8: 
+			case FileType::Nt1065GrabberFirst: 
+			case FileType::Nt1065GrabberSecond: 
+			case FileType::Nt1065GrabberThird: 
+			case FileType::Nt1065GrabberFourth:
+				return true;
+			default: 
+				throw std::runtime_error("Unexpected data type");
+			}
+		}
 	};
 
 	using SignalParameters = SignalParametersBase<float>;

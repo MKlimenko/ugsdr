@@ -334,6 +334,55 @@ namespace integration_tests {
 			ASSERT_TRUE(VerifyResults(file_type, acquisition_results, signal_parameters.GetSamplingRate()));
 		}
 
+		template <bool enable_mitigation, typename T, typename TestType = DefaultSamplingRate>
+		void TestJammedAcquisition() {
+			auto signal_parameters = ugsdr::SignalParametersBase<T>(SIGNAL_DATA_PATH + std::string("ra4_signal.bin"), ugsdr::FileType::Real_8, 1590e6, 53e6);
+			constexpr auto enable = enable_mitigation ? ugsdr::InterferenceMitigation::Enabled : ugsdr::InterferenceMitigation::Disabled;
+			using ChannelConfig = ugsdr::ParametricChannelConfig<enable>;
+
+			auto digital_frontend = ugsdr::DigitalFrontend(
+				MakeChannel<ChannelConfig>(signal_parameters, ugsdr::Signal::GpsCoarseAcquisition_L1, signal_parameters.GetSamplingRate())
+			);
+
+			using FseConfig = std::conditional_t<std::is_same_v<TestType, DefaultSamplingRate>, ugsdr::DefaultFseConfig,
+				ugsdr::ParametricFseConfig<TestType::GetValue()>
+			>;
+
+			auto fse = ugsdr::FastSearchEngineBase<FseConfig, ugsdr::ParametricChannelConfig<enable>, T>(digital_frontend, 5e3, 200);
+			auto acquisition_results = fse.Process(false);
+
+			std::cout << "\t\tFound " << acquisition_results.size() << " signals" << std::endl;
+			// there are at least 5 GPS signals in the jammed amungo dataset
+			ASSERT_EQ(enable_mitigation, acquisition_results.size() >= 5);
+		}
+
+		template <bool enable_mitigation, typename T, typename TestType = DefaultSamplingRate>
+		void TestWidebandJammedAcquisition() {
+			auto file_type = ugsdr::FileType::Nt1065GrabberFirst;
+			auto signal_parameters = ugsdr::SignalParametersBase<T>(SIGNAL_DATA_PATH + std::string("nt1065_grabber.bin"), file_type, 1590e6, 79.5e6);
+			constexpr auto enable = enable_mitigation ? ugsdr::InterferenceMitigation::Enabled : ugsdr::InterferenceMitigation::Disabled;
+			using ChannelConfig = ugsdr::ParametricChannelConfig<enable>;
+
+			auto additional_chirp = std::make_unique<ugsdr::AdditionalChirp<T>>(0, 20e6, signal_parameters.GetSamplingRate(), 20e-6, 100);
+
+			auto digital_frontend = ugsdr::DigitalFrontend(
+				MakeChannel<ChannelConfig>(signal_parameters, ugsdr::Signal::GpsCoarseAcquisition_L1, signal_parameters.GetSamplingRate(), additional_chirp.get())
+			);
+
+			using FseConfig = std::conditional_t<std::is_same_v<TestType, DefaultSamplingRate>, ugsdr::DefaultFseConfig,
+				ugsdr::ParametricFseConfig<TestType::GetValue()>
+			>;
+
+			auto fse = ugsdr::FastSearchEngineBase<FseConfig, ugsdr::ParametricChannelConfig<enable>, T>(digital_frontend, 5e3, 200);
+			auto acquisition_results = fse.Process(false);
+
+			std::cout << "\t\tFound " << acquisition_results.size() << " signals" << std::endl;
+			if constexpr (enable_mitigation) {
+				ASSERT_FALSE(acquisition_results.empty());
+				ASSERT_TRUE(VerifyResults(file_type, acquisition_results, signal_parameters.GetSamplingRate()));
+			}
+		}
+
 		template <typename T, typename TestType = DefaultSamplingRate>
 		void TestAcquisition(ugsdr::FileType file_type, ugsdr::Signal signal, double doppler_range = 5e3) {
 			TestAcquisition<T, TestType>(file_type, std::vector{ signal }, doppler_range);
@@ -373,6 +422,22 @@ namespace integration_tests {
 			// TODO: fix sampling rate for L5 acquisition
 			TestAcquisition<typename TestFixture::FirstTupleType, typename TestFixture::SecondTupleType>(ugsdr::FileType::Nt1065GrabberThird,
 				{ ugsdr::Signal::Gps_L5I, ugsdr::Signal::Gps_L5Q });
+		}
+
+		TYPED_TEST(AcquisitionTest, amungo_jammed_gps) {
+			TestJammedAcquisition<false, typename TestFixture::FirstTupleType, typename TestFixture::SecondTupleType>();
+		}
+
+		TYPED_TEST(AcquisitionTest, amungo_jammed_gps_mitigated) {
+			TestJammedAcquisition<true, typename TestFixture::FirstTupleType, typename TestFixture::SecondTupleType>();
+		}
+
+		TYPED_TEST(AcquisitionTest, wideband_jammed_gps) {
+			TestWidebandJammedAcquisition<false, typename TestFixture::FirstTupleType, typename TestFixture::SecondTupleType>();
+		}
+
+		TYPED_TEST(AcquisitionTest, wideband_jammed_gps_mitigated) {
+			TestWidebandJammedAcquisition<true, typename TestFixture::FirstTupleType, typename TestFixture::SecondTupleType>();
 		}
 	}
 
@@ -414,9 +479,7 @@ namespace integration_tests {
 			std::cout << "Delta: " << offset << " meters" << std::endl;
 			ASSERT_LE(offset, 10);
 		}
-
-
-
+		
 		TYPED_TEST(PositioningTest, TexCup) {
 			auto signal_parameters = ugsdr::SignalParametersBase<typename TestFixture::Type>(SIGNAL_DATA_PATH + std::string("ntlab.bin"), ugsdr::FileType::Nt1065GrabberFirst, 1590e6, 79.5e6);
 			auto signal_parameters_gln = ugsdr::SignalParametersBase<typename TestFixture::Type>(SIGNAL_DATA_PATH + std::string("ntlab.bin"), ugsdr::FileType::Nt1065GrabberSecond, 1590e6, 79.5e6);

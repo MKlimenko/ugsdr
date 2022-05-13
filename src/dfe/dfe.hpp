@@ -6,7 +6,8 @@
 #include "../resample/ipp_resampler.hpp"
 #include "../mixer/table_mixer.hpp"
 #include "../resample/resampler.hpp"
-#include "../antijamming/narrowband.hpp"
+#include "../antijamming/additional_signal_generator.hpp"
+#include "../antijamming/jse.hpp"
 
 #include <algorithm>
 #include <execution>
@@ -14,19 +15,32 @@
 #include <vector>
 
 namespace ugsdr {
+	enum class InterferenceMitigation {
+		Disabled,
+		Enabled
+	};
+
 	template <
+		InterferenceMitigation MitigationState,
 		typename MixerT,
 		typename ResamplerT
 	>
 	struct ChannelConfig {
+		constexpr static inline auto interference_mitigation = MitigationState;
 		using MixerType = MixerT;
 		using ResamplerType = ResamplerT;
 
 		static_assert(std::is_base_of_v<Mixer<MixerType>, MixerType>, "Incorrect mixer provided, expected ugsdr::Mixer<T>");
 		static_assert(std::is_base_of_v<Resampler<ResamplerType>, ResamplerType>, "Incorrect resampler provided, expected ugsdr::Resampler<T>");
+
+		constexpr static bool IsMitigationEnabled() {
+			return MitigationState == InterferenceMitigation::Enabled;
+		}
 	};
 
-	using DefaultChannelConfig = ChannelConfig <
+	template <InterferenceMitigation MitigationType>
+	using ParametricChannelConfig = ChannelConfig <
+		MitigationType,
 #ifdef HAS_IPP
 		IppMixer,
 		IppResampler
@@ -36,12 +50,14 @@ namespace ugsdr {
 #endif
 	>;
 
+	using DefaultChannelConfig = ParametricChannelConfig<InterferenceMitigation::Disabled>;
+
 	template <typename T>
 	constexpr bool IsChannelConfig(T val) {
 		return false;
 	}
-	template <typename ... Args>
-	constexpr bool IsChannelConfig(ChannelConfig<Args...> val) {
+	template <InterferenceMitigation interfernece_mitigation, typename ... Args>
+	constexpr bool IsChannelConfig(ChannelConfig<interfernece_mitigation, Args...> val) {
 		return true;
 	}
 	template <typename T>
@@ -94,7 +110,8 @@ namespace ugsdr {
 		SignalParametersBase<UnderlyingType>& signal_parameters;
 		typename Config::MixerType mixer;
 		typename Config::ResamplerType resampler;
-		NarrowbandSuppressor<std::complex<UnderlyingType>> narrowband_suppressor;
+		JammingSuppressionEngine<std::complex<UnderlyingType>> jamming_suppressor;
+		AdditionalSignalGenerator<UnderlyingType>* signal_generator_ptr = nullptr;
 
 		[[nodiscard]]
 		static auto CentralFrequency(Signal signal) {
@@ -158,13 +175,15 @@ namespace ugsdr {
 		}
 
 	public:
-		Channel(SignalParametersBase<UnderlyingType>& signal_params, Signal signal, double new_sampling_rate) : Channel(signal_params, std::vector{signal}, new_sampling_rate) {}
+		Channel(SignalParametersBase<UnderlyingType>& signal_params, Signal signal, double new_sampling_rate, 
+			AdditionalSignalGenerator<UnderlyingType>* generator_ptr = nullptr) : Channel(signal_params, std::vector{signal}, new_sampling_rate, generator_ptr) {}
 
-		Channel(SignalParametersBase<UnderlyingType>& signal_params, const std::vector<Signal>& signals, double new_sampling_rate) :
+		Channel(SignalParametersBase<UnderlyingType>& signal_params, const std::vector<Signal>& signals, double new_sampling_rate,
+			AdditionalSignalGenerator<UnderlyingType>* generator_ptr = nullptr) :
 			subbands(signals.begin(), signals.end()), sampling_rate(new_sampling_rate), central_frequency(CentralFrequency(signals)), 
 			spectrum_inversion((signal_params.GetCentralFrequency() - central_frequency) > 1),	// to avoid -0.0
 			signal_parameters(signal_params), mixer(signal_parameters.GetSamplingRate(), signal_parameters.GetCentralFrequency() - central_frequency, 0),
-			narrowband_suppressor(new_sampling_rate) {}
+			jamming_suppressor(new_sampling_rate), signal_generator_ptr(generator_ptr) {}
 		
 		auto GetNumberOfEpochs() const {
 			return signal_parameters.GetNumberOfEpochs();
@@ -174,9 +193,13 @@ namespace ugsdr {
 			auto& current_vector = epoch_data.GetSubband(subbands[0]);
 			signal_parameters.GetSeveralMs(epoch_offset, epoch_cnt, current_vector);
 
+			if (signal_generator_ptr)
+				signal_generator_ptr->AddSignal(current_vector);
+
 			mixer.Translate(current_vector);
 			resampler.Transform(current_vector, static_cast<std::size_t>(sampling_rate), static_cast<std::size_t>(signal_parameters.GetSamplingRate()));
-			narrowband_suppressor.Process(current_vector);
+			if constexpr (Config::IsMitigationEnabled())
+				jamming_suppressor.Process(current_vector);
 		}
 
 		void GetEpoch(std::size_t epoch_offset, SignalEpoch<UnderlyingType>& epoch_data) {
@@ -184,7 +207,7 @@ namespace ugsdr {
 		}
 
 		auto GetImpulseResponse() const {
-			return narrowband_suppressor.GetImpulseResponse();
+			return jamming_suppressor.GetImpulseResponse();
 		}
 	};
 
@@ -274,13 +297,19 @@ namespace ugsdr {
 		}
 	};
 
+	template <ChannelConfigConcept Config, typename UnderlyingType>
+	DigitalFrontend(std::vector<Channel<Config, UnderlyingType>> input_channels)->DigitalFrontend<Config, UnderlyingType>;
+
+	template <ChannelConfigConcept Config, typename UnderlyingType>
+	DigitalFrontend(Channel<Config, UnderlyingType> channel)->DigitalFrontend<Config, UnderlyingType>;
+	
 	template <ChannelConfigConcept Config, typename T, typename ... Args>
 	auto MakeChannel(SignalParametersBase<T>& signal_parameters, Args&&...args) {
-		return Channel<Config, T>(signal_parameters, args...);
+		return Channel<Config, T>(signal_parameters, std::forward<Args>(args)...);
 	}
 
 	template <typename T, typename ... Args>
 	auto MakeChannel(SignalParametersBase<T>& signal_parameters, Args&&...args) {
-		return Channel<DefaultChannelConfig, T>(signal_parameters, args...);
+		return Channel<DefaultChannelConfig, T>(signal_parameters, std::forward<Args>(args)...);
 	}
 }
