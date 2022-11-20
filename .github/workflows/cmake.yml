@@ -41,6 +41,9 @@ jobs:
         path: vcpkg
         key: ${{ runner.os }}-vcpkg-march
         
+    - name: Get pwd
+      run: pwd
+
     - name: Get vcpkg
       if: steps.vcpkg-cache.outputs.cache-hit != 'true'
       run: git clone https://github.com/microsoft/vcpkg.git --depth 1
