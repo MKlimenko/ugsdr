@@ -28,7 +28,6 @@ find_package(cereal CONFIG)
 find_package(gcem CONFIG)
 find_package(IPP CONFIG PATHS ${IPP_PATH})
 find_package(OpenMP)
-find_package(TBB CONFIG)
 find_package(benchmark CONFIG)
 find_package(GTest CONFIG)
 
