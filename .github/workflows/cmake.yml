@@ -47,7 +47,10 @@ jobs:
 
     - name: Bootstrap vcpkg
       if: steps.vcpkg-cache.outputs.cache-hit != 'true'
-      run: ./vcpkg/bootstrap-vcpkg.sh && export VCPKG_ROOT=${PWD}/vcpkg
+      run: ./vcpkg/bootstrap-vcpkg.sh
+
+    - name: list cmake
+      run: cat /home/runner/work/ugsdr/ugsdr/vcpkg/scripts/buildsystems/vcpkg.cmake
 
     - name: Install dependencies
       if: steps.vcpkg-cache.outputs.cache-hit != 'true'
@@ -59,7 +62,7 @@ jobs:
     - name: Configure CMake
       # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
       # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
-      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_TOOLCHAIN_FILE=${{env.VCPKG_ROOT}}/scripts/buildsystems/vcpkg.cmake
+      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_TOOLCHAIN_FILE=/home/runner/work/ugsdr/ugsdr/vcpkg/scripts/buildsystems/vcpkg.cmake
 
     - name: Build
       # Build your program with the given configuration
