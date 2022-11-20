@@ -50,13 +50,13 @@ jobs:
       run: ./vcpkg/bootstrap-vcpkg.sh
       
     - name: list cmake
-      run: lscpu
+      run: lscpu && cmake --version
 
     - name: Install IPP
-      run: wget https://registrationcenter-download.intel.com/akdlm/irc_nas/18487/l_BaseKit_p_2022.1.2.146.sh && mkdir ONEAPI_ROOT && sudo sh ./l_BaseKit_p_2022.1.2.146.sh -a --components intel.oneapi.lin.mkl.devel:intel.oneapi.lin.ipp.devel -s --eula accept --install-dir ONEAPI_ROOT && export ONEAPI_ROOT=${PWD}/ONEAPI_ROOT && ls ONEAPI_ROOT/ && source ./ONEAPI_ROOT/setvars.sh
+      run: wget https://registrationcenter-download.intel.com/akdlm/irc_nas/18487/l_BaseKit_p_2022.1.2.146.sh && mkdir ONEAPI_ROOT && sudo sh ./l_BaseKit_p_2022.1.2.146.sh -a --components intel.oneapi.lin.mkl.devel:intel.oneapi.lin.ipp.devel -s --eula accept --install-dir ONEAPI_ROOT && export ONEAPI_ROOT=${PWD}/ONEAPI_ROOT
 
     - name: Install dependencies
-      run: ./vcpkg/vcpkg install boost-iostreams boost-timer boost-system boost-circular-buffer gtest benchmark fftw3[threads] arrayfire[cpu,unified,opencl]
+      run: source ./ONEAPI_ROOT/setvars.sh && ./vcpkg/vcpkg install boost-iostreams boost-timer boost-system boost-circular-buffer gtest benchmark fftw3[threads] arrayfire[cpu,unified,opencl]
 
     - name: Configure CMake
       # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
