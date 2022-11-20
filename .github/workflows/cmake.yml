@@ -34,15 +34,12 @@ jobs:
       with:
         path: ${{github.workspace}}/data/ntlab.bin
         key: ${{ runner.os }}-positioning_signal_ntlab_cache_fix
-        
+
     - uses: actions/cache@v3
       id: vcpkg-cache
       with:
         path: vcpkg
         key: ${{ runner.os }}-vcpkg-march
-        
-    - name: Get pwd
-      run: pwd
 
     - name: Get vcpkg
       if: steps.vcpkg-cache.outputs.cache-hit != 'true'
@@ -52,14 +49,10 @@ jobs:
       if: steps.vcpkg-cache.outputs.cache-hit != 'true'
       run: ./vcpkg/bootstrap-vcpkg.sh
 
-    - name: Integrate vcpkg
-      if: steps.vcpkg-cache.outputs.cache-hit != 'true'
-      run: ./vcpkg/vcpkg integrate install
-      
     - name: Install dependencies
       if: steps.vcpkg-cache.outputs.cache-hit != 'true'
       run: ./vcpkg/vcpkg install boost-iostreams boost-timer boost-system boost-circular-buffer gtest benchmark fftw3[threads] tbb
-      
+
     - name: Install IPP
       run: wget https://registrationcenter-download.intel.com/akdlm/irc_nas/18487/l_BaseKit_p_2022.1.2.146.sh && mkdir ONEAPI_ROOT && sudo sh ./l_BaseKit_p_2022.1.2.146.sh -a --components intel.oneapi.lin.ipp.devel -s --eula accept --install-dir ONEAPI_ROOT && export ONEAPI_ROOT=${PWD}/ONEAPI_ROOT
 
