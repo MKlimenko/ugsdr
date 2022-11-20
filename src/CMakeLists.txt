@@ -126,11 +126,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
 )
 
 if (${ArrayFire_FOUND})
-	target_link_libraries(${PROJECT_NAME} PRIVATE ArrayFire::afcuda)
-endif()
-
-if (${cereal_FOUND})
-	target_link_libraries(${PROJECT_NAME} PRIVATE cereal)
+	target_link_libraries(${PROJECT_NAME} PRIVATE ArrayFire::af)
 endif()
 
 if (${gcem_FOUND})

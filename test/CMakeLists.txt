@@ -24,12 +24,8 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
 )
 
 if (${ArrayFire_FOUND})
-	target_link_libraries(${PROJECT_NAME} PRIVATE ArrayFire::afcuda)
+	target_link_libraries(${PROJECT_NAME} PRIVATE ArrayFire::af)
 	target_include_directories(${PROJECT_NAME} PRIVATE ${ArrayFire_INCLUDE_DIRS})
-endif()
-
-if (${cereal_FOUND})
-	target_link_libraries(${PROJECT_NAME} PRIVATE cereal)
 endif()
 
 if (${gcem_FOUND})
