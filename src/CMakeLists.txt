@@ -135,6 +135,7 @@ endif()
 
 if (${TBB_FOUND})
 	target_link_libraries(${PROJECT_NAME} PRIVATE TBB::tbb)
+	target_include_directories(${PROJECT_NAME} PRIVATE ${TBB_INCLUDE_DIRS})
 endif()
 
 if (${IPP_FOUND})
