@@ -61,7 +61,7 @@ namespace ugsdr {
 		using DftType = SequentialDft;
 		using FirType = SequentialFir<T, std::vector<T>, std::vector<T>>;
 		using MaxIndexType = SequentialMaxIndex;
-		using MeanStdDevType = SequentialMeanStdDev
+		using MeanStdDevType = SequentialMeanStdDev;
 		using StftType = SequentialStft;
 #endif
 		struct InternalDetectionResult {

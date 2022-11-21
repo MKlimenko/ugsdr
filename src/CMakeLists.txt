@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 3.16)
+cmake_minimum_required (VERSION 3.24)
 
 project(ugsdr)
 
@@ -131,10 +131,6 @@ endif()
 
 if (${gcem_FOUND})
 	target_link_libraries(${PROJECT_NAME} PRIVATE gcem)
-endif()
-
-if (${TBB_FOUND})
-	target_link_libraries(${PROJECT_NAME} PRIVATE TBB::tbb)
 endif()
 
 if (${IPP_FOUND})
