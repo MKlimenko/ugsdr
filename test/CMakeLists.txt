@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 3.16)
+cmake_minimum_required (VERSION 3.24)
 
 project(ugsdr_test)
 add_executable (${PROJECT_NAME} 
@@ -57,10 +57,9 @@ file(DOWNLOAD
 		EXPECTED_MD5 f5b0f32d0f97b23060d62ea3b5dc86b2
 )
 file(DOWNLOAD 
-#		https://rnl-data.ae.utexas.edu/texcup/2019May12-rover/ntlab/ntlab.bin # full link, switch after CMake 3.24.0 is out
-		https://dl.dropboxusercontent.com/s/hfdza7a2rsbh77k/ntlab.bin
+		https://rnl-data.ae.utexas.edu/texcup/2019May12-rover/ntlab/ntlab.bin # full link, switch after CMake 3.24.0 is out
 		${CMAKE_CURRENT_LIST_DIR}/../data/ntlab.bin
-#		RANGE_END 4770000000 #CMake MR !6986, merged into master, should be available in 3.24.0
+		RANGE_END 4770000000 #CMake MR !6986, merged into master, should be available in 3.24.0
 		SHOW_PROGRESS
 		EXPECTED_MD5 8023faab3bba118d822af104dd02510c
 )

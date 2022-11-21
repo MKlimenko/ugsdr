@@ -47,38 +47,26 @@ jobs:
 
     - name: Bootstrap vcpkg
       if: steps.vcpkg-cache.outputs.cache-hit != 'true'
-      run: ./vcpkg/bootstrap-vcpkg.sh
-      
-    - name: list cmake
-      run: lscpu && cmake --version
+      run: ./vcpkg/bootstrap-vcpkg.sh      
 
     - name: Install IPP
       run: wget https://registrationcenter-download.intel.com/akdlm/irc_nas/18487/l_BaseKit_p_2022.1.2.146.sh && mkdir ONEAPI_ROOT && sudo sh ./l_BaseKit_p_2022.1.2.146.sh -a --components intel.oneapi.lin.mkl.devel:intel.oneapi.lin.ipp.devel -s --eula accept --install-dir ONEAPI_ROOT && export ONEAPI_ROOT=${PWD}/ONEAPI_ROOT
 
+    - uses: actions/cache@v3
+      id: ipp_cache
+      with:
+        path: ${{github.workspace}}/ONEAPI_ROOT
+        key: ${{ runner.os }}-ipp_cache
+
     - name: Install dependencies
       run: source ./ONEAPI_ROOT/setvars.sh && ./vcpkg/vcpkg install boost-iostreams boost-timer boost-system boost-circular-buffer gtest benchmark fftw3[threads] arrayfire[cpu,unified]
 
-    - name: Get error output
-      uses: actions/upload-artifact@v3
-      if: ${{ always() }}
-      with:
-        name: af_build_log
-        path: /home/runner/work/ugsdr/ugsdr/vcpkg/buildtrees/arrayfire/install-x64-linux-dbg-out.log
-        if-no-files-found: error
-        retention-days: 1      
-
     - name: Configure CMake
-      # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
-      # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
       run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_TOOLCHAIN_FILE=/home/runner/work/ugsdr/ugsdr/vcpkg/scripts/buildsystems/vcpkg.cmake
 
     - name: Build
-      # Build your program with the given configuration
       run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
 
     - name: Test
       working-directory: ${{github.workspace}}/build
-      # Execute tests defined by the CMake configuration.  
-      # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
       run: ctest -C ${{env.BUILD_TYPE}} -V
-      
