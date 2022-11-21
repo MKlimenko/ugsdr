@@ -3,14 +3,10 @@ name: CMake
 on: push
 
 env:
-  # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
   BUILD_TYPE: Release
 
 jobs:
   build:
-    # The CMake configure and build commands are platform agnostic and should work equally well on Windows or Mac.
-    # You can convert this to a matrix build if you need cross-platform coverage.
-    # See: https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
     runs-on: ubuntu-latest
 
     steps:
@@ -50,15 +46,17 @@ jobs:
       run: ./vcpkg/bootstrap-vcpkg.sh      
 
     - name: Install IPP
+      if: steps.ipp-cache.outputs.cache-hit != 'true'
       run: wget https://registrationcenter-download.intel.com/akdlm/irc_nas/18487/l_BaseKit_p_2022.1.2.146.sh && mkdir ONEAPI_ROOT && sudo sh ./l_BaseKit_p_2022.1.2.146.sh -a --components intel.oneapi.lin.mkl.devel:intel.oneapi.lin.ipp.devel -s --eula accept --install-dir ONEAPI_ROOT && export ONEAPI_ROOT=${PWD}/ONEAPI_ROOT
 
     - uses: actions/cache@v3
-      id: ipp_cache
+      id: ipp-cache
       with:
         path: ${{github.workspace}}/ONEAPI_ROOT
-        key: ${{ runner.os }}-ipp_cache
+        key: ${{ runner.os }}-ipp-cache
 
     - name: Install dependencies
+      if: steps.vcpkg-cache.outputs.cache-hit != 'true'
       run: source ./ONEAPI_ROOT/setvars.sh && ./vcpkg/vcpkg install boost-iostreams boost-timer boost-system boost-circular-buffer gtest benchmark fftw3[threads] arrayfire[cpu,unified]
 
     - name: Configure CMake
