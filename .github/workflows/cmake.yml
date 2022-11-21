@@ -56,7 +56,7 @@ jobs:
       run: wget https://registrationcenter-download.intel.com/akdlm/irc_nas/18487/l_BaseKit_p_2022.1.2.146.sh && mkdir ONEAPI_ROOT && sudo sh ./l_BaseKit_p_2022.1.2.146.sh -a --components intel.oneapi.lin.mkl.devel:intel.oneapi.lin.ipp.devel -s --eula accept --install-dir ONEAPI_ROOT && export ONEAPI_ROOT=${PWD}/ONEAPI_ROOT
 
     - name: Install dependencies
-      run: source ./ONEAPI_ROOT/setvars.sh && ./vcpkg/vcpkg install boost-iostreams boost-timer boost-system boost-circular-buffer gtest benchmark fftw3[threads] arrayfire[cpu,unified,opencl]
+      run: source ./ONEAPI_ROOT/setvars.sh && ./vcpkg/vcpkg install boost-iostreams boost-timer boost-system boost-circular-buffer gtest benchmark fftw3[threads] arrayfire[cpu,unified]
 
     - name: Get error output
       uses: actions/upload-artifact@v3
