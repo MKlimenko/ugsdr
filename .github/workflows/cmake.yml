@@ -58,6 +58,15 @@ jobs:
     - name: Install dependencies
       run: source ./ONEAPI_ROOT/setvars.sh && ./vcpkg/vcpkg install boost-iostreams boost-timer boost-system boost-circular-buffer gtest benchmark fftw3[threads] arrayfire[cpu,unified,opencl]
 
+    - name: Get error output
+      uses: actions/upload-artifact@v3
+      if: ${{ always() }}
+      with:
+        name: af_build_log
+        path: /home/runner/work/ugsdr/ugsdr/vcpkg/buildtrees/arrayfire/install-x64-linux-dbg-out.log
+        if-no-files-found: error
+        retention-days: 1      
+
     - name: Configure CMake
       # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
       # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
