@@ -1,5 +1,6 @@
 #pragma once
 
+#include "galois_lfsr.hpp"
 #include "lfsr.hpp"
 #include <vector>
 
