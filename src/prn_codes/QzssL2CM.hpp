@@ -8,7 +8,7 @@ namespace ugsdr {
 	private:
 		static auto LfsrValue(std::size_t sv_number) {
 			constexpr static auto lfsr_values = std::array{
-				46417299,	69649373,	20103862,	6512359,	129712484,	122985405,	28334765,	105513904,	98275890,	90363434,
+				0204244652, 0202133131, 0714351204, 0657127260, 0130567507, 0670517677, 0607275514, 0045413633, 0212645405, 0613700455,
 			};
 
 			if (sv_number >= lfsr_values.size())

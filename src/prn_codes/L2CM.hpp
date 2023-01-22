@@ -7,7 +7,6 @@ namespace ugsdr {
 	private:
 		static constexpr std::size_t code_len = 10230;
 		static constexpr std::uint32_t lfsr_poly = 0x494953C;
-		static constexpr std::size_t lfsr_output_pin = 26;
 
 	protected:
 		static auto NumberOfMilliseconds() {
@@ -20,10 +19,9 @@ namespace ugsdr {
 
 		template <typename T>
 		static void Generate(T* prn, std::size_t sv_number, std::size_t(*LfsrValue)(std::size_t)) {
-			Lfsr lfsr;
+			GaloisLfsr lfsr;
 			lfsr.Val(static_cast<std::uint32_t>(LfsrValue(sv_number)));
 			lfsr.Poly(lfsr_poly);
-			lfsr.Outpin(lfsr_output_pin);
 			lfsr.ResetPeriod(10230);
 
 			for (std::size_t i = 0; i < lfsr.CountSequenceLen(); ++i) {
